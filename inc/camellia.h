@@ -18,7 +18,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -981,10 +981,10 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 /** sizeof(CamRun) is 8 (64 bits)
  */
 typedef struct {
-    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents
+    CAM_RLE_INT_TYPE x;		///< The starting position of the run
     CAM_RLE_INT_TYPE length;    ///< The length of the run (in pixels)
+    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents (the line number when length is 0)
     CAM_RLE_INT_TYPE blob;	///< Run's parent in the connected components tree, which becomes the blob number after labeling
-    CAM_RLE_INT_TYPE line;	///< The line to which the run belongs
 } CamRun;
 
 #ifndef SWIG
@@ -1208,17 +1208,6 @@ int camRLEEncodeColor(CamImage *source, CamRLEImage *dest, CamTable *clusters);
  *		    of blobs exceeds the <DFN>CAM_LABEL_MAX_BLOBS</DFN> constant.
  *
  * This code is based on the ideas developped in the CMVision library by CMU.
- *
- * \verbatim
-
- -------------------------------------------------------------------------
-  Copyright 1999, 2000         #### ### ### ## ## ## #### ##  ###  ##  ##
-  James R. Bruce              ##    ####### ## ## ## ##   ## ## ## ######
-  School of Computer Science  ##    ## # ## ## ## ##  ### ## ## ## ## ###
-  Carnegie Mellon University   #### ##   ##  ###  ## #### ##  ###  ##  ##
- -------------------------------------------------------------------------
-
- * \endverbatim
  */
 int camRLELabeling(CamRLEImage *src, CamBlobs *results);
 

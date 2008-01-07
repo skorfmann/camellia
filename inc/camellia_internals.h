@@ -18,7 +18,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -162,39 +162,41 @@ if (!(condition)) {camError(#function, NULL);return 0;}
  
 #define INIT_MASK_MANAGEMENT \
     if (iROI.mask) { \
-        run=iROI.mask->runs+1; \
-        while (run->line!=iROI.mask_yOffset) run++; \
+        run = iROI.mask->runs; \
+        while (run->length != 0 || run->x != iROI.mask_yOffset) run++; \
+	run++; \
     } else { \
         run=NULL; \
     }
 
 #define BEGIN_MASK_MANAGEMENT(code) \
-    startx=-iROI.mask_xOffset; \
+    startx = -iROI.mask_xOffset; \
 do { \
     if (!iROI.mask) { \
-        endx=width; \
+        endx = width; \
     } else { \
         do { \
-            while ((run->value==0)&&(run->line==y+iROI.mask_yOffset)) { \
-                startx+=run->length; \
+            while (run->value == 0 && run->length != 0) { \
+                startx += run->length; \
                 run++; \
             } \
-            if (run->line!=y+iROI.mask_yOffset) break; \
-            endx=startx+run->length; \
-        } while ((endx<=0)&&(run++)); \
-        if (run->line!=y+iROI.mask_yOffset) break; \
-        if (startx<0) startx=0; \
-        if (startx>width) startx=width; \
-        if (endx>width) endx=width; \
+            if (run->length == 0) break; \
+            endx = startx + run->length; \
+        } while (endx <= 0); \
+        if (run->length == 0) break; \
+        if (startx < 0) startx = 0; \
+        if (startx > width) startx = width; \
+        if (endx > width) endx = width; \
         code \
     }
 
 #define END_MASK_MANAGEMENT \
     if (iROI.mask) { \
-        startx=endx; \
-        run++; \
+        startx = endx; \
+        run++;\
     } \
-} while ((run)&&(run->line==y+iROI.mask_yOffset));
+} while ( run && run->length !=0); \
+run++; \
 
 #ifdef __cplusplus
 }
