@@ -4,7 +4,6 @@ libCamellia_la_SOURCES = \
 		camellia.cpp \
 		cam_3d.c \
 		cam_arithmetics.c \
-		cam_blob_analysis.c \
 		cam_capture.cpp \
 		cam_draw.c \
 		cam_keypoints.c \
@@ -16,7 +15,6 @@ libCamellia_la_SOURCES = \
 		cam_hvsumming.c \
 		cam_integralimage.c \
 		cam_io.c \
-		cam_labelling.c \
 		cam_linear_filtering.c \
 		cam_LUT.c \
 		cam_ME.c \
@@ -28,7 +26,6 @@ libCamellia_la_SOURCES = \
 		cam_RLE_utils.c \
 		cam_SAD.c \
 		cam_utils.c \
-		cam_volberg.c \
 		cam_warping.c \
 		cam_watershed.c \
 		cam_yuv.c \

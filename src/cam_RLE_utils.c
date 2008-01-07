@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,8 @@ int camRLEApplyLUT(CamRLEImage *src, CamRLEImage *dest, CamLUT *LUT)
 
     return 1;
 }
+
+#define CAM_PIXEL unsigned char
 
 int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
 {

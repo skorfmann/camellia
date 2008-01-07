@@ -283,105 +283,6 @@ int CircleStructElt[5][5]=
     {1,1,1,1,1},
     {0,1,1,1,0}};
 
-// Benchmark for labeling and RLE labeling
-void example_labeling_benchmark()
-{
-    CamImage source,dilated,thresholded,labelled;
-    CamRLEImage encoded;
-    CamMorphoMathsKernel mm_params;
-    CamArithmParams arithm_params;
-    CamLabellingResults results;
-    CamBlobs analysis;
-    CamTable LUT;
-    int x,y,i;
-    int t1,t2,t3;
-    int c;
-
-    // Load picture chess.pgm
-    camLoadPGM(&source,"resources/chess.pgm");
-    
-    // Dilate that picture
-    camAllocateImage(&dilated,source.width,source.height,source.depth);
-    for (x=0;x<5;x++) {
-	for (y=0;y<5;y++) {
-	    mm_params.dilationStructElt[x][y]=CircleStructElt[x][y];
-	    mm_params.erosionStructElt[x][y]=0;
-	}
-    }
-    camDilate5x5(&source,&dilated,&mm_params);
-    camSavePGM(&dilated,"output/chess_dilated3.pgm");
-
-    camRLEAllocate(&encoded,(source.width*source.height)/4);
-    for (i=0;i<128;i++) LUT.t[i]=0;
-    for (;i<256;i++) LUT.t[i]=255;
-
-    // Conventional thresholding and labelling
-
-    // Threshold the dilated picture
-    camAllocateImage(&thresholded,source.width,source.height,source.depth);
-    arithm_params.operation=CAM_ARITHM_THRESHOLD;
-    arithm_params.c1=128;
-    arithm_params.c2=0;
-    arithm_params.c3=1;
-    camAllocateImage(&labelled,source.width,source.height,16);
-    
-    t1=camGetTimeMs();
-    for (c=0;c<1000;c++)
-    {
-	camMonadicArithm(&dilated,&thresholded,&arithm_params);	
-	// Label the tresholded image
-	camLabelling(&thresholded,&labelled,&results);
-	// Analyze the blobs
-	camBlobAnalysis1stScan(&labelled,NULL,&results,&analysis);
-    }
-
-    printf("Conventional thresholding & labelling\n");
-    for (i=0;i<analysis.nbBlobs;i++) {
-	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n",
-	    i+1,analysis.blobInfo[i].left,analysis.blobInfo[i].top,
-	    analysis.blobInfo[i].width,analysis.blobInfo[i].height,
-	    analysis.blobInfo[i].surface);
-    }
-
-    // RLE thresholding and labelling
-    t2=camGetTimeMs();
-    for (c=0;c<1000;c++)
-    {
-	// RLE encoding
-	camRLEEncodeLUT(&dilated,&encoded,&LUT);
-	// Labelling
-	camRLELabelling(&encoded,&analysis);
-    }
-    printf("RLE thresholding & labelling\n");
-    for (i=0;i<analysis.nbBlobs;i++) {
-	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n",
-	    i+1,analysis.blobInfo[i].left,analysis.blobInfo[i].top,
-	    analysis.blobInfo[i].width,analysis.blobInfo[i].height,
-	    analysis.blobInfo[i].surface);
-    }
-    t3=camGetTimeMs();
-
-    // Analysis of holes
-    camRLEInverse(&encoded);
-    camRLELabelling(&encoded,&analysis);
-    printf("RLE thresholding & labelling : Holes\n");
-    for (i=0;i<analysis.nbBlobs;i++) {
-	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n",
-	    i+1,analysis.blobInfo[i].left,analysis.blobInfo[i].top,
-	    analysis.blobInfo[i].width,analysis.blobInfo[i].height,
-	    analysis.blobInfo[i].surface);
-    }
-
-    printf("Conventional thresholding & labelling = %d us\n",(t2-t1));
-    printf("RLE thresholding & labelling          = %d us\n",(t3-t2));
-
-    camDeallocateImage(&source);
-    camDeallocateImage(&dilated);
-    camDeallocateImage(&thresholded);
-    camDeallocateImage(&labelled);
-    camRLEDeallocate(&encoded);
-}
-
 // Binary image processing example
 void example_binary()
 {
@@ -1332,7 +1233,6 @@ int main()
     // Legacy examples
     example_filters();
     example_warping();
-    example_labeling_benchmark();
     example_binary();
     example_morpho();
     example_draw();

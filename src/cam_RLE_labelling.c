@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2006, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,9 @@
         if (i==3) break; \
     } \
     if (j==nbClusters) j=0; else j++;
-                    
+
+#define CAM_PIXEL unsigned char
+
 int camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clusters)
 {
     int x,y,i,j,nbRuns,l;

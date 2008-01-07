@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2006, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@
 #include <mmintrin.h>
 #include <xmmintrin.h>
 #endif
+
+#define CAM_PIXEL unsigned char
 
 int camSAD8x8(CamImage *image1, CamImage *image2, int bleft, int btop, int dx, int dy)
 {

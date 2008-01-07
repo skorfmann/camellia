@@ -51,7 +51,7 @@
 #ifndef _CAMELLIA_H_
 #define _CAMELLIA_H_
 
-#define CAM_VERSION "2.7.0 : Bastille ($Rev$)"
+#define CAM_VERSION "2.8.0 : Beaubourg ($Rev$)"
 
 #include <stdlib.h>
 
@@ -59,8 +59,8 @@
  * Compilation options :                   *
  */
 // Pixel definition
-#define CAM_PIXEL unsigned char
-#define CAM_SIGNED_PIXEL signed char
+//#define CAM_PIXEL unsigned char
+//#define CAM_SIGNED_PIXEL signed char
 
 // Max image size
 #define CAM_MAX_SCANLINE 1280
@@ -972,41 +972,6 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 #define camRLELabelling camRLELabeling
 
 #define CAM_LABEL_MAX_BLOBS 1024
-#define CAM_LABEL_PIXEL unsigned short
-
-#define CAM_LABEL_PIXEL_ACCESS(ptr,y,x) \
-    ((CAM_LABEL_PIXEL*)((char*)ptr+y*ptr##widthstep)+x)
-
-/// Data structure containing the result of pixel-based labeling.
-typedef struct {
-    int nbLabels;		    ///< Number of labels found in the frame
-    int equiv[CAM_LABEL_MAX_BLOBS]; ///< Labels equivalence table (see D3.1 for details)
-} CamLabelingResults;
-
-/// 4-connectedness labeling function
-/** Computes the labeled image of a source image,
- *  i.e. finds the connected pixels (using 4-connectedness)
- *  
- *  \param source   The source ::CamImage to process. Must be a grey-level image.
- *  \param dest	    The destination ::CamImage..Must be 16-bits deep (its the label result image)
- *  \param results  The ::CamLabelingResults containing the label equivalence table, to provide to a blob analysis function.
- *  \return	    0 (false) if an error occurs
- *
- *  Note that this function is rather obsolete. This pixel-based labeling algorithm is
- *  outdated compared to RLE-based labeling. 
- *
- *  \sa camRLELabeling
- */
-int camLabeling(CamImage *source, CamImage *dest, CamLabelingResults *results); 
-										  
-/** This algorithm is useless. Presented here for better understanding purpose only.
- *  Indeed, Blob analysis first scan (camBlobAnalysis1stScan()) integrates this second scan.
- *  In-place processing only.
- */
-int camLabeling2ndScan(CamImage *image, CamLabelingResults *results); ///< Second scan for pixel-based labeling. Obsolete.
-
-/* Blob analysis Kernel
- * C code */
 
 #endif // SWIG
 
@@ -1060,37 +1025,7 @@ typedef struct {
 } CamBlobs;
 #endif
 
-/** Computes the most important blob information :
- *  <DFN>top</DFN>, <DFN>left</DFN>, <DFN>width</DFN>, <DFN>height</DFN>, <DFN>cx</DFN>, <DFN>cy</DFN>,
- *  and <DFN>surface</DFN>. <DFN>average</DFN>, <DFN>min</DFN> and <DFN>max</DFN> 
- *  are computed only if a pointer on the original image is provided (slower).
- *
- *  \param blobImage The result of a previous labeling operation.
- *  \param original  The original ::CamImage that was labelled previously. Can bet set to NULL.
- *  \param info	     The ::CamLabelingResults structure provided by the former call to camLabeling().(in data)
- *  \param results   The ::CamBlobs structure that is filled with the collected blob information.
- *		    
- *  \return	    0 (false) if an error occurs, especially if the number of blobs is too high.(more than the <DFN>CAM_LABEL_MAX_BLOBS</DFN> constant)
- *
- *  In-place processing (<DFN>blobImage</DFN> will be affected).
- */
-int camBlobAnalysis1stScan(CamImage *blobImage, CamImage *original, CamLabelingResults *info, CamBlobs *results); ///< Blob analysis function.
-
-/// Second pass, to get some more information if needed.
-/** Computes the <DFN>average</DFN>, <DFN>min</DFN> and <DFN>max</DFN> blob information, if it was
- *  not computed before.
- *
- *  \param blobImage The result of a previous labeling operation.
- *  \param original  The original ::CamImage.that was labelled previously.
- *  \param results   The ::CamBlobs structure that is filled with the collected blob information.
- *		    
- *  \return	    0 (false) if an error occurs.
- */
-int camBlobAnalysisRefinement(CamImage *blobImage, CamImage *original, CamBlobs *results);
-
 /* RLE Labeling kernel
- * New : v1.4 of LLAs
- * Updated v1.6 and v1.9, v2.0 of LLAs
  */
 
 /** @name RLE images processing functions and data structures
@@ -1514,35 +1449,6 @@ float camMeasureAverageDeviation(CamImage *image, int average);
 /** @name Warping functions
  */
 //@{
-
-/// Warping using Volberg's algorithm
-/** This is a forward separable mapping algorithm, i.e. the user
- *  must provide two functions that compute the destination points
- *  of any source point.
- *
- *  This function is the core function, making a single scanline mapping.
- *  It must be called twice to have a full mapping. Use camVolbergFwd()
- *  to do this.
- */
-#ifdef CAM_VOLBERG_ORIGINAL
-void volbergfvd(double f[], int in[] , int out[] , int inlen, int outlen);
-#else
-void camVolbergFwdScanline(CAM_PIXEL *in, int inlen, CAM_PIXEL *out, int outlen, double f[]);
-#endif
-
-/// The structure to provide to the Volberg's algorithm : two functions
-typedef struct {
-    void (*hfwd)(int x, int y, double *xp); ///< First scan, horizontal resampling
-    void (*vfwd)(int x, int y, double *yp); ///< Second scan, vertical resampling
-} CamVolbergFwdParams;
-
-/// Helper function for using Volberg's warping algorithm
-/** 
- *  \param source   The ::CamImage to warp
- *  \param dest	    The warped image
- *  \param params   The ::camVolbergFwdParams structure providing the mapping functions
- */
-void camVolbergFwd(CamImage *source, CamImage *dest, CamVolbergFwdParams *params);
 
 /* Backward warping
  */
