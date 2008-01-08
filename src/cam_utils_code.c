@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -411,8 +411,7 @@ int camSet(CamImage *image, int fillValue)
     int width,height,i;
     int fv;
     CAM_PIXEL *imptr,*tmpptr;
-    CamRun *run;
-    int startx,endx;
+    DECLARE_MASK_MANAGEMENT;
     CamInternalROIPolicyStruct iROI;
 
     // ROI (Region Of Interest) management
@@ -425,30 +424,12 @@ int camSet(CamImage *image, int fillValue)
     imptr=(CAM_PIXEL*)iROI.srcptr;
 
     // Mask management
-    if (iROI.mask) {
-        run=iROI.mask->runs+1; // Skip the first dummy run
-    } else {
-        run=NULL;
-    }
+    INIT_MASK_MANAGEMENT;
 
     if (image->dataOrder==CAM_DATA_ORDER_PIXEL) {
         for (y=0;y<height;y++) {
             tmpptr=imptr;
-            startx=0;
-            do {
-                // Mask management
-                if (!iROI.mask) {
-                    endx=width;
-                } else {
-                    while ((run->value==0)&&(run->line==y)) {
-                        startx+=run->length;
-                        run++;
-                    }
-                    if (run->line!=y) break; // Go directly to next line
-                    endx=startx+run->length;
-                    
-                    imptr=tmpptr+startx*iROI.srcinc;
-                }                    
+            BEGIN_MASK_MANAGEMENT(imptr=tmpptr+startx*iROI.srcinc;)
                 
 #if CAM_FAST==8
                 if ((iROI.nChannels==1)&&(iROI.srcinc==1)) {
@@ -463,33 +444,15 @@ int camSet(CamImage *image, int fillValue)
                             fv>>=8;
                         }
                         imptr+=iROI.srcinc;
-                }   }
-                
-                if (iROI.mask) {
-                    startx+=run->length;
-                    run++;
-                }
-            } while ((run)&&(run->line==y));
-            imptr=(CAM_PIXEL*)(((char*)tmpptr)+image->widthStep);
+		    }   
+		}
+            END_MASK_MANAGEMENT;
+	    imptr=(CAM_PIXEL*)(((char*)tmpptr)+image->widthStep);
         }
     } else {
         for (y=0;y<height;y++) {
             tmpptr=imptr;
-            startx=0;
-            do {
-                // Mask management
-                if (!iROI.mask) {
-                    endx=width;
-                } else {
-                    while ((run->value==0)&&(run->line==y)) {
-                        startx+=run->length;
-                        run++;
-                    }
-                    if (run->line!=y) break; // Go directly to next line
-                    endx=startx+run->length;
-                    
-                    imptr=tmpptr+startx*iROI.srcinc;
-                }                    
+	    BEGIN_MASK_MANAGEMENT(imptr=tmpptr+startx*iROI.srcinc;)
                 
 #if CAM_FAST==8
                 fv=fillValue;
@@ -507,13 +470,8 @@ int camSet(CamImage *image, int fillValue)
                     imptr++;
                 } 
 #endif
-                    
-                if (iROI.mask) {
-                    startx+=run->length;
-                    run++;
-                }
-            } while ((run)&&(run->line==y));
-            imptr=(CAM_PIXEL*)(((char*)tmpptr)+image->widthStep);
+            END_MASK_MANAGEMENT;
+	    imptr=(CAM_PIXEL*)(((char*)tmpptr)+image->widthStep);
         }
     }
 

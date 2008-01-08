@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -650,20 +650,22 @@ void example_rle_erosion()
     camRLEEncodeLUT(&source,&encoded,&LUT);
     printf("Number of runs : %d\n",encoded.nbRuns);
 
-    camRLEErodeCross(&encoded,&eroded);
+/*
+    camRLEErodeCross(&encoded, &eroded);
     printf("Number of runs : %d\n",eroded.nbRuns);
     camRLEDecode(&eroded,&binary,&LUT);
     camSavePGM(&binary,"output/chess_RLE_eroded_cross.pgm");
 
-    camRLEErode3x3(&encoded,&eroded);
+    camRLEErode3x3(&encoded, &eroded);
     printf("Number of runs : %d\n",eroded.nbRuns);
     camRLEDecode(&eroded,&binary,&LUT);
     camSavePGM(&binary,"output/chess_RLE_eroded_3x3.pgm");
 
-    camRLEErode3x2(&encoded,&eroded);
+    camRLEErode3x2(&encoded, &eroded);
     printf("Number of runs : %d\n",eroded.nbRuns);
     camRLEDecode(&eroded,&binary,&LUT);
     camSavePGM(&binary,"output/chess_RLE_eroded_3x2.pgm");
+*/
 
     camRLEDeallocate(&encoded);
     camRLEDeallocate(&eroded);

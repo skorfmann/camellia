@@ -36,11 +36,11 @@ int camRLEEncode(CamImage *source, CamRLEImage *dest)
 
     // Put a run at the begin to have a reference starting point
     newRun=&dest->runs[0];
-    newRun->value=-1;
-    newRun->length=0;
-    newRun->parent=-1;
-    newRun->line=-1;
-    nbRuns=1;
+    newRun->value = 0;
+    newRun->length = 0;
+    newRun->parent = -1;
+    newRun->x = 0;
+    nbRuns = 1;
 	    
     // Encode the whole ROI
     for (y=0;y<height;y++) {
@@ -64,11 +64,20 @@ int camRLEEncode(CamImage *source, CamRLEImage *dest)
 	    newRun->value=m;
 	    newRun->length=x-l;
 	    newRun->parent=nbRuns;
-	    newRun->line=y;
+	    newRun->x = x;
 	    nbRuns++;
 	    
 	    m=n;
 	} while (x<width);	
+	
+	// Write a line delimitating run
+	newRun = &dest->runs[nbRuns];
+	newRun->x = y + 1;
+	newRun->value = 0;
+	newRun->length = 0;
+	newRun->parent = -1;
+	nbRuns++;
+
 	if (nbRuns>=dest->allocated-width) {
     	    camRLEReallocate(dest,dest->allocated*2);
             // dest->nbRuns=0;
@@ -77,20 +86,7 @@ int camRLEEncode(CamImage *source, CamRLEImage *dest)
 	}
 	srcptr=(CAM_PIXEL*)(((char*)srcptr)+source->widthStep);
     }
-
-    // Add one last run, just to ease blob analysis/reconstruction
-    newRun=&dest->runs[nbRuns];
-    newRun->value=-1;
-    newRun->length=0;
-    newRun->parent=-1;
-    newRun->line=-1;
-    if (nbRuns+1>=dest->allocated-width) {
-	camRLEReallocate(dest,dest->allocated*2);
-        // dest->nbRuns=0;
-        // camSetErrorStr("number or runs is too high");
-	// return 0;
-    }
-
+    
     dest->nbRuns=nbRuns;
     return 1;    
 }

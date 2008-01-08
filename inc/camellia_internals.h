@@ -195,7 +195,7 @@ do { \
         startx = endx; \
         run++;\
     } \
-} while ( run && run->length !=0); \
+} while (run && run->length !=0); \
 run++; \
 
 #ifdef __cplusplus

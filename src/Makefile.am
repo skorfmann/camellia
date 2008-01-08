@@ -22,7 +22,6 @@ libCamellia_la_SOURCES = \
 		cam_median_filtering.c \
 		cam_morphomaths.c \
 		cam_RLE_labelling.c \
-		cam_RLE_morpho.c \
 		cam_RLE_utils.c \
 		cam_SAD.c \
 		cam_utils.c \

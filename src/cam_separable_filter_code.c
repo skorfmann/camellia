@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -95,8 +95,7 @@ int camSepFilter(CamImage *source, CamImage *dest, CamSepFilterKernel *kernel)
     signed CAM_PIXEL *tmpLineS = (signed CAM_PIXEL*) tmpLineU;
     int valmax;
 
-    CamRun *run;
-    int startx,endx;
+    DECLARE_MASK_MANAGEMENT;
     CamInternalROIPolicyStruct iROI;
 #ifndef CAM_FIXED_FILTER
     int acc=0;
@@ -131,11 +130,7 @@ int camSepFilter(CamImage *source, CamImage *dest, CamSepFilterKernel *kernel)
     CAM_CHECK_ARGS(camSepFilter,(height>CAM_LF_NEIGHB_Y/2));    
     
     // Mask management
-    if (iROI.mask) {
-        run=iROI.mask->runs+1; // Skip the first dummy run
-    } else {
-        run=NULL;
-    }
+    INIT_MASK_MANAGEMENT;
 
     // Initialize algorithm
     for (i=0;i<CAM_LF_NEIGHB_Y;i++) {
@@ -308,20 +303,7 @@ int camSepFilter(CamImage *source, CamImage *dest, CamSepFilterKernel *kernel)
 	    }
 	}
 
-        startx=0;
-        do {
-            // Mask management
-            if (!iROI.mask) {
-                endx=width;
-            } else {
-                while ((run->value==0)&&(run->line==y)) {
-                    startx+=run->length;
-                    run++;
-                }
-                if (run->line!=y) break; // Go directly to next line
-                endx=startx+run->length;
-                dstptr=cpdstptr+startx*iROI.dstinc;
-            }
+        BEGIN_MASK_MANAGEMENT(dstptr=cpdstptr+startx*iROI.dstinc;)
             
             // Process all the pixels in the line
             for (x=startx;x<endx;x++) {   
@@ -392,13 +374,8 @@ int camSepFilter(CamImage *source, CamImage *dest, CamSepFilterKernel *kernel)
 #endif
             }
 
-            if (iROI.mask) {
-                startx+=run->length;
-                run++;
-            }
+        END_MASK_MANAGEMENT;
 
-        } while ((run)&&(run->line==y));
-        
         // Go to next line
         srcptr=(unsigned CAM_PIXEL*)(((char*)cpsrcptr)+source->widthStep);
         dstptr=(unsigned CAM_PIXEL_DST*)(((char*)cpdstptr)+dest->widthStep);

@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -164,21 +164,15 @@ int camMonadicArithm1U(CamImage *source, CamImage *dest, CamArithmParams *params
 
 #define FOREACH_PIXEL \
 for (y=0;y<height;y++) {                            \
-    cpsrcptr=srcptr; cpdstptr=dstptr; startx=0;     \
-    do {                                            \
-        if (!iROI.mask) endx=width; else {          \
-            while ((run->value==0)&&(run->line==y)) \
-            { startx+=run->length; run++; }         \
-            if (run->line!=y) break;                \
-            endx=startx+run->length;                \
+    cpsrcptr=srcptr; cpdstptr=dstptr;		    \
+    BEGIN_MASK_MANAGEMENT(			    \
             srcptr=cpsrcptr+startx*iROI.srcinc;     \
             dstptr=cpdstptr+startx*iROI.dstinc;     \
-        }                                           \
-        for (x=startx;x<endx;x++,srcptr+=iROI.srcinc,dstptr+=iROI.dstinc)   
+    )	                                            \
+    for (x=startx;x<endx;x++,srcptr+=iROI.srcinc,dstptr+=iROI.dstinc)   
 
 #define END_FOREACH_PIXEL \
-        if (iROI.mask) { startx+=run->length; run++; } \
-    } while ((run)&&(run->line==y));                \
+    END_MASK_MANAGEMENT	    \
     srcptr=(CAM_PIXEL*)(((char*)cpsrcptr)+source->widthStep);   \
     dstptr=(CAM_PIXEL*)(((char*)cpdstptr)+dest->widthStep);     \
 }
@@ -287,23 +281,15 @@ int camMonadicArithm(CamImage *source, CamImage *dest, CamArithmParams *params)
 #undef END_FOREACH_PIXEL
 
 #define FOREACH_PIXEL \
-for (y=0;y<height;y++) {                            \
-    cpsrc1ptr=src1ptr; cpsrc2ptr=src2ptr; cpdstptr=dstptr; startx=0;     \
-    do {                                            \
-        if (!mask) endx=width; else {               \
-            while ((run->value==0)&&(run->line==y)) \
-            { startx+=run->length; run++; }         \
-            if (run->line!=y) break;                \
-            endx=startx+run->length;                \
-            src1ptr=cpsrc1ptr+startx*iROI1.srcinc;  \
-            src2ptr=cpsrc2ptr+startx*iROI2.srcinc;  \
-            dstptr=cpdstptr+startx*iROI1.dstinc;    \
-        }                                           \
-        for (x=startx;x<endx;x++,src1ptr+=iROI1.srcinc,src2ptr+=iROI2.srcinc,dstptr+=iROI1.dstinc)   
+for (y=0;y<height;y++) {					    \
+    cpsrc1ptr=src1ptr; cpsrc2ptr=src2ptr; cpdstptr=dstptr;	    \
+    BEGIN_MASK_MANAGEMENT( src1ptr=cpsrc1ptr+startx*iROI1.srcinc;   \
+	    src2ptr=cpsrc2ptr+startx*iROI2.srcinc;		    \
+            dstptr=cpdstptr+startx*iROI1.dstinc;)		    \
+    for (x=startx;x<endx;x++,src1ptr+=iROI1.srcinc,src2ptr+=iROI2.srcinc,dstptr+=iROI1.dstinc)   
 
 #define END_FOREACH_PIXEL \
-        if (mask) { startx+=run->length; run++; }   \
-    } while ((run)&&(run->line==y));                \
+    END_MASK_MANAGEMENT \
     src1ptr=(CAM_PIXEL*)(((char*)cpsrc1ptr)+source1->widthStep); \
     src2ptr=(CAM_PIXEL*)(((char*)cpsrc2ptr)+source2->widthStep); \
     dstptr=(CAM_PIXEL*)(((char*)cpdstptr)+dest->widthStep); \
@@ -317,12 +303,11 @@ int camDyadicArithm(CamImage *source1, CamImage *source2, CamImage *dest, CamAri
     int c1=params->c1;
     int c2=params->c2;
     int c3=params->c3;
-    CamInternalROIPolicyStruct iROI1,iROI2;
+    CamInternalROIPolicyStruct iROI, iROI1, iROI2;
     int acc=0;
     int valmax;
     CamRLEImage *mask;
-    CamRun *run;
-    int startx,endx;
+    DECLARE_MASK_MANAGEMENT;
 
     if (source1->depth==CAM_DEPTH_1U) {
 	return camDyadicArithm1U(source1,source2,dest,params);
@@ -359,21 +344,11 @@ int camDyadicArithm(CamImage *source1, CamImage *source2, CamImage *dest, CamAri
 
     // Mask management
     if (iROI1.mask) {
-        mask=iROI1.mask;
-        CAM_CHECK_ARGS2(camDyadicArithm,(mask->nSize==sizeof(CamRLEImage)),"Only RLE images are currently supported for masking");
-        CAM_CHECK_ARGS2(camDyadicArithm,mask->width==width,"Incorrect mask image width. Should match the ROI.");
-        CAM_CHECK_ARGS2(camDyadicArithm,mask->height==height,"Incorrect mask image height. Should match the ROI.");
-        run=mask->runs+1; // Skip the first dummy run
-    } else if (iROI2.mask) {
-        mask=iROI2.mask;
-        CAM_CHECK_ARGS2(camDyadicArithm,(mask->nSize==sizeof(CamRLEImage)),"Only RLE images are currently supported for masking");
-        CAM_CHECK_ARGS2(camDyadicArithm,mask->width==width,"Incorrect mask image width. Should match the ROI.");
-        CAM_CHECK_ARGS2(camDyadicArithm,mask->height==height,"Incorrect mask image height. Should match the ROI.");
-        run=mask->runs+1; // Skip the first dummy run        
+        iROI = iROI1;
     } else {
-        mask=NULL;
-        run=NULL;
+        iROI = iROI2;
     }
+    INIT_MASK_MANAGEMENT;
 
     switch(params->operation) {
     case CAM_ARITHM_ADD:

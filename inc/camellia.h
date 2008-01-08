@@ -58,9 +58,6 @@
 /*******************************************
  * Compilation options :                   *
  */
-// Pixel definition
-//#define CAM_PIXEL unsigned char
-//#define CAM_SIGNED_PIXEL signed char
 
 // Max image size
 #define CAM_MAX_SCANLINE 1280
@@ -80,6 +77,7 @@
 
 /*                                         *
  *******************************************/ 
+
 #ifdef _WIN32
 #define CAM_INT64 __int64
 #define CAM_UINT64 unsigned __int64

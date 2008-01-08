@@ -105,11 +105,11 @@ int camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clust
 
     // Put a run at the begin to have a reference starting point
     newRun=&dest->runs[0];
-    newRun->value=0;
-    newRun->length=0;
-    newRun->parent=-1;
+    newRun->value = 0;
+    newRun->length = 0;
+    newRun->parent = -1;
     newRun->x = 0;
-    nbRuns=1;
+    nbRuns = 1;
 	    
     // Encode the whole ROI
     for (y=0;y<height;y++) {
@@ -482,7 +482,7 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
 		newRun->value=m>>7;
 		newRun->length=x-l;
 		newRun->parent=nbRuns;
-		newRun->line=y;
+		newRun->x = x;
 		nbRuns++;
 	    }
 	    

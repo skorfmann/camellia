@@ -1,3 +1,54 @@
+/** \file camellia_internals.h
+ *  \brief Camellia Image Processing Library header file
+ *  \author Bruno STEUX (ENSMP)
+ *    
+ *  Camellia Image Processing Library
+ *
+
+    The Camellia Image Processing Library is an open source low-level image processing library.
+    As it uses the IplImage structure to describe images, it is a good replacement to the IPL (Intel) library
+    and a good complement to the OpenCV library. It includes a lot of functions for image processing
+    (filtering, morphological mathematics, labeling, warping, loading/saving images, etc.),
+    some of them being highly optimized; It is also cross-platform and robust. It is doxygen-documented
+    and examples of use are provided.
+
+    This software library is an outcome of the Camellia european project (IST-2001-34410).
+    It was developped by the Ecole des Mines de Paris (ENSMP), in coordination with
+    the other partners of the project.
+
+  ==========================================================================
+
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer
+          in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the Ecole des Mines de Paris nor the names of
+          its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  ==========================================================================
+
+*/
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -113,7 +164,7 @@ void camGenerateSinLUT()
     
 int camHoughCircle(CamImage *image, int percent, int rmin, int rmax, int *xc, int *yc, int *rc)
 {
-    int i,x,c,d,threshold;
+    int i, x, c, d, threshold, line;
     camHoughCircleInternal hci;
     CamImage sobel_h_abs, sobel_v_abs, sum;
     CamArithmParams p;
@@ -166,14 +217,17 @@ int camHoughCircle(CamImage *image, int percent, int rmin, int rmax, int *xc, in
     // RLE image scanning to process all selected pixels
     run=thresholded.runs;
     for (c=0,x=0;c<thresholded.nbRuns;c++,run++) {
-        if (run->value) {
-            for (d=0;d<run->length;d++) {
-                // This point is good enough. Let's add it to the Hough plan
-                camHoughCircleAccumulate(&hci,x,run->line,+1);
-                x++;
-            }
-        } else x+=run->length;
-        if (x==thresholded.width) x=0;
+	if (run->length) {
+	    if (run->value) {
+		for (d=0;d<run->length;d++) {
+		    // This point is good enough. Let's add it to the Hough plan
+		    camHoughCircleAccumulate(&hci,x,line,+1);
+		    x++;
+		}
+	    } else x+=run->length;
+	} else {
+	    line = run->x;
+	}
     }
 
     // Destroy the hough cube
