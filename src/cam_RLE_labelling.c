@@ -137,10 +137,10 @@ int camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clust
 	    }
               
 	    newRun=&dest->runs[nbRuns];
-	    newRun->value=m;
-	    newRun->length=x-l;
-	    newRun->parent=nbRuns;
-	    newRun->x = x;
+	    newRun->value = m;
+	    newRun->length = x - l;
+	    newRun->parent = -1;
+	    newRun->x = l;
 	    nbRuns++;
 	    
 	    m=n;
@@ -166,6 +166,7 @@ int camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clust
     }
 
     dest->nbRuns=nbRuns;
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
     return 1;    
 }
 
@@ -253,10 +254,10 @@ int camRLEEncodeColor(CamImage *source, CamRLEImage *dest, CamTable *clusters)
             }
               
 	    newRun=&dest->runs[nbRuns];
-	    newRun->value=m;
-	    newRun->length=x-l;
-	    newRun->parent=nbRuns;
-	    newRun->x = x;
+	    newRun->value = m;
+	    newRun->length = x - l;
+	    newRun->parent = -1;
+	    newRun->x = l;
 	    nbRuns++;
 	    
 	    m=n;
@@ -280,6 +281,7 @@ int camRLEEncodeColor(CamImage *source, CamRLEImage *dest, CamTable *clusters)
     }
 
     dest->nbRuns=nbRuns;
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
     return 1;    
 }
 
@@ -347,10 +349,10 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
 	    } while (n==m);
 	    
 	    newRun=&dest->runs[nbRuns];
-	    newRun->value=m>>7;
-	    newRun->length=x-l;
-	    newRun->parent=nbRuns;
-	    newRun->x = x;
+	    newRun->value = m >> 7;
+	    newRun->length = x - l;
+	    newRun->parent = -1;
+	    newRun->x = l;
 	    nbRuns++;
 	    
 	    m=n;
@@ -374,6 +376,7 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
     }
     
     dest->nbRuns=nbRuns;
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
     return 1;        
 }
 
@@ -453,9 +456,9 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
 				z+=table[n][j];
 				newRun=&dest->runs[nbRuns];
 				newRun->value=m;
-				newRun->length=z-l;
-				newRun->parent=nbRuns;
-				newRun->x = z;
+				newRun->length = z - l;
+				newRun->parent = -1;
+				newRun->x = l;
 				nbRuns++;
 				m=1-m; // m=!m;
 				l=z;
@@ -479,10 +482,10 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
 	    // Write the last run of the line if need be
 	    if (x!=l) {
 		newRun=&dest->runs[nbRuns];
-		newRun->value=m>>7;
-		newRun->length=x-l;
-		newRun->parent=nbRuns;
-		newRun->x = x;
+		newRun->value = m >> 7;
+		newRun->length = x - l;
+		newRun->parent = -1;
+		newRun->x = l;
 		nbRuns++;
 	    }
 	    
@@ -507,6 +510,7 @@ int camRLEEncode1U(CamImage *source, CamRLEImage *dest)
     }
 
     dest->nbRuns=nbRuns;
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
     return 1;        
 }
 
@@ -565,11 +569,20 @@ int camRLELabelling(CamRLEImage *src, CamBlobAnalysisResults *results)
     int width = src->width;
     CamRun *run = src->runs;
     
+    CAM_CHECK_ARGS(camRLELabelling, src != NULL);
+    CAM_CHECK_ARGS(camRLELabelling, results != NULL);
+    CAM_CHECK_ARGS(camRLELabelling, src->options & CAM_RLEOPTS_ZERO_ENCODED);
+ 
     if (src->nbRuns == 0) {
 	results->nbBlobs = 0;	
 	return 0;
     }
 
+    // Attribute new parents to prepare for labelling
+    for (i = 1; i < src->nbRuns; i++) {
+	if (run[i].length) run[i].parent = i;
+    }
+    
     c2 = c1 = 1;
     pos2 = pos1 = 0;
     
@@ -584,7 +597,7 @@ int camRLELabelling(CamRLEImage *src, CamBlobAnalysisResults *results)
     run1 = run[c1];
     previous = c2;
     while (c2 < num) {
-	if (run2.value == run1.value && run2.value) { 
+	if (run2.value == run1.value && run1.value) { 
 	    if ((pos2 >= pos1 && pos2 < pos1 + run1.length) || (pos1 >= pos2 && pos1 < pos2 + run2.length)) {
 		if (previous != c2) {
 		    run[c2].parent = run2.parent = run1.parent;
@@ -629,6 +642,7 @@ int camRLELabelling(CamRLEImage *src, CamBlobAnalysisResults *results)
 	    }
 	}
     }
+    src->options |= CAM_RLEOPTS_LABELLED;
     
     // Now, let's run the blob analysis
     return camRLEBlobAnalysis(src,results);
@@ -655,6 +669,7 @@ int camRLEBlobAnalysis(CamRLEImage *src, CamBlobAnalysisResults *results)
     x = y = n = 0;
     for (i = 1; i < nbRuns; i++) {
 	r = &src->runs[i];
+	x = r->x;
 	
 	if (r->value) {
 	    if (r->parent == i) {
@@ -688,21 +703,21 @@ int camRLEBlobAnalysis(CamRLEImage *src, CamBlobAnalysisResults *results)
 		results->blobInfo[b].cy += y * r->length;
 		results->blobInfo[b].last = r;
 	    }
-	} else r->parent=-1;
+	} else r->parent = -1;
 	
 	// Step to next location
-	x = (x + r->length) % width;
-	y += (x == 0);
+	if (x + r->length == width) y++;
+	if (r->length == 0) y = r->x; // When length is 0, the line number is stored in x
     }
     
     // Calculate centroids from stored temporaries
-    for (i=0; i<n; i++) {
+    for (i = 0; i < n; i++) {
 	a = results->blobInfo[i].surface;
 	results->blobInfo[i].cx = results->blobInfo[i].cx / a;
 	results->blobInfo[i].cy = results->blobInfo[i].cy / a;
     }
     
-    results->nbBlobs=n;
+    results->nbBlobs = n;
     return 1;
 }
 

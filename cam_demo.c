@@ -1233,11 +1233,11 @@ int main()
     camInitBenchmark();
 
     // Legacy examples
+    example_draw();
     example_filters();
     example_warping();
     example_binary();
     example_morpho();
-    example_draw();
     example_watershed();
     example_watershed2();
     example_rle_erosion();
@@ -1258,8 +1258,8 @@ int main()
     example_capture();
 
     // C++ reference examples
-    cpp_example_erosion();
     cpp_example_mask();
+    cpp_example_erosion();
     cpp_example_labeling();
     cpp_example_color_labeling();
     cpp_example_histogram();

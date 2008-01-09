@@ -176,11 +176,9 @@ do { \
         endx = width; \
     } else { \
         do { \
-            while (run->value == 0 && run->length != 0) { \
-                startx += run->length; \
-                run++; \
-            } \
+            while (run->value == 0 && run->length != 0) run++; \
             if (run->length == 0) break; \
+	    startx = run->x; \
             endx = startx + run->length; \
         } while (endx <= 0); \
         if (run->length == 0) break; \
@@ -191,12 +189,9 @@ do { \
     }
 
 #define END_MASK_MANAGEMENT \
-    if (iROI.mask) { \
-        startx = endx; \
-        run++;\
-    } \
+    if (run) run++; \
 } while (run && run->length !=0); \
-run++; \
+if (run) run++; \
 
 #ifdef __cplusplus
 }

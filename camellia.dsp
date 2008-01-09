@@ -103,10 +103,6 @@ SOURCE=.\src\cam_arithmetics_code.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\cam_blob_analysis.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\cam_capture.cpp
 # End Source File
 # Begin Source File
@@ -177,10 +173,6 @@ SOURCE=.\src\cam_keypoints_matching.c
 
 SOURCE=.\src\cam_keypoints_sectors_code.c
 # PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\cam_labelling.c
 # End Source File
 # Begin Source File
 
@@ -295,10 +287,6 @@ SOURCE=.\src\cam_utils.c
 
 SOURCE=.\src\cam_utils_code.c
 # PROP Exclude_From_Build 1
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\cam_volberg.c
 # End Source File
 # Begin Source File
 

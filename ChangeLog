@@ -1,6 +1,9 @@
 2008-01-07 Bruno STEUX <Bruno.Steux@ensmp.fr>
+
     * Changed version number to 2.8.0
     * Removed old files and functions (volberg, non-RLE labeling...)
+    * Started deep modifications in Camellia RLE functions (modification of
+    CamRun structure)
 
 2007-06-19 Bruno STEUX <Bruno.Steux@ensmp.fr>
 

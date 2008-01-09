@@ -973,6 +973,11 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 
 #endif // SWIG
 
+#define CAM_RLEOPTS_ZERO_ENCODED    1
+#define CAM_RLEOPTS_LINES_ENCODED   2
+#define CAM_RLEOPTS_STRUCTELT	    4
+#define CAM_RLEOPTS_LABELLED	    8
+
 #define CAM_RLE_INT_TYPE unsigned short
 
 /// The CamRun structure, basic element of a Run-Length Encoding (RLE) of an image.
@@ -1044,6 +1049,7 @@ typedef struct {
     int nbRuns;		///< The number of runs
     int allocated;	///< Number of runs allocated
     CamRun *runs;	///< A pointer to the array of runs
+    int options;	///< Options of CamRLEImage : CAM_RLEOPTS_ZERO_ENCODED, CAM_RLEOPTS_LINES_ENCODED, CAM_RLEOPTS_STRUCTELT, CAM_RLEOPTS_LABELLED
 
 #ifdef __cplusplus
     CamRLEImage() {nSize=sizeof(CamRLEImage); allocated=0; runs=NULL; nbRuns=0;} ///< Default constructor

@@ -61,10 +61,10 @@ int camRLEEncode(CamImage *source, CamRLEImage *dest)
             }
 
             newRun=&dest->runs[nbRuns];
-	    newRun->value=m;
-	    newRun->length=x-l;
-	    newRun->parent=nbRuns;
-	    newRun->x = x;
+	    newRun->value = m;
+	    newRun->length = x - l;
+	    newRun->parent = -1;
+	    newRun->x = l;
 	    nbRuns++;
 	    
 	    m=n;
@@ -88,6 +88,7 @@ int camRLEEncode(CamImage *source, CamRLEImage *dest)
     }
     
     dest->nbRuns=nbRuns;
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
     return 1;    
 }
 

@@ -306,7 +306,6 @@ int camDyadicArithm(CamImage *source1, CamImage *source2, CamImage *dest, CamAri
     CamInternalROIPolicyStruct iROI, iROI1, iROI2;
     int acc=0;
     int valmax;
-    CamRLEImage *mask;
     DECLARE_MASK_MANAGEMENT;
 
     if (source1->depth==CAM_DEPTH_1U) {

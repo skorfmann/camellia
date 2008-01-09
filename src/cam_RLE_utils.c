@@ -62,7 +62,92 @@
 // Applies a LUT (i.e. for instance thresholding), so that we can join runs
 int camRLEApplyLUT(CamRLEImage *src, CamRLEImage *dest, CamLUT *LUT)
 {
-    return 0;
+    CamRun *in, *out;
+    int i, j=1, x, currentColor, currentLength, currentPos, value, line = 0;
+    int num = src->nbRuns;
+
+    CAM_CHECK_ARGS(camRLEApplyLUT, src != NULL);
+    CAM_CHECK_ARGS(camRLEApplyLUT, dest != NULL);
+    CAM_CHECK_ARGS(camRLEApplyLUT, LUT != NULL);
+    // Automatic allocation
+    if (dest->allocated == 0) camRLEAllocate(dest, src->nbRuns);
+    CAM_CHECK_ARGS(camRLEApplyLUT, (dest->nSize == sizeof(CamRLEImage)));
+    CAM_CHECK_ARGS(camRLEApplyLUT, src != dest);
+    CAM_CHECK_ARGS(camRLEApplyLUT, src->options & CAM_RLEOPTS_ZERO_ENCODED);
+
+    dest->options = CAM_RLEOPTS_ZERO_ENCODED | CAM_RLEOPTS_LINES_ENCODED;
+
+    // Put a run at the beginning to have a reference starting point
+    out = &dest->runs[0];
+    out->value = 0;
+    out->length = 0;
+    out->parent = -1;
+    out->x = 0;
+ 
+    currentColor = LUT->t[src->runs[1].value];
+    currentLength = x = src->runs[1].length;
+    currentPos = 0;
+    for (i=2; i<num; i++) {
+	in = &src->runs[i];
+	if (in->length == 0) continue;
+	value = LUT->t[in->value];
+	if (x != src->width) {
+	    x += in->length;
+	    if (value == currentColor) {
+		currentLength += in->length;
+	    } else {
+		out = &dest->runs[j];
+		out->value = currentColor;
+		out->length = currentLength;
+		out->parent = -1;
+		out->x = currentPos;
+		j++;
+		currentColor = value;
+		currentPos += currentLength;
+		currentLength = in->length;
+	    }
+	} else {
+	    // Write last run of current line
+	    out = &dest->runs[j];
+	    out->value = currentColor;
+	    out->length = currentLength;
+	    out->parent = j;
+            out->x = currentPos;
+	    j++;
+	    currentColor = value;
+	    currentPos = 0;
+	    currentLength = x = in->length;
+
+	    // Write delimitating run
+	    out = &dest->runs[j];
+	    out->value = 0;
+	    out->length = 0;
+	    out->parent = j;
+            out->x = ++line;
+	    j++;
+	}
+    }
+    // Write last run of current line
+    out = &dest->runs[j];
+    out->value = currentColor;
+    out->length = currentLength;
+    out->parent = j;
+    out->x = currentPos;
+    j++;
+    
+    // Write delimitating run
+    out = &dest->runs[j];
+    out->value = 0;
+    out->length = 0;
+    out->parent = j;
+    out->x = ++line;
+    j++;
+ 
+    dest->nbRuns=j;
+    dest->height=src->height;
+    dest->width=src->width;
+
+    return 1;
 }
 
 #define CAM_PIXEL unsigned char
@@ -76,6 +161,8 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     int width, height, value;
     CamInternalROIPolicyStruct iROI;
 
+    CAM_CHECK_ARGS(camRLEDecode, src != NULL);
+    CAM_CHECK_ARGS(camRLEDecode, dest != NULL);
     if ((src->runs == NULL)||(src->nbRuns == 0)) return 0;
     // Automatic allocation
     if (dest->imageData==NULL) {
@@ -83,26 +170,26 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     }
 
     // ROI (Region Of Interest) management
-    CAM_CHECK(camRLEDecode,camInternalROIPolicy(dest, NULL, &iROI, 0));
+    CAM_CHECK(camRLEDecode, camInternalROIPolicy(dest, NULL, &iROI, 0));
     CAM_CHECK_ARGS(camRLEDecode, ((dest->depth&CAM_DEPTH_MASK)==(sizeof(CAM_PIXEL)*8)));
     width=iROI.srcroi.width;
     height=iROI.srcroi.height;
     if (iROI.nChannels!=1) {
-        CAM_CHECK_ARGS(camRLEDecode,(dest->dataOrder==CAM_DATA_ORDER_PIXEL));
+        CAM_CHECK_ARGS(camRLEDecode, (dest->dataOrder==CAM_DATA_ORDER_PIXEL));
     }
-    CAM_CHECK_ARGS(camRLEDecode,src->width==width);
-    CAM_CHECK_ARGS(camRLEDecode,src->height==height);
+    CAM_CHECK_ARGS(camRLEDecode, src->width==width);
+    CAM_CHECK_ARGS(camRLEDecode, src->height==height);
 
     ptr=(CAM_PIXEL*)iROI.srcptr;
     for (i=1,l=0,k=0;i<nbRuns;i++,in++) {
+	if (LUT) {
+	    if (in->value<CAM_TABLE_SIZE) {
+		value=LUT->t[in->value];
+	    } else value=0;
+	} else {
+	    value=in->value;
+	}
         for (j=0;j<in->length;j++) {
-            if (LUT) {
-                if (in->value<CAM_TABLE_SIZE) {
-                    value=LUT->t[in->value];
-                } else value=0;
-            } else {
-                value=in->value;
-            }
             for (m=0;m<iROI.nChannels;m++) {
                 ptr[k+m]=(value>>(m<<3));
             }
@@ -168,8 +255,10 @@ int camRLEInverse(CamRLEImage *image)
     int i;
 
     for (i=1;i<nbRuns;i++,in++) {
-	in->value=(in->value)?0:1;
-	in->parent=i;
+	if (in->length) {
+	    in->value=(in->value)?0:1;
+	    in->parent=i;
+	}
     }
     return 1;
 }

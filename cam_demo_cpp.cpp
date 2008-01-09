@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,7 @@ extern "C" void cpp_example_erosion()
 
 extern "C" void cpp_example_mask()
 {
-    CamImage source,dest,mask;
+    CamImage source, dest, mask;
     CamRLEImage encoded_mask;
     
     // Load picture chess.pgm
@@ -70,8 +70,8 @@ extern "C" void cpp_example_mask()
 
     // Draw a filled circle in mask
     mask.set(0);
-    mask.draw_circle(mask.width/2,mask.height/2,50,255);
-    mask.fill_color(mask.width/2,mask.height/2,255);
+    mask.draw_circle(mask.width/2, mask.height/2, 50, 255);
+    mask.fill_color(mask.width/2, mask.height/2, 255);
 
     // Encode the mask and associate it to the source image
     mask.encode(encoded_mask);
@@ -101,38 +101,38 @@ extern "C" int sortfunc(const void *a, const void *b)
 
 extern "C" void cpp_example_labeling()
 {
-    CamImage image,yuv;
+    CamImage image, yuv;
     
     // Load picture alfa156.bmp
     image.load_bmp("resources/alfa156.bmp");    
     image.to_yuv(yuv);
     
     // Consider V plane only
-    CamROI roi(3,0,0,yuv.width,yuv.height);
+    CamROI roi(3, 0, 0, yuv.width, yuv.height);
     yuv.set_roi(roi);
     
     // Threshold and encode
     CamRLEImage thr;
-    yuv.encode_threshold(thr,150);
+    yuv.encode_threshold(thr, 150);
 
     // Labeling
     CamBlobs blobs;
     thr.labeling(blobs);
     
     // Print info
-    std::cout<<blobs.nbBlobs<<" blobs detected"<<std::endl;
+    std::cout << blobs.nbBlobs << " blobs detected" << std::endl;
     
     // Draw rectangles on all detected blobs
     for (int i=0;i<blobs.nbBlobs;i++) {
         image.draw_rectangle(blobs[i].left, blobs[i].top,
-            blobs[i].left+blobs[i].width-1, blobs[i].top+blobs[i].height-1,
-            CAM_RGB(255,0,0));
+            blobs[i].left + blobs[i].width - 1, blobs[i].top + blobs[i].height - 1,
+            CAM_RGB(255, 0, 0));
     }
     image.save_bmp("output/alfa156_labeling.bmp");
     
     // Find out the biggest blob
-    qsort((void*)blobs.blobInfo,blobs.nbBlobs,sizeof(CamBlobInfo),sortfunc);
-    std::cout<<"The bigger blob is at position ("<<blobs[0].cx<<","<<blobs[0].cy<<") and its surface is "<<blobs[0].surface<<" pixels"<<std::endl;
+    qsort((void*)blobs.blobInfo, blobs.nbBlobs, sizeof(CamBlobInfo), sortfunc);
+    std::cout<<"The bigger blob is at position (" << blobs[0].cx << "," << blobs[0].cy << ") and its surface is " << blobs[0].surface << " pixels" << std::endl;
 }
 
 extern "C" void cpp_example_color_labeling()
