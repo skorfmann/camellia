@@ -122,11 +122,12 @@ int camCopy(CamImage* source, CamImage* dest)
             if (dest->dataOrder==CAM_DATA_ORDER_PIXEL) {
                 for (y=0;y<height;y++) {
                     cpsrcptr=srcptr; cpdstptr=dstptr;
-                    BEGIN_MASK_MANAGEMENT( \
-                        srcptr=cpsrcptr+startx*iROI.srcinc;\
-                        dstptr=cpdstptr+startx*iROI.dstinc;\
+
+                    BEGIN_MASK_MANAGEMENT( 
+                        srcptr=cpsrcptr+startx*iROI.srcinc;
+                        dstptr=cpdstptr+startx*iROI.dstinc;
                     )
-                        
+    
 #if CAM_FAST==8
                         if ((iROI.srcinc==iROI.dstinc)&&(iROI.srcinc==iROI.nChannels)) {
                             memcpy(dstptr,srcptr,(endx-startx)*iROI.nChannels);
@@ -153,8 +154,7 @@ int camCopy(CamImage* source, CamImage* dest)
                                 srcptr+=iROI.srcinc;
                                 dstptr+=iROI.dstinc;
                         }   }
-                        
-                    END_MASK_MANAGEMENT;
+		    END_MASK_MANAGEMENT;
 
                     srcptr=(CAM_PIXEL*)(((char*)cpsrcptr)+source->widthStep);
                     dstptr=(CAM_PIXEL_DST*)(((char*)cpdstptr)+dest->widthStep);

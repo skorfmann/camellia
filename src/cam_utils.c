@@ -234,9 +234,13 @@ int camInternalROIPolicy(CamImage* src, CamImage *dest, CamInternalROIPolicyStru
         }
     }
     
-    if ((res->srcroi.width<0)||(res->srcroi.height<0)) {
-        camSetErrorStr("incorrect source and/or dest region of interest");
-        retval=0;
+    if (res->srcroi.width < 0 || (dest && res->dstroi.width < 0)) {
+	res->srcroi.width = 0;
+	res->dstroi.width = 0;
+    }
+    if (res->srcroi.height < 0 || (dest && res->dstroi.height < 0)) {
+	res->srcroi.height = 0;
+	res->dstroi.height = 0;
     }
 
     if (src->dataOrder==CAM_DATA_ORDER_PIXEL) {

@@ -219,6 +219,7 @@ int camHoughCircle(CamImage *image, int percent, int rmin, int rmax, int *xc, in
     for (c=0,x=0;c<thresholded.nbRuns;c++,run++) {
 	if (run->length) {
 	    if (run->value) {
+		x = run->x;
 		for (d=0;d<run->length;d++) {
 		    // This point is good enough. Let's add it to the Hough plan
 		    camHoughCircleAccumulate(&hci,x,line,+1);

@@ -209,7 +209,7 @@ int camDrawTextBitmap(CamImage *image, char *text, int x, int y, CamBitmapFont *
                 roi.yOffset=y;
                 roi.width=font->letters[n].width;
                 roi.height=font->letters[n].height;
-                camCopy(&font->letters[n],&imx);
+		camCopy(&font->letters[n],&imx);
                 x+=font->letters[n].width;
             }
         } else x+=font->height/2;
@@ -264,7 +264,7 @@ int camLoadBitmapFont(CamBitmapFont *font, char *filename)
     for (x=1,ptr+=3;x<bitmap.width;x++,ptr+=3) {
         if (GET_COLOR_PIXEL(ptr)==delimiter_color) {
             // We've found the next character
-            camRLEAllocate(&font->masks[i],(x-px)*font->height+2);
+	    font->masks[i].allocated = 0; // Use automatic allocation
             camAllocateRGBImage(&font->letters[i],x-px,font->height);
             roi.xOffset=px; roi.yOffset=1;
             roi.width=x-px;
@@ -277,7 +277,7 @@ int camLoadBitmapFont(CamBitmapFont *font, char *filename)
         }
     }
     // We've found the last character
-    camRLEAllocate(&font->masks[i],(x-px)*font->height+2);
+    font->masks[i].allocated = 0; // Use automatic allocation
     camAllocateRGBImage(&font->letters[i],x-px,font->height);
     roi.xOffset=px; roi.yOffset=1;
     roi.width=x-px;

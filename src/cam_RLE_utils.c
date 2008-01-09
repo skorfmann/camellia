@@ -87,7 +87,7 @@ int camRLEApplyLUT(CamRLEImage *src, CamRLEImage *dest, CamLUT *LUT)
     currentColor = LUT->t[src->runs[1].value];
     currentLength = x = src->runs[1].length;
     currentPos = 0;
-    for (i=2; i<num; i++) {
+    for (i = 2; i < num; i++) {
 	in = &src->runs[i];
 	if (in->length == 0) continue;
 	value = LUT->t[in->value];
@@ -127,6 +127,7 @@ int camRLEApplyLUT(CamRLEImage *src, CamRLEImage *dest, CamLUT *LUT)
 	    j++;
 	}
     }
+
     // Write last run of current line
     out = &dest->runs[j];
     out->value = currentColor;
@@ -142,11 +143,12 @@ int camRLEApplyLUT(CamRLEImage *src, CamRLEImage *dest, CamLUT *LUT)
     out->parent = j;
     out->x = ++line;
     j++;
- 
+    
     dest->nbRuns=j;
     dest->height=src->height;
     dest->width=src->width;
 
+    assert(dest->nbRuns <= dest->allocated);
     return 1;
 }
 

@@ -170,18 +170,18 @@ if (!(condition)) {camError(#function, NULL);return 0;}
     }
 
 #define BEGIN_MASK_MANAGEMENT(code) \
-    startx = -iROI.mask_xOffset; \
 do { \
     if (!iROI.mask) { \
+	startx = 0; \
         endx = width; \
     } else { \
         do { \
             while (run->value == 0 && run->length != 0) run++; \
             if (run->length == 0) break; \
-	    startx = run->x; \
-            endx = startx + run->length; \
-        } while (endx <= 0); \
-        if (run->length == 0) break; \
+	    startx = run->x - iROI.mask_xOffset; \
+	    endx = startx + run->length; \
+        } while (endx <= 0 && run++); \
+	if (run->length == 0) break; \
         if (startx < 0) startx = 0; \
         if (startx > width) startx = width; \
         if (endx > width) endx = width; \

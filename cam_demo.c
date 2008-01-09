@@ -598,12 +598,13 @@ void example_draw()
     CamBitmapFont font;
     camAllocateRGBImage(&image,320,240);
     camSet(&image,0);
+
     camDrawLine(&image,0,0,320,240,CAM_RGB(255,0,0));
     camFillColor(&image,50,100,CAM_RGB(255,0,0),-1);
     camDrawRectangle(&image,100,100,320-100,240-100,CAM_RGB(0,255,0));
     camDrawEllipse(&image,160,120,70,50,CAM_RGB(0,0,255));
     camDrawText16s(&image,"HELLO WORLD",100,120,10,20,0,CAM_RGB(255,255,255));
-
+    
     camLoadBitmapFont(&font,"resources/fonts/epicpin.bmp");
     camDrawTextBitmap(&image,"Hello World",100,140,&font);
     camFreeBitmapFont(&font);
@@ -619,14 +620,15 @@ void example_draw()
     camLoadBitmapFont(&font,"resources/fonts/system-color-font.bmp");
     camDrawTextBitmap(&image,"Hello World",100,190,&font);
     camFreeBitmapFont(&font);
-     
+    
     camLoadBitmapFont(&font,"resources/fonts/xenon2.bmp");
     camDrawTextBitmap(&image,"Camellia",-8,-5,&font);
     camFreeBitmapFont(&font);
-    
+
     camSetROI(&roi,0,100,50,120,120);
     image.roi=&roi;
     camDrawLine(&image,320,0,0,240,CAM_RGB(255,255,0));
+
     camSaveBMP(&image,"output/drawing.bmp");
     camDeallocateImage(&image);
 }
@@ -1233,11 +1235,11 @@ int main()
     camInitBenchmark();
 
     // Legacy examples
-    example_draw();
     example_filters();
     example_warping();
     example_binary();
     example_morpho();
+    example_draw();
     example_watershed();
     example_watershed2();
     example_rle_erosion();
