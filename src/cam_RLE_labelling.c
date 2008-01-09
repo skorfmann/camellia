@@ -684,6 +684,8 @@ int camRLEBlobAnalysis(CamRLEImage *src, CamBlobAnalysisResults *results)
 		results->blobInfo[b].cx = RANGE_SUM(x, r->length);
 		results->blobInfo[b].cy = y * r->length;
 		results->blobInfo[b].value = r->value;
+		results->blobInfo[b].min = 0;
+		results->blobInfo[b].max = 0;
 		results->blobInfo[b].first = r;
 		results->blobInfo[b].last = r;
 		n++;

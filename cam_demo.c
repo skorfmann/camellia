@@ -576,10 +576,10 @@ void example_watershed2()
     printf("\n");
     for (i=0;i<results.nbBlobs;i++) {
         camRLEBlobMeasures(&results.blobInfo[i], &source);
-	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n Average=%d Min=%d Max=%d\n",
+	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d Value=%d\n",
 	    i,results.blobInfo[i].left,results.blobInfo[i].top,
 	    results.blobInfo[i].width,results.blobInfo[i].height,
-	    results.blobInfo[i].surface,results.blobInfo[i].value,results.blobInfo[i].min,results.blobInfo[i].max);
+	    results.blobInfo[i].surface,results.blobInfo[i].value);
     }
 
     camRLEDeallocate(&encoded);
@@ -976,6 +976,7 @@ void example_histogram()
     for (i = 0;  i < histogram.size; i++) {
        printf("[%d : %d]", i, histogram.t[i]);
     }
+    printf("\n");
     camDeallocateImage(&image);
 }
 
