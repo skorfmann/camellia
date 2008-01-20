@@ -1219,6 +1219,23 @@ void example_capture()
     }
 }
 
+void example_jpeg()
+{
+    FILE *handle;
+    char *jpeg;
+    int size;
+    CamImage image;
+    jpeg = malloc(1000000);
+    handle = fopen("resources/rover.jpg", "rb");
+    size = fread(jpeg, 1, 1000000, handle);
+    printf("Read %d bytes\n", size);
+    camDecompressJPEG(jpeg, &image, size);
+    camSaveBMP(&image, "output/rover.bmp");
+    camDeallocateImage(&image);
+    fclose(handle);
+    free(jpeg);
+}
+
 void cpp_example_erosion();
 void cpp_example_mask();
 void cpp_example_labeling();
@@ -1259,6 +1276,7 @@ int main()
     example_feature_points2();
     example_feature_points3();
     example_capture();
+    example_jpeg();
 
     // C++ reference examples
     cpp_example_mask();

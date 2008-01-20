@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@
 #include <math.h>
 #include "camellia.h"
 #include "camellia_internals.h"
+#include "config.h"
 
 /* PBM load/save utilities
  */
@@ -543,3 +544,176 @@ int camLoadBMP(CamImage *im, char *fn)
     fclose (f);
     return 1;
 }
+
+#ifdef HAVE_LIBJPEG
+
+#include "jpeglib.h"
+
+// Here's the routine that will replace the standard error_exit method:
+static void camJPEGMyErrorExit(j_common_ptr cinfo);
+
+typedef struct  {
+    struct jpeg_source_mgr pub;	// public fields
+} CamJPEGMySourceMgr;
+
+// Initialize source --- called by jpeg_read_header
+// before any data is actually read.
+static void camJPEGInitSource(j_decompress_ptr dcinfo);
+// Fill the input buffer --- called whenever buffer is emptied.
+static boolean camJPEGFillInputBuffer (j_decompress_ptr dcinfo);
+// Skip data --- used to skip over a potentially large amount of
+// uninteresting data (such as an APPn marker).
+static void camJPEGSkipInputData (j_decompress_ptr dcinfo, long num_bytes);
+// Terminate source --- called by jpeg_finish_decompress
+// after all data has been read.  Often a no-op.
+static void camJPEGTermSource (j_decompress_ptr dcinfo);
+// Prepare for input from a memory buffer
+static void jpeg_memory_src(j_decompress_ptr dcinfo, CamJPEGMySourceMgr *src, const char* buf, int length);
+
+typedef struct {
+    struct jpeg_destination_mgr pub;	// public fields
+} CamJPEGMyDestMgr;
+static void camJPEGInitDestination(j_compress_ptr cinfo);
+static boolean camJPEGEmptyOutputBuffer (j_compress_ptr cinfo);
+static void camJPEGTermDestination(j_compress_ptr cinfo);
+static void jpeg_memory_dest(j_compress_ptr cinfo, CamJPEGMyDestMgr *dest, const char* buf, int length);
+
+void camJPEGMyErrorExit(j_common_ptr dcinfo)
+{
+    // Always display the message.
+    // We could postpone this until after returning, if we chose.
+    (*dcinfo->err->output_message) (dcinfo);
+    fprintf(stderr, "IJG library failure\n");
+}
+
+void camJPEGInitSource(j_decompress_ptr dcinfo)
+{
+    // No work necessary here
+}
+
+boolean camJPEGFillInputBuffer (j_decompress_ptr dcinfo)
+{
+    return TRUE;
+}
+
+void camJPEGSkipInputData(j_decompress_ptr dcinfo, long num_bytes)
+{
+    CamJPEGMySourceMgr *src = (CamJPEGMySourceMgr*) dcinfo->src;
+
+    if (num_bytes > 0) {
+	while (num_bytes > (long) src->pub.bytes_in_buffer) {
+	    num_bytes -= (long) src->pub.bytes_in_buffer;
+	    (void) camJPEGFillInputBuffer(dcinfo);
+	}
+	src->pub.next_input_byte += (size_t) num_bytes;
+	src->pub.bytes_in_buffer -= (size_t) num_bytes;
+    }
+}
+
+void camJPEGTermSource(j_decompress_ptr dcinfo)
+{
+    // No work necessary here
+}
+
+void jpeg_memory_src(j_decompress_ptr dcinfo, CamJPEGMySourceMgr *src, const char *buffer, int length)
+{
+    dcinfo->src = (struct jpeg_source_mgr*)src;
+
+    src->pub.init_source = camJPEGInitSource;
+    src->pub.fill_input_buffer = camJPEGFillInputBuffer;
+    src->pub.skip_input_data = camJPEGSkipInputData;
+    src->pub.resync_to_restart = jpeg_resync_to_restart; // Use default method
+    src->pub.term_source = camJPEGTermSource;
+    src->pub.bytes_in_buffer = length;
+    src->pub.next_input_byte = (const JOCTET*) buffer; // Initialized
+}
+
+void camJPEGInitDestination(j_compress_ptr cinfo)
+{
+}
+
+boolean camJPEGEmptyOutputBuffer (j_compress_ptr cinfo)
+{
+    return TRUE;
+}
+
+void camJPEGTermDestination(j_compress_ptr cinfo)
+{
+}
+
+void jpeg_memory_dest(j_compress_ptr cinfo, CamJPEGMyDestMgr *dest, const char *buffer, int length)
+{
+    cinfo->dest = (struct jpeg_destination_mgr*)dest;
+
+    dest->pub.init_destination = camJPEGInitDestination;
+    dest->pub.empty_output_buffer = camJPEGEmptyOutputBuffer;
+    dest->pub.term_destination = camJPEGTermDestination;
+
+    dest->pub.next_output_byte = (JOCTET*) buffer;
+    dest->pub.free_in_buffer = length;
+}
+
+int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
+{
+    // This struct contains the JPEG decompression parameters and pointers to
+    // working space (which is allocated as needed by the JPEG library).
+    struct jpeg_decompress_struct _dcinfo;
+    // We use our private extension JPEG error handler.
+    struct jpeg_error_mgr _jerr;
+    JSAMPLE *bufferUncompLine;
+    CamJPEGMySourceMgr mySourceMgr;
+    
+    // IJG decompression initialization
+    // We set up the normal JPEG error routines, then override error_exit.
+    _dcinfo.err = jpeg_std_error(&_jerr);
+    _jerr.error_exit = camJPEGMyErrorExit;
+    // Now we can initialize the JPEG decompression object.
+    jpeg_create_decompress(&_dcinfo);
+
+    jpeg_memory_src(&_dcinfo, &mySourceMgr, jpeg, jpeg_size);
+    jpeg_read_header(&_dcinfo, TRUE);
+    _dcinfo.scale_denom = 1;
+    _dcinfo.out_color_space = JCS_RGB;
+    //_dcinfo.out_color_space = JCS_YCbCr;
+    
+    // We can ignore the return value from jpeg_read_header since
+    //   (a) suspension is not possible with the memory data source, and
+    //   (b) we passed TRUE to reject a tables-only JPEG file as an error.
+    // See libjpeg.doc for more info.
+
+    // Set parameters for decompression
+    // At the moment, nothing to change
+
+    // Start decompressor
+    jpeg_start_decompress(&_dcinfo);
+    // We can ignore the return value since suspension is not possible with the memory data source.
+
+    // Allocate destination image
+    camAllocateRGBImage(dest, _dcinfo.output_width, _dcinfo.output_height);
+    
+    // while (scan lines remain to be read) 
+    //         jpeg_read_scanlines(...);
+
+    // Here we use the library's state variable dcinfo.output_scanline as the
+    // loop counter, so that we don't have to keep track ourselves.
+
+    while (_dcinfo.output_scanline < _dcinfo.output_height) {
+	// jpeg_read_scanlines expects an array of pointers to scanlines.
+	// Here the array is only one element long.
+	bufferUncompLine = (JSAMPLE*)(dest->imageData + _dcinfo.output_scanline * dest->widthStep);
+	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
+    }
+    jpeg_finish_decompress(&_dcinfo);
+    // This is an important step since it will release a good deal of memory.
+    jpeg_destroy_decompress(&_dcinfo);
+    return 1;
+}
+
+#else
+int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
+{
+    return 0;
+}
+#endif
+
+

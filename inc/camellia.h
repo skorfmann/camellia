@@ -2403,6 +2403,8 @@ int camLoadBMP(CamImage *image, char *fn);
 /// Save a BMP image
 int camSaveBMP(CamImage *image, char *filename);
 
+int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size);
+
 /* Load config files
  */
 #define CAM_CONFIG_MAX_ENTRIES 256

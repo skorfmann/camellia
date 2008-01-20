@@ -29,5 +29,6 @@ AC_PROG_MAKE_SET
 AC_HEADER_STDC
 AC_CHECK_HEADERS(linux/videodev.h)
 AC_CHECK_LIB(m, sqrt)
+AC_CHECK_LIB([jpeg], [jpeg_CreateDecompress])
 
 AC_OUTPUT(Makefile src/Makefile)
