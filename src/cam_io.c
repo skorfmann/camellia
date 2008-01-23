@@ -52,7 +52,9 @@
 #include <math.h>
 #include "camellia.h"
 #include "camellia_internals.h"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 /* PBM load/save utilities
  */

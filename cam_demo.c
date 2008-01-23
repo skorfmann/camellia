@@ -1229,9 +1229,12 @@ void example_jpeg()
     handle = fopen("resources/rover.jpg", "rb");
     size = fread(jpeg, 1, 1000000, handle);
     printf("Read %d bytes\n", size);
-    camDecompressJPEG(jpeg, &image, size);
-    camSaveBMP(&image, "output/rover.bmp");
-    camDeallocateImage(&image);
+    if (camDecompressJPEG(jpeg, &image, size)) {
+	camSaveBMP(&image, "output/rover.bmp");
+	camDeallocateImage(&image);
+    } else {
+	printf("JPEG functions are not available\n");
+    }
     fclose(handle);
     free(jpeg);
 }
