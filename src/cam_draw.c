@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ int camDrawCircleInit(void)
     int i;
     if (camDrawCircleData[0]==0) {
         for (i=0;i<1024;i++) {
-            double x=((double)i)/1024;
+            double x=(i + 0.5)/1024;
             camDrawCircleData[i]=(int)(sqrt(1-x*x)*1024+0.5);
         }
     }
