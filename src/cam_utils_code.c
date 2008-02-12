@@ -273,7 +273,6 @@ int camCopyShift(CamImage* source, CamImage* dest, int shift)
     int width,height;
     CAM_PIXEL *srcptr,*cpsrcptr;
     CAM_PIXEL_DST *dstptr,*cpdstptr;
-    CamROI roi,roi2,*tmp,*tmp2;
 #ifdef CAM_SATURATE
     int valpix;
     int valmin=0, valmax=255;
