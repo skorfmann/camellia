@@ -91,6 +91,18 @@ bool CamImage::copy(CamImage &dest) const
     return (camCopy((CamImage*)this,&dest))?true:false;
 }
 
+CamImage* CamImage::copy_shift(int shift) const
+{
+    CamImage *image = new CamImage;
+    camCopyShift((CamImage*)this, image, shift);
+    return image;
+}
+
+bool CamImage::copy_shift(CamImage &dest, int shift) const
+{
+    return (camCopyShift((CamImage*)this, &dest, shift))?true:false;
+}
+
 bool CamImage::alloc(int width, int height, int depth, int channelseq)
 {
     if (imageData) deallocate();

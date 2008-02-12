@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1124,12 +1124,14 @@ const char *camConfigString(const CamConfig *config, const char *entry)
 #define CAM_FAST 8
 #define camZoom2x camZoom2x8
 #define camCopy camCopy8
+#define camCopyShift camCopyShift8
 #define camDecimateNN camDecimateNN8
 #define camDownscaling2x2 camDownscaling2x28
 #define camSet camSet8
 #include "cam_utils_code.c"
 #undef camZoom2x
 #undef camCopy
+#undef camCopyShift
 #undef camDecimateNN
 #undef camDownscaling2x2
 #undef camSet
@@ -1142,12 +1144,14 @@ const char *camConfigString(const CamConfig *config, const char *entry)
 #define CAM_FAST 16
 #define camZoom2x camZoom2x16
 #define camCopy camCopy16
+#define camCopyShift camCopyShift16
 #define camDecimateNN camDecimateNN16
 #define camDownscaling2x2 camDownscaling2x216
 #define camSet camSet16
 #include "cam_utils_code.c"
 #undef camZoom2x
 #undef camCopy
+#undef camCopyShift
 #undef camDecimateNN
 #undef camDownscaling2x2
 #undef camSet
@@ -1160,8 +1164,10 @@ const char *camConfigString(const CamConfig *config, const char *entry)
 #define CAM_PIXEL unsigned char
 #define CAM_PIXEL_DST unsigned short
 #define camCopy camCopy8to16
+#define camCopyShift camCopyShift8to16
 #include "cam_utils_code.c"
 #undef camCopy
+#undef camCopyShift
 
 #undef CAM_PIXEL
 #undef CAM_PIXEL_DST
@@ -1169,9 +1175,11 @@ const char *camConfigString(const CamConfig *config, const char *entry)
 #define CAM_PIXEL_DST unsigned char
 #define CAM_SATURATE
 #define camCopy camCopy16to8
+#define camCopyShift camCopyShift16to8
 #include "cam_utils_code.c"
 #undef camCopy
 #undef CAM_SATURATE
+#undef camCopyShift
 
 int camZoom2x(CamImage* source, CamImage* dest)
 {
@@ -1192,6 +1200,19 @@ int camCopy(CamImage* source, CamImage* dest)
         if ((dest->depth&CAM_DEPTH_MASK)==8) {
             return camCopy8(source,dest);
         } else return camCopy8to16(source,dest);
+    }
+}
+
+int camCopyShift(CamImage* source, CamImage* dest, int shift)
+{
+    if ((source->depth&CAM_DEPTH_MASK)>8) {
+        if ((dest->depth&CAM_DEPTH_MASK)==8) {
+            return camCopyShift16to8(source,dest, shift);
+        } else return camCopyShift16(source,dest, shift);
+    } else {
+        if ((dest->depth&CAM_DEPTH_MASK)==8) {
+            return camCopyShift8(source,dest, shift);
+        } else return camCopyShift8to16(source,dest, shift);
     }
 }
 

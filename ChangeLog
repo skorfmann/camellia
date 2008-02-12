@@ -4,6 +4,8 @@
     * Removed old files and functions (volberg, non-RLE labeling...)
     * Started deep modifications in Camellia RLE functions (modification of
     CamRun structure)
+    * Modified circle drawing (more symmetric)
+    * Added camCopyShift function
 
 2008-01-07 Bruno STEUX <Bruno.Steux@ensmp.fr>
     * Released 2.7.0

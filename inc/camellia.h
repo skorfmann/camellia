@@ -314,6 +314,8 @@ typedef struct {
     CamImage* clone() const;                            ///< Clone image (using camClone() function)                              
     CamImage* copy() const;                             ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopy() function
     bool copy(CamImage &dest) const;                    ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopy() function
+    CamImage* copy_shift(int shift) const;              ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopyShift() function
+    bool copy_shift(CamImage &dest, int shift) const;   ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopyShift() function
     bool allocated() const {return (imageData)?true:false;} ///< Check whether the image is allocated or not
     bool alloc(int width, int height, int depth=CAM_DEPTH_8U, int channelseq=0); ///< Image allocation (1 to 16 bits, signed/unsigned, G/RGB/RGBA/YUV/HLS)
     bool fill_header(int width, int height, int depth=CAM_DEPTH_8U, int channelseq=0); ///< Image header filling (1 to 16 bits, signed/unsigned, G/RGB/RGBA/YUV/HLS)
@@ -2276,6 +2278,12 @@ int camDownScaling2x2(CamImage *src, CamImage *dest);
  *  \return 0 (false) if an error occurs
  */
 int camCopy(CamImage *source, CamImage *dest);
+/// Copy function with shift parameters. Supports ROIs and masking
+/** Working only on one channel. Can work on 8 to 16-bits images as source and/or distination.
+ *
+ *  \return 0 (false) if an error occurs
+ */
+int camCopyShift(CamImage *source, CamImage *dest, int shift);
 /// Simple cloning function
 /** This function allocates the memory for the dest image. dest actual content is not considered by this function.
  *  Beware not to have allocated an image in dest before, otherwise this will result in a memory leak.

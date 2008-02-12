@@ -109,7 +109,6 @@ int camCopy(CamImage* source, CamImage* dest)
         CAM_CHECK_ARGS(camCopy,(source->depth&CAM_DEPTH_MASK)>=8);
         CAM_CHECK_ARGS(camCopy,(dest->depth&CAM_DEPTH_MASK)<=(sizeof(CAM_PIXEL_DST)*8));
         CAM_CHECK_ARGS(camCopy,(dest->depth&CAM_DEPTH_MASK)>=8);
-        CAM_CHECK_ARGS(camCopy,(source->depth&CAM_DEPTH_SIGN)==(dest->depth&CAM_DEPTH_SIGN));
         
         width=iROI.srcroi.width;
         height=iROI.srcroi.height;
@@ -268,6 +267,104 @@ int camCopy(CamImage* source, CamImage* dest)
     return 1;
 }
 
+int camCopyShift(CamImage* source, CamImage* dest, int shift)
+{
+    int x,y;
+    int width,height;
+    CAM_PIXEL *srcptr,*cpsrcptr;
+    CAM_PIXEL_DST *dstptr,*cpdstptr;
+    CamROI roi,roi2,*tmp,*tmp2;
+#ifdef CAM_SATURATE
+    int valpix;
+    int valmin=0, valmax=255;
+#endif
+
+    CamRun *run;
+    int startx,endx;
+    CamInternalROIPolicyStruct iROI;
+
+    // ROI (Region Of Interest) management
+    CAM_CHECK(camCopyShift,camInternalROIPolicy(source, dest, &iROI, 1));
+    CAM_CHECK_ARGS(camCopyShift,(source->depth&CAM_DEPTH_MASK)<=(sizeof(CAM_PIXEL)*8));
+    CAM_CHECK_ARGS(camCopyShift,(source->depth&CAM_DEPTH_MASK)>=8);
+    CAM_CHECK_ARGS(camCopyShift,(dest->depth&CAM_DEPTH_MASK)<=(sizeof(CAM_PIXEL_DST)*8));
+    CAM_CHECK_ARGS(camCopyShift,(dest->depth&CAM_DEPTH_MASK)>=8);
+    CAM_CHECK_ARGS(camCopyShift, iROI.nChannels == 1);
+
+    width=iROI.srcroi.width;
+    height=iROI.srcroi.height;
+    srcptr=(CAM_PIXEL*)iROI.srcptr;
+    dstptr=(CAM_PIXEL_DST*)iROI.dstptr;
+
+    INIT_MASK_MANAGEMENT;
+
+    if ((source->depth & CAM_DEPTH_MASK) == 16 && (dest->depth & CAM_DEPTH_MASK) == 8) {
+	shift = -shift;
+    }
+
+    if (shift < 0) {
+	shift = -shift;
+	for (y=0;y<height;y++) {
+	    cpsrcptr=srcptr; cpdstptr=dstptr;
+
+	    BEGIN_MASK_MANAGEMENT( 
+		    srcptr=cpsrcptr+startx*iROI.srcinc;
+		    dstptr=cpdstptr+startx*iROI.dstinc;
+		    )
+
+	    {
+		for (x=startx;x<endx;x++) {
+#ifdef CAM_SATURATE
+		    valpix=*(srcptr);
+		    valpix >>= shift;
+		    if (valpix<valmin) valpix=valmin;
+		    else if (valpix>valmax) valpix=valmax;
+		    *(dstptr)=valpix;
+#else
+		    *(dstptr)=(((CAM_PIXEL_DST)*(srcptr)) >> shift);
+#endif
+		    srcptr+=iROI.srcinc;
+		    dstptr+=iROI.dstinc;
+		}   }
+		END_MASK_MANAGEMENT;
+
+		srcptr=(CAM_PIXEL*)(((char*)cpsrcptr)+source->widthStep);
+		dstptr=(CAM_PIXEL_DST*)(((char*)cpdstptr)+dest->widthStep);
+	}
+    } else {
+	for (y=0;y<height;y++) {
+	    cpsrcptr=srcptr; cpdstptr=dstptr;
+
+	    BEGIN_MASK_MANAGEMENT( 
+		    srcptr=cpsrcptr+startx*iROI.srcinc;
+		    dstptr=cpdstptr+startx*iROI.dstinc;
+		    )
+
+	    {
+		for (x=startx;x<endx;x++) {
+#ifdef CAM_SATURATE
+		    valpix=*(srcptr);
+		    valpix <<= shift;
+		    if (valpix<valmin) valpix=valmin;
+		    else if (valpix>valmax) valpix=valmax;
+		    *(dstptr)=valpix;
+#else
+		    *(dstptr)=(((CAM_PIXEL_DST)*(srcptr)) << shift);
+#endif
+		    srcptr+=iROI.srcinc;
+		    dstptr+=iROI.dstinc;
+		}   }
+		END_MASK_MANAGEMENT;
+
+		srcptr=(CAM_PIXEL*)(((char*)cpsrcptr)+source->widthStep);
+		dstptr=(CAM_PIXEL_DST*)(((char*)cpdstptr)+dest->widthStep);
+	}
+    }
+
+    camInternalROIPolicyExit(&iROI);
+
+    return 1;
+}
 #ifndef CAM_COPY_ONLY
 
 int camZoom2x(CamImage* source, CamImage* dest)
