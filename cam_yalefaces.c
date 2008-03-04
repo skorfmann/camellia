@@ -108,7 +108,7 @@ int main()
 	    printf("# features = %d\n", points2.nbPoints);
 	    nbFeatures += points2.nbPoints;
 	    //bestMatch = camKeypointsMatching(&points2, models, 15, &matches);
-	    bestMatch = camKeypointsMatchingKdTree(&points2, kdTree, &matches, 100);
+	    bestMatch = camKeypointsMatchingKdTree(&points2, kdTree, &matches, 10);
 	    printf("Best match is : %d (%d)\n", bestMatch + 1, matches.nbMatches);
 	    
 	    if (bestMatch == i) { 

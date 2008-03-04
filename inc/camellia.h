@@ -51,7 +51,7 @@
 #ifndef _CAMELLIA_H_
 #define _CAMELLIA_H_
 
-#define CAM_VERSION "2.8.0 : Beaubourg ($Rev$)"
+#define CAM_VERSION "2.8.0 alpha 1 : Beaubourg ($Rev$)"
 
 #include <stdlib.h>
 
@@ -2412,6 +2412,9 @@ int camLoadBMP(CamImage *image, char *fn);
 int camSaveBMP(CamImage *image, char *filename);
 
 int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size);
+int camDecompressJPEG2YUV(char *jpeg, CamImage *dest, int jpeg_size);
+int camLoadJPEG(CamImage *image, char *filename);
+int camLoadJPEG2YUV(CamImage *image, char *filename);
 
 /* Load config files
  */

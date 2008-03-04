@@ -434,7 +434,7 @@ int camSaveBMP(CamImage *image, char *filename)
 	    }
 	}
     } else if ((image->depth&CAM_DEPTH_MASK)==8) {
-	camError("camSaveBMP","Can't save 16-bit deep BMP images");
+	camError("camSaveBMP", "Can't save 16-bit deep BMP images");
     }
     
     fclose (outfile);
@@ -470,32 +470,29 @@ static unsigned long get8(FILE* inf)
 int camLoadBMP(CamImage *im, char *fn)
 {
     long  width,height,bpp,bitmap_start,comp;
-    char buf1[256],str[256];
+    char buf1[256], str[256];
     int h,w;
     int r,g,b;
     FILE *f;
      
     strcpy(buf1, fn);
     f = fopen(buf1, "rb");
-    if (f==NULL)
-    {
+    if (f==NULL) {
 	sprintf(str,"Can't open the BMP file named '%s'", buf1);
 	camError("camLoadBMP",str);
         return 0;
     }
     
-    if (get8(f) != 'B')
-    {
+    if (get8(f) != 'B') {
 	camError("camLoadBMP","Input file does not have BMP format");
 	return 0;
     }
     
-    if (get8(f) != 'M')
-    {
+    if (get8(f) != 'M') {
 	camError("camLoadBMP","Input file does not have BMP format");
 	return 0;
     }
-    
+
     get32(f);
     get32(f);
     bitmap_start = get32(f);
@@ -505,38 +502,34 @@ int camLoadBMP(CamImage *im, char *fn)
     height = get32(f);
     get16(f);
     bpp = get16(f);
-    if (bpp != 24)
-    {
+    if (bpp != 24 && bpp != 32) {
 	sprintf(str,"Unsupported bpp value: %ld bpp", bpp);
-	camError("camLoadBMP",str);
+	camError("camLoadBMP", str);
 	return 0;
     }
     comp = get32(f);
-    if (comp != 0)
-    {
+    if (comp != 0) {
 	camError("camLoadBMP","Only uncompressed BMP files supported");
 	return 0;
     }
     
-    fseek(f,bitmap_start,SEEK_SET); // Go to start of bitmap
+    fseek(f, bitmap_start, SEEK_SET); // Go to start of bitmap
     
     camAllocateRGBImage(im, width, height);
     
-    for (h=height-1; h>=0; h--)
-    {
-	for (w=0; w<width; w++)
-	{
+    for (h=height-1; h>=0; h--) {
+	for (w=0; w<width; w++) {
 	    b = get8(f);   /* B */
 	    g = get8(f);   /* G */
 	    r = get8(f);   /* R */
-	    
+	    if (bpp == 32) get8(f); /* Dummy */
+
 	    *((unsigned char*)im->imageData+w*3+h*im->widthStep)   = r;
 	    *((unsigned char*)im->imageData+w*3+h*im->widthStep+1) = g;
 	    *((unsigned char*)im->imageData+w*3+h*im->widthStep+2) = b;
 	}
 	
-	switch ((width*3) % 4)
-	{
+	switch ((width * (bpp / 8)) % 4) {
 	case 1:  get8(f);
 	case 2:  get8(f);
 	case 3:  get8(f);
@@ -676,7 +669,6 @@ int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
     jpeg_read_header(&_dcinfo, TRUE);
     _dcinfo.scale_denom = 1;
     _dcinfo.out_color_space = JCS_RGB;
-    //_dcinfo.out_color_space = JCS_YCbCr;
     
     // We can ignore the return value from jpeg_read_header since
     //   (a) suspension is not possible with the memory data source, and
@@ -708,6 +700,205 @@ int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
     jpeg_finish_decompress(&_dcinfo);
     // This is an important step since it will release a good deal of memory.
     jpeg_destroy_decompress(&_dcinfo);
+    return 1;
+}
+
+int camLoadJPEG(CamImage* image, char *filename)
+{
+    // This struct contains the JPEG decompression parameters and pointers to
+    // working space (which is allocated as needed by the JPEG library).
+    struct jpeg_decompress_struct _dcinfo;
+    // We use our private extension JPEG error handler.
+    struct jpeg_error_mgr _jerr;
+    JSAMPLE *bufferUncompLine;
+    FILE *infile;
+    char str[256];
+
+    if ((infile = fopen(filename, "rb")) == NULL) {
+	sprintf(str,"Can't open jpeg file named '%s'", filename);
+	camError("camLoadJPEG",str);
+	return 0;
+    }
+
+    // IJG decompression initialization
+    // We set up the normal JPEG error routines, then override error_exit.
+    _dcinfo.err = jpeg_std_error(&_jerr);
+    _jerr.error_exit = camJPEGMyErrorExit;
+    // Now we can initialize the JPEG decompression object.
+    jpeg_create_decompress(&_dcinfo);
+
+    jpeg_stdio_src(&_dcinfo, infile);   
+    jpeg_read_header(&_dcinfo, TRUE);
+    _dcinfo.scale_denom = 1;
+    _dcinfo.out_color_space = JCS_RGB;
+    
+    // We can ignore the return value from jpeg_read_header since
+    //   (a) suspension is not possible with the memory data source, and
+    //   (b) we passed TRUE to reject a tables-only JPEG file as an error.
+    // See libjpeg.doc for more info.
+
+    // Set parameters for decompression
+    // At the moment, nothing to change
+
+    // Start decompressor
+    jpeg_start_decompress(&_dcinfo);
+    // We can ignore the return value since suspension is not possible with the memory data source.
+
+    // Allocate destination image
+    camAllocateRGBImage(image, _dcinfo.output_width, _dcinfo.output_height);
+    
+    // while (scan lines remain to be read) 
+    //         jpeg_read_scanlines(...);
+
+    // Here we use the library's state variable dcinfo.output_scanline as the
+    // loop counter, so that we don't have to keep track ourselves.
+
+    while (_dcinfo.output_scanline < _dcinfo.output_height) {
+	// jpeg_read_scanlines expects an array of pointers to scanlines.
+	// Here the array is only one element long.
+	bufferUncompLine = (JSAMPLE*)(image->imageData + _dcinfo.output_scanline * image->widthStep);
+	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
+    }
+    jpeg_finish_decompress(&_dcinfo);
+    // This is an important step since it will release a good deal of memory.
+    jpeg_destroy_decompress(&_dcinfo);
+    fclose(infile);
+    return 1;
+}
+
+int camDecompressJPEG2YUV(char *jpeg, CamImage *dest, int jpeg_size)
+{
+    // This struct contains the JPEG decompression parameters and pointers to
+    // working space (which is allocated as needed by the JPEG library).
+    struct jpeg_decompress_struct _dcinfo;
+    // We use our private extension JPEG error handler.
+    struct jpeg_error_mgr _jerr;
+    JSAMPLE *bufferUncompLine;
+    CamJPEGMySourceMgr mySourceMgr;
+    
+    // IJG decompression initialization
+    // We set up the normal JPEG error routines, then override error_exit.
+    _dcinfo.err = jpeg_std_error(&_jerr);
+    _jerr.error_exit = camJPEGMyErrorExit;
+    // Now we can initialize the JPEG decompression object.
+    jpeg_create_decompress(&_dcinfo);
+
+    jpeg_memory_src(&_dcinfo, &mySourceMgr, jpeg, jpeg_size);
+    jpeg_read_header(&_dcinfo, TRUE);
+    _dcinfo.scale_denom = 1;
+    _dcinfo.out_color_space = JCS_YCbCr;
+    
+    // We can ignore the return value from jpeg_read_header since
+    //   (a) suspension is not possible with the memory data source, and
+    //   (b) we passed TRUE to reject a tables-only JPEG file as an error.
+    // See libjpeg.doc for more info.
+
+    // Set parameters for decompression
+    // At the moment, nothing to change
+
+    // Start decompressor
+    jpeg_start_decompress(&_dcinfo);
+    // We can ignore the return value since suspension is not possible with the memory data source.
+
+    // Allocate destination image
+    camAllocateRGBImage(dest, _dcinfo.output_width, _dcinfo.output_height);
+    // Tell it's a YUV image 
+    dest->channelSeq[0]='Y';
+    dest->channelSeq[1]='U';
+    dest->channelSeq[2]='V';
+    dest->channelSeq[3]=0;
+    dest->colorModel[0]='Y';
+    dest->colorModel[1]='U';
+    dest->colorModel[2]='V';
+    dest->colorModel[3]=0;
+    
+    // while (scan lines remain to be read) 
+    //         jpeg_read_scanlines(...);
+
+    // Here we use the library's state variable dcinfo.output_scanline as the
+    // loop counter, so that we don't have to keep track ourselves.
+
+    while (_dcinfo.output_scanline < _dcinfo.output_height) {
+	// jpeg_read_scanlines expects an array of pointers to scanlines.
+	// Here the array is only one element long.
+	bufferUncompLine = (JSAMPLE*)(dest->imageData + _dcinfo.output_scanline * dest->widthStep);
+	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
+    }
+    jpeg_finish_decompress(&_dcinfo);
+    // This is an important step since it will release a good deal of memory.
+    jpeg_destroy_decompress(&_dcinfo);
+    return 1;
+}
+
+int camLoadJPEG2YUV(CamImage* image, char *filename)
+{
+    // This struct contains the JPEG decompression parameters and pointers to
+    // working space (which is allocated as needed by the JPEG library).
+    struct jpeg_decompress_struct _dcinfo;
+    // We use our private extension JPEG error handler.
+    struct jpeg_error_mgr _jerr;
+    JSAMPLE *bufferUncompLine;
+    FILE *infile;
+    char str[256];
+
+    if ((infile = fopen(filename, "rb")) == NULL) {
+	sprintf(str,"Can't open jpeg file named '%s'", filename);
+	camError("camLoadJPEG",str);
+	return 0;
+    }
+
+    // IJG decompression initialization
+    // We set up the normal JPEG error routines, then override error_exit.
+    _dcinfo.err = jpeg_std_error(&_jerr);
+    _jerr.error_exit = camJPEGMyErrorExit;
+    // Now we can initialize the JPEG decompression object.
+    jpeg_create_decompress(&_dcinfo);
+
+    jpeg_stdio_src(&_dcinfo, infile);   
+    jpeg_read_header(&_dcinfo, TRUE);
+    _dcinfo.scale_denom = 1;
+    _dcinfo.out_color_space = JCS_YCbCr;
+    
+    // We can ignore the return value from jpeg_read_header since
+    //   (a) suspension is not possible with the memory data source, and
+    //   (b) we passed TRUE to reject a tables-only JPEG file as an error.
+    // See libjpeg.doc for more info.
+
+    // Set parameters for decompression
+    // At the moment, nothing to change
+
+    // Start decompressor
+    jpeg_start_decompress(&_dcinfo);
+    // We can ignore the return value since suspension is not possible with the memory data source.
+
+    // Allocate destination image
+    camAllocateRGBImage(image, _dcinfo.output_width, _dcinfo.output_height);
+    // Tell it's a YUV image 
+    image->channelSeq[0]='Y';
+    image->channelSeq[1]='U';
+    image->channelSeq[2]='V';
+    image->channelSeq[3]=0;
+    image->colorModel[0]='Y';
+    image->colorModel[1]='U';
+    image->colorModel[2]='V';
+    image->colorModel[3]=0;
+    
+    // while (scan lines remain to be read) 
+    //         jpeg_read_scanlines(...);
+
+    // Here we use the library's state variable dcinfo.output_scanline as the
+    // loop counter, so that we don't have to keep track ourselves.
+
+    while (_dcinfo.output_scanline < _dcinfo.output_height) {
+	// jpeg_read_scanlines expects an array of pointers to scanlines.
+	// Here the array is only one element long.
+	bufferUncompLine = (JSAMPLE*)(image->imageData + _dcinfo.output_scanline * image->widthStep);
+	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
+    }
+    jpeg_finish_decompress(&_dcinfo);
+    // This is an important step since it will release a good deal of memory.
+    jpeg_destroy_decompress(&_dcinfo);
+    fclose(infile);
     return 1;
 }
 

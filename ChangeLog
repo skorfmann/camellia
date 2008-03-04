@@ -1,5 +1,7 @@
-2008-01-20 Bruno STEUX <Bruno.Steux@ensmp.fr>
-    * Added JPEG decompression support (camDecompressJPEG)
+2008-03-04 Bruno STEUX <Bruno.Steux@ensmp.fr>
+    * Added 32 BMP image support
+    * Added JPEG decompression support (camDecompressJPEG, camLoadJPEG,
+    camLoadJPEG2YUV)
     * Changed version number to 2.8.0
     * Removed old files and functions (volberg, non-RLE labeling...)
     * Started deep modifications in Camellia RLE functions (modification of

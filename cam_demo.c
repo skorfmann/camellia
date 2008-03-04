@@ -1219,12 +1219,31 @@ void example_capture()
     }
 }
 
+void example_bmp()
+{
+    CamImage image;
+    camLoadBMP(&image, "resources/car.bmp");
+    camSaveBMP(&image, "output/car.bmp");
+    camDeallocateImage(&image);
+}
+
 void example_jpeg()
 {
     FILE *handle;
     char *jpeg;
     int size;
-    CamImage image;
+    CamImage image, image2;
+    
+    camLoadJPEG(&image, "resources/rover.jpg");
+    camSaveBMP(&image, "output/rover3.bmp");
+    camDeallocateImage(&image);
+    camLoadJPEG2YUV(&image, "resources/rover.jpg");
+    camAllocateRGBImage(&image2, image.width, image.height);
+    camYUV2RGB(&image, &image2);
+    camSaveBMP(&image2, "output/rover4.bmp");
+    camDeallocateImage(&image);
+    camDeallocateImage(&image2);
+    
     jpeg = malloc(1000000);
     handle = fopen("resources/rover.jpg", "rb");
     size = fread(jpeg, 1, 1000000, handle);
@@ -1232,6 +1251,12 @@ void example_jpeg()
     if (camDecompressJPEG(jpeg, &image, size)) {
 	camSaveBMP(&image, "output/rover.bmp");
 	camDeallocateImage(&image);
+	camDecompressJPEG2YUV(jpeg, &image, size);
+	camAllocateRGBImage(&image2, image.width, image.height);
+	camYUV2RGB(&image, &image2);
+	camSaveBMP(&image2, "output/rover2.bmp");
+	camDeallocateImage(&image);
+	camDeallocateImage(&image2);
     } else {
 	printf("JPEG functions are not available\n");
     }
@@ -1279,6 +1304,7 @@ int main()
     example_feature_points2();
     example_feature_points3();
     example_capture();
+    example_bmp();
     example_jpeg();
 
     // C++ reference examples
