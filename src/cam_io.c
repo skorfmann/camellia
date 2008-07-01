@@ -907,6 +907,21 @@ int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
 {
     return 0;
 }
+
+int camLoadJPEG2YUV(CamImage* image, char *filename)
+{
+    return 0;
+}
+
+int camDecompressJPEG2YUV(char *jpeg, CamImage *dest, int jpeg_size)
+{
+    return 0;
+}
+
+int camLoadJPEG(CamImage* image, char *filename)
+{
+    return 0;
+}
 #endif
 
 

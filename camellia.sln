@@ -20,6 +20,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cam_yalefaces", "cam_yalefa
 		{36348D01-E637-477A-85DF-D17DE464F8E5} = {36348D01-E637-477A-85DF-D17DE464F8E5}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cam_myobjects", "cam_myobjects.vcproj", "{DF19C304-197E-48E1-BA30-7F9793FAE0B8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -46,6 +48,10 @@ Global
 		{AFAAD51F-AB07-4772-98C2-B3FF874DB21C}.Debug|Win32.Build.0 = Debug|Win32
 		{AFAAD51F-AB07-4772-98C2-B3FF874DB21C}.Release|Win32.ActiveCfg = Release|Win32
 		{AFAAD51F-AB07-4772-98C2-B3FF874DB21C}.Release|Win32.Build.0 = Release|Win32
+		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Debug|Win32.Build.0 = Debug|Win32
+		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Release|Win32.ActiveCfg = Release|Win32
+		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
