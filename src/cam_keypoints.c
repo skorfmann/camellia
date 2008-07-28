@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in integral and binary forms, with or without
@@ -166,7 +166,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     // ROI (Region Of Interest) management
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
-    CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, (width & 3) == 0 && (height & 3) == 0, "ROI width and height must be multiple of 4");
+    CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, (width & 7) == 0 && (height & 7) == 0, "ROI width and height must be multiple of 8");
     srcptr = (unsigned long *)iROI.srcptr;
     dstptr = (unsigned short *)iROI.dstptr;
 
