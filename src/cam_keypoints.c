@@ -58,11 +58,13 @@
 #include "camellia_internals.h"
 #ifdef __SSE2__
 #include <emmintrin.h>
+#ifdef __SSE3__
+#include <pmmintrin.h>
+#endif
 #endif
 
 #define SEPARATED_NORMALIZATION
 //#define SURF_DESCRIPTOR
-//#define PRECOMPUTE_POINTERS
 
 static int camPatchSizeParam = 8*3;
 static int camSigmaParam = 5;
@@ -137,13 +139,10 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     int i, x, y;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
-#ifdef PRECOMPUTE_POINTERS
-    unsigned long *ptr[32];
-#endif
     signed short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
-    int acc=0, det, coeff;
-    int Dxx, Dyy, Dxy, tmp1, tmp2;
+    int acc=0, inc, det, coeff;
+    int Dxx, Dyy, Dxy, tmp;
     int multiplier, shift;
     int offset0, offset1, offset2, offset3, offset4, offset5, offset6, offset7, offset8, offset9;
     int offset10, offset11, offset12, offset13, offset14, offset15, offset16, offset17, offset18, offset19;
@@ -153,6 +152,11 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 #ifdef ELIMINATE_EDGE_RESPONSE
     int r;
 #endif
+#if defined(__SSE2__)
+    __m128i val0_sse2, val1_sse2, val2_sse2, val3_sse2, Dxx_sse2, Dyy_sse2, Dxy_sse2, tmp_sse2, sse2_1, sse2_2;
+    __m128i cmp_sse2;
+    int _Dxx[4], _Dyy[4], _Dxy[8];
+#endif 
 
     CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, integral->imageData != NULL, "source integral image is not allocated");
     CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, (scale >=0 && scale < sizeof(CamScale) / sizeof(CamScale[0])), "invalid scale parameter"); 
@@ -187,6 +191,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     	coeff = (multiplier * multiplier) >> shift;
     else
 	coeff = (multiplier * multiplier) << (-shift); 
+    inc = (1 << CamSampling[scale]);
     // printf("scale #%d, multiplier = %d, coeff = %d\n", scale, multiplier, coeff);
     // Fill the offset tables
     offset0 = -CamScale[scale]*3 / 2 - 1 + CamOffset[scale][0];
@@ -210,7 +215,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     offset18 = offset16 - CamScale[scale];
     offset19 = iROI.srclinc * offset18;
     // Other
-    sampling_mask = (1 << CamSampling[scale]) - 1;
+    sampling_mask = (inc) - 1;
 
     // Main loop
     for (y = 0; y < height; y++) {
@@ -236,81 +241,148 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		    }
 		}
 
-		for (x = startx; x < startx2 ; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++ ) *dstptr = 0;
+		for (x = startx; x < startx2 ; x += inc, srcptr += inc, dstptr++ ) *dstptr = 0;
 		
-#ifdef PRECOMPUTE_POINTERS
-#define CAM_SETPTR(i, oLeft, oTop, oRight, oBottom) \
-    ptr[i] = srcptr + oRight + oBottom; \
-    ptr[i + 1] = srcptr + oLeft + oBottom; \
-    ptr[i + 2] = srcptr + oRight + oTop; \
-    ptr[i + 3] = srcptr + oLeft + oTop;
-		
-		CAM_SETPTR(0, offset0, offset3, offset1, offset4);
-		CAM_SETPTR(4, offset0, offset2, offset1, offset5);
-		CAM_SETPTR(8, offset7, offset10, offset8, offset11); 
-		CAM_SETPTR(12, offset6, offset10, offset9, offset11);
-		CAM_SETPTR(16, offset12, offset13, offset14, offset15);
-		CAM_SETPTR(20, offset18, offset13, offset16, offset15);
-		CAM_SETPTR(24, offset12, offset19, offset14, offset17);
-		CAM_SETPTR(28, offset18, offset19, offset16, offset17); 
+#if defined(__SSE2__)
+		if (inc == 1) {
+		    for (; x < endx2 - 3; x += 4, srcptr += 4, dstptr += 4) {
+#if defined(__SSE3__)
+#define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
+    val0_sse2 = _mm_lddqu_si128((__m128i*)(srcptr + oRight + oBottom)); \
+    val1_sse2 = _mm_lddqu_si128((__m128i*)(srcptr + oLeft + oBottom)); \
+    val2_sse2 = _mm_lddqu_si128((__m128i*)(srcptr + oRight + oTop)); \
+    val3_sse2 = _mm_lddqu_si128((__m128i*)(srcptr + oLeft + oTop))
+#else
+#define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
+    val0_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oRight + oBottom)); \
+    val1_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oLeft + oBottom)); \
+    val2_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oRight + oTop)); \
+    val3_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oLeft + oTop))
+#endif
+#define CAM_SSE2_INTEGRAL(i) \
+    sse2_1 = _mm_sub_epi32(val0_sse2, val1_sse2); \
+    sse2_2 = _mm_sub_epi32(val2_sse2, val3_sse2); \
+    i = _mm_sub_epi32(sse2_1, sse2_2) 
+			CAM_SSE2_LOAD(offset0, offset3, offset1, offset4);
+			CAM_SSE2_INTEGRAL(tmp_sse2);
+			CAM_SSE2_LOAD(offset0, offset2, offset1, offset5);
+			CAM_SSE2_INTEGRAL(Dxx_sse2);
+			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
+			sse2_2 = _mm_sub_epi32(Dxx_sse2, tmp_sse2);
+			Dxx_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
+			Dxx_sse2 = _mm_srai_epi32(Dxx_sse2, scale);
+			CAM_SSE2_LOAD(offset7, offset10, offset8, offset11);
+			CAM_SSE2_INTEGRAL(tmp_sse2);
+			CAM_SSE2_LOAD(offset6, offset10, offset9, offset11);
+			CAM_SSE2_INTEGRAL(Dyy_sse2);
+			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
+			sse2_2 = _mm_sub_epi32(Dyy_sse2, tmp_sse2);
+			Dyy_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
+			Dyy_sse2 = _mm_srai_epi32(Dyy_sse2, scale);
+			CAM_SSE2_LOAD(offset12, offset13, offset14, offset15);
+			CAM_SSE2_INTEGRAL(Dxy_sse2);
+			CAM_SSE2_LOAD(offset18, offset13, offset16, offset15);
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
+			CAM_SSE2_LOAD(offset12, offset19, offset14, offset17);
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
+			CAM_SSE2_LOAD(offset18, offset19, offset16, offset17); 
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_add_epi32(Dxy_sse2, sse2_1);
+			Dxy_sse2 = _mm_srai_epi32(Dxy_sse2, scale);
+		    
+			// Let's try to compute the determinant
+			// First, we need to compute the abs value for Dxy
+			/*
+			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxy_sse2);
+			cmp_sse2 = _mm_cmplt_epi32(Dxy_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
+			sse2_2 = _mm_andnot_si128(cmp_sse2, Dxy_sse2);
+			Dxy_sse2 = _mm_add_epi32(sse2_1, sse2_2);
+			// Then let's compute multiplications
+			sse2_1 = _mm_mul_epu32(Dxy_sse2, Dxy_sse2);
+			sse2_1 = _mm_mul_epu32(sse2_1, _mm_set_epi32(13, 0, 13, 0)); 
+			sse2_1 = _mm_srai_epi32(sse2_1, 4);
+			_mm_storeu_si128((__m128i*)_Dxy, sse2_1);
+			Dxy_sse2 = _mm_srli_si128(Dxy_sse2, 4);
+			sse2_2 = _mm_mul_epu32(Dxy_sse2, Dxy_sse2);
+			sse2_2 = _mm_mul_epu32(sse2_2, _mm_set_epi32(13, 0, 13, 0)); 
+			sse2_2 = _mm_srai_epi32(sse2_2, 4);
+			_mm_storeu_si128((__m128i*)&_Dxy[4], sse2_2);
+*/
+			_mm_storeu_si128((__m128i*)_Dxx, Dxx_sse2);
+			_mm_storeu_si128((__m128i*)_Dyy, Dyy_sse2);
+			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
+
+			for (i = 0; i != 4; i++) {
+			    // _Dxx[i], _Dyy[i] and _Dxy[i] should be 12 to 13 bits wide max
+			    // det = _Dxx[i] * _Dyy[i] - 0.81 * _Dxy[i]^2
+			    det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
+			    //det = _Dxx[i] * _Dyy[i] - _Dxy[i << 1];
+			    // det should then be 26 bits wide max
+			    if (det <= 0) det = 0;
+			    else {
+#ifdef ELIMINATE_EDGE_RESPONSE
+				r = (_Dxx[i] + _Dyy[i]) * (_Dxx[i] + _Dyy[i]);
+				if (r > 10 * det)
+				    det = 0;
+				else 
+#endif
+				    // coeff is a 6 bits wide max param
+				    // and thus the det should stay within 26 bits
+				    det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+				// det is on 16 bits max
+			    }
+			    acc += det;
+			    *(dstptr + i) = (unsigned short)det;
+			}
+		    }
+
+		}
 #endif
 
-		for (; x < endx2; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++) {
+		for (; x < endx2; x += inc, srcptr += inc, dstptr++) {
 		    
-#ifdef PRECOMPUTE_POINTERS
-    #define CAM_INTEGRAL(i) ( *ptr[i] - *ptr[i + 1] - *ptr[i + 2] + *ptr[i + 3] )
-		    
-		    tmp1 = CAM_INTEGRAL(0);
-		    Dxx = CAM_INTEGRAL(4) - (tmp1 + tmp1 + tmp1);
-		    Dxx = Dxx >> scale;
-		    tmp2 = CAM_INTEGRAL(8); 
-		    Dyy = CAM_INTEGRAL(12) - (tmp2 + tmp2 + tmp2);
-		    Dyy = Dyy >> scale;
-		    Dxy = CAM_INTEGRAL(16) - CAM_INTEGRAL(20) -	CAM_INTEGRAL(24) + CAM_INTEGRAL(28); 
-		    Dxy = Dxy >> scale;
-		    for (i = 0; i != 32; i++) ptr[i] += (1 << CamSampling[scale]);
-#else
     #define CAM_INTEGRAL(ptr, oLeft, oTop, oRight, oBottom) \
     ( *(ptr + oRight + oBottom) - *(ptr + oLeft + oBottom) - *(ptr + oRight + oTop) + *(ptr + oLeft + oTop) )
 		    
-		    tmp1 = CAM_INTEGRAL(srcptr, offset0, offset3, offset1, offset4);
+		    tmp = CAM_INTEGRAL(srcptr, offset0, offset3, offset1, offset4);
 		    Dxx = CAM_INTEGRAL(srcptr, offset0, offset2, offset1, offset5) -
-			(tmp1 + tmp1 + tmp1);
+			(tmp + tmp + tmp);
 		    Dxx = Dxx >> scale;
-		    tmp2 = CAM_INTEGRAL(srcptr, offset7, offset10, offset8, offset11); 
+		    tmp = CAM_INTEGRAL(srcptr, offset7, offset10, offset8, offset11); 
 		    Dyy = CAM_INTEGRAL(srcptr, offset6, offset10, offset9, offset11) -
-			(tmp2 + tmp2 + tmp2);
+			(tmp + tmp + tmp);
 		    Dyy = Dyy >> scale;
 		    Dxy = CAM_INTEGRAL(srcptr, offset12, offset13, offset14, offset15) -
 			CAM_INTEGRAL(srcptr, offset18, offset13, offset16, offset15) -
 			CAM_INTEGRAL(srcptr, offset12, offset19, offset14, offset17) +
 			CAM_INTEGRAL(srcptr, offset18, offset19, offset16, offset17); 
 		    Dxy = Dxy >> scale;
-#endif
-
+		    
 		    // Dxx, Dyy and Dxy should be 12 to 13 bits wide max
 		    // det = Dxx * Dyy - 0.81 * Dxy^2
 		    det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
 		    // det should then be 26 bits wide max
 		    if (det <= 0) det = 0;
 		    else {
-			// coeff is a 6 bits wide max param
-			// and thus the dest should stay within 26 bits
-			det = (((unsigned int)det) * ((unsigned int)coeff)) >> 6;
 #ifdef ELIMINATE_EDGE_RESPONSE
-			r = (Dxx + Dyy) * (Dxx + Dyy) / det;
-			if (r > 10)
+			r = (Dxx + Dyy) * (Dxx + Dyy);
+			if (r > 10 * det)
 			    det = 0;
 			else 
 #endif
-			    det >>= 10;
+			    // coeff is a 6 bits wide max param
+			    // and thus the det should stay within 26 bits
+			    det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
 			    // det is on 16 bits max
 		    }
 		    acc += det;
 		    *dstptr = (unsigned short)det;
 
 		}
-		for (; x < endx ; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++ ) *dstptr = 0;
+		for (; x < endx ; x += (inc), srcptr += inc, dstptr++ ) *dstptr = 0;
 	    }
         END_MASK_MANAGEMENT;
 	srcptr = (unsigned long*)(((char*)tmpsrcptr) + integral->widthStep);
