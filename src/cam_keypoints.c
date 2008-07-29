@@ -134,7 +134,7 @@ static const int CamOffset[][2] = {
 static const int CamSampling[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
 
-int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
+int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale, int rejection)
 {
     int i, x, y;
     int width, height;
@@ -243,7 +243,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 
 		for (x = startx; x < startx2 ; x += inc, srcptr += inc, dstptr++ ) *dstptr = 0;
 		
-#if defined(__SSE2__)
+#if 0 //defined(__SSE2__)
 		if (inc == 1) {
 		    for (; x < endx2 - 3; x += 4, srcptr += 4, dstptr += 4) {
 #if defined(__SSE3__)
@@ -292,8 +292,12 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			Dxy_sse2 = _mm_add_epi32(Dxy_sse2, sse2_1);
 			Dxy_sse2 = _mm_srai_epi32(Dxy_sse2, scale);
 		    
+#ifdef FULL_USE_OF_SSE2
 			// Let's try to compute the determinant
 			// First, we need to compute the abs value for Dxy
+			// Unfortunately, SSE2 doesn't implement signed multiplications
+			// or absolute value computation...
+			// We'll have to wait for a SSE4 machine and GCC 4.3...
 			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxy_sse2);
 			cmp_sse2 = _mm_cmplt_epi32(Dxy_sse2, _mm_setzero_si128());
 			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
@@ -311,16 +315,20 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			_mm_storeu_si128((__m128i*)&_Dxy[4], sse2_2);
 			_Dxy[1] = _Dxy[4];
 			_Dxy[3] = _Dxy[6];
-
+#else
+			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
+#endif
 			_mm_storeu_si128((__m128i*)_Dxx, Dxx_sse2);
 			_mm_storeu_si128((__m128i*)_Dyy, Dyy_sse2);
-//			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
 
 			for (i = 0; i != 4; i++) {
 			    // _Dxx[i], _Dyy[i] and _Dxy[i] should be 12 to 13 bits wide max
 			    // det = _Dxx[i] * _Dyy[i] - 0.81 * _Dxy[i]^2
-			    //det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
+#ifdef FULL_USE_OF_SSE2
 			    det = _Dxx[i] * _Dyy[i] - _Dxy[i];
+#else
+			    det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
+#endif
 			    // det should then be 26 bits wide max
 			    if (det <= 0) det = 0;
 			    else {
@@ -352,36 +360,46 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		    Dxx = CAM_INTEGRAL(srcptr, offset0, offset2, offset1, offset5) -
 			(tmp + tmp + tmp);
 		    Dxx = Dxx >> scale;
-		    tmp = CAM_INTEGRAL(srcptr, offset7, offset10, offset8, offset11); 
-		    Dyy = CAM_INTEGRAL(srcptr, offset6, offset10, offset9, offset11) -
-			(tmp + tmp + tmp);
-		    Dyy = Dyy >> scale;
-		    Dxy = CAM_INTEGRAL(srcptr, offset12, offset13, offset14, offset15) -
-			CAM_INTEGRAL(srcptr, offset18, offset13, offset16, offset15) -
-			CAM_INTEGRAL(srcptr, offset12, offset19, offset14, offset17) +
-			CAM_INTEGRAL(srcptr, offset18, offset19, offset16, offset17); 
-		    Dxy = Dxy >> scale;
-		    
-		    // Dxx, Dyy and Dxy should be 12 to 13 bits wide max
-		    // det = Dxx * Dyy - 0.81 * Dxy^2
-		    det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
-		    // det should then be 26 bits wide max
-		    if (det <= 0) det = 0;
-		    else {
-#ifdef ELIMINATE_EDGE_RESPONSE
-			r = (Dxx + Dyy) * (Dxx + Dyy);
-			if (r > 10 * det)
-			    det = 0;
-			else 
-#endif
-			    // coeff is a 6 bits wide max param
-			    // and thus the det should stay within 26 bits
-			    det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
-			    // det is on 16 bits max
-		    }
-		    acc += det;
-		    *dstptr = (unsigned short)det;
+		    if (abs(Dxx) < rejection) det = 0;
+		    else { 
+			tmp = CAM_INTEGRAL(srcptr, offset7, offset10, offset8, offset11); 
+			Dyy = CAM_INTEGRAL(srcptr, offset6, offset10, offset9, offset11) -
+			    (tmp + tmp + tmp);
+			Dyy = Dyy >> scale;
 
+			if (abs(Dyy) < rejection) det = 0;
+			else {
+			    det = Dxx * Dyy;
+			    if (det <= 0) det = 0;
+			    else {
+				Dxy = CAM_INTEGRAL(srcptr, offset12, offset13, offset14, offset15) -
+				    CAM_INTEGRAL(srcptr, offset18, offset13, offset16, offset15) -
+				    CAM_INTEGRAL(srcptr, offset12, offset19, offset14, offset17) +
+				    CAM_INTEGRAL(srcptr, offset18, offset19, offset16, offset17); 
+				Dxy = Dxy >> scale;
+
+				// Dxx, Dyy and Dxy should be 12 to 13 bits wide max
+				// det = Dxx * Dyy - 0.81 * Dxy^2
+				det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
+				// det should then be 26 bits wide max
+				if (det <= 0) det = 0;
+				else {
+#ifdef ELIMINATE_EDGE_RESPONSE
+				    r = (Dxx + Dyy) * (Dxx + Dyy);
+				    if (r > 10 * det)
+					det = 0;
+				    else 
+#endif
+					// coeff is a 6 bits wide max param
+					// and thus the det should stay within 26 bits by shifting with 6 bits
+					// 10 bits more and det is on 16 bits max
+					det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+				}
+				acc += det;
+			    }
+			}	
+	    	    }
+		    *dstptr = (unsigned short)det;
 		}
 		for (; x < endx ; x += (inc), srcptr += inc, dstptr++ ) *dstptr = 0;
 	    }
@@ -1014,7 +1032,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     // Fast Hessian Detector for all scales
     for (scale = 0; scale < nbScales; scale++) {
 	results[scale].imageData = NULL; // In order to use automatic allocation
-	camFastHessianDetectorFixedScale(&integral, &results[scale], scale);
+	camFastHessianDetectorFixedScale(&integral, &results[scale], scale, 10);
 	// camSavePGM(&results[scale], "output/features_fast_hessian.pgm");
 	pNbPoints = points->nbPoints;
 	camFindLocalMaximaCircle5(&results[scale], points, threshold);
