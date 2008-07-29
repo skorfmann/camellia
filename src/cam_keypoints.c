@@ -62,6 +62,8 @@
 
 #define SEPARATED_NORMALIZATION
 //#define SURF_DESCRIPTOR
+//#define PRECOMPUTE_POINTERS
+
 static int camPatchSizeParam = 8*3;
 static int camSigmaParam = 5;
 static int camThreshGradientParam = 128;
@@ -123,9 +125,6 @@ int camFreeKeypoints(CamKeypoints *fpoints)
     return 1;
 }
 
-#define CAM_INTEGRAL(ptr, oLeft, oTop, oRight, oBottom) \
-    ( *(ptr + oRight + oBottom) - *(ptr + oLeft + oBottom) - *(ptr + oRight + oTop) + *(ptr + oLeft + oTop) )
-
 static const int CamScale[] = {3, 5, 7, 9, 13, 17, 25, 33, 49, 65};
 static const int CamOffset[][2] = {
 	{2, 1}, {3, 2}, {4, 2}, {6, 3}, {9, 4}, {11, 6}, {17, 8}, {22, 11}, {33, 16}, {43, 22}		
@@ -135,9 +134,12 @@ static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
 
 int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
 {
-    int x, y;
+    int i, x, y;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
+#ifdef PRECOMPUTE_POINTERS
+    unsigned long *ptr[32];
+#endif
     signed short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
     int acc=0, det, coeff;
@@ -235,8 +237,42 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		}
 
 		for (x = startx; x < startx2 ; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++ ) *dstptr = 0;
+		
+#ifdef PRECOMPUTE_POINTERS
+#define CAM_SETPTR(i, oLeft, oTop, oRight, oBottom) \
+    ptr[i] = srcptr + oRight + oBottom; \
+    ptr[i + 1] = srcptr + oLeft + oBottom; \
+    ptr[i + 2] = srcptr + oRight + oTop; \
+    ptr[i + 3] = srcptr + oLeft + oTop;
+		
+		CAM_SETPTR(0, offset0, offset3, offset1, offset4);
+		CAM_SETPTR(4, offset0, offset2, offset1, offset5);
+		CAM_SETPTR(8, offset7, offset10, offset8, offset11); 
+		CAM_SETPTR(12, offset6, offset10, offset9, offset11);
+		CAM_SETPTR(16, offset12, offset13, offset14, offset15);
+		CAM_SETPTR(20, offset18, offset13, offset16, offset15);
+		CAM_SETPTR(24, offset12, offset19, offset14, offset17);
+		CAM_SETPTR(28, offset18, offset19, offset16, offset17); 
+#endif
+
 		for (; x < endx2; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++) {
-		    //printf("(%d, %d)\n", x, y);
+		    
+#ifdef PRECOMPUTE_POINTERS
+    #define CAM_INTEGRAL(i) ( *ptr[i] - *ptr[i + 1] - *ptr[i + 2] + *ptr[i + 3] )
+		    
+		    tmp1 = CAM_INTEGRAL(0);
+		    Dxx = CAM_INTEGRAL(4) - (tmp1 + tmp1 + tmp1);
+		    Dxx = Dxx >> scale;
+		    tmp2 = CAM_INTEGRAL(8); 
+		    Dyy = CAM_INTEGRAL(12) - (tmp2 + tmp2 + tmp2);
+		    Dyy = Dyy >> scale;
+		    Dxy = CAM_INTEGRAL(16) - CAM_INTEGRAL(20) -	CAM_INTEGRAL(24) + CAM_INTEGRAL(28); 
+		    Dxy = Dxy >> scale;
+		    for (i = 0; i != 32; i++) ptr[i] += (1 << CamSampling[scale]);
+#else
+    #define CAM_INTEGRAL(ptr, oLeft, oTop, oRight, oBottom) \
+    ( *(ptr + oRight + oBottom) - *(ptr + oLeft + oBottom) - *(ptr + oRight + oTop) + *(ptr + oLeft + oTop) )
+		    
 		    tmp1 = CAM_INTEGRAL(srcptr, offset0, offset3, offset1, offset4);
 		    Dxx = CAM_INTEGRAL(srcptr, offset0, offset2, offset1, offset5) -
 			(tmp1 + tmp1 + tmp1);
@@ -250,12 +286,17 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			CAM_INTEGRAL(srcptr, offset12, offset19, offset14, offset17) +
 			CAM_INTEGRAL(srcptr, offset18, offset19, offset16, offset17); 
 		    Dxy = Dxy >> scale;
+#endif
+
+		    // Dxx, Dyy and Dxy should be 12 to 13 bits wide max
 		    // det = Dxx * Dyy - 0.81 * Dxy^2
-		    // det should be 26 bits max
 		    det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
+		    // det should then be 26 bits wide max
 		    if (det <= 0) det = 0;
 		    else {
-			det = (det * coeff) >> 6;
+			// coeff is a 6 bits wide max param
+			// and thus the dest should stay within 26 bits
+			det = (((unsigned int)det) * ((unsigned int)coeff)) >> 6;
 #ifdef ELIMINATE_EDGE_RESPONSE
 			r = (Dxx + Dyy) * (Dxx + Dyy) / det;
 			if (r > 10)
@@ -267,6 +308,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		    }
 		    acc += det;
 		    *dstptr = (unsigned short)det;
+
 		}
 		for (; x < endx ; x += (1 << CamSampling[scale]), srcptr += (1 << CamSampling[scale]), dstptr++ ) *dstptr = 0;
 	    }

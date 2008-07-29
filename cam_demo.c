@@ -1036,7 +1036,7 @@ void example_integralimage()
 
 int camKeypointInternalsPrepareOrientation();
 
-void example_feature_points()
+void example_keypoints()
 {
     CamImage image, integral, dest;
     CamKeypoints points;
@@ -1056,7 +1056,7 @@ void example_feature_points()
 
     //camKeypointsInternalsPrepareOrientation();
     
-    printf("Feature points detection :\n");
+    printf("Keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
     camAllocateKeypoints(&points, 1000);
 
@@ -1065,6 +1065,13 @@ void example_feature_points()
     camFillColor(&image, 103, 121, 255, -1);
     camDrawRectangle(&image, 122, 35, 176, 67, 128);
     camFillColor(&image, 123, 36, 128, -1);
+
+    camDrawCircle(&image, 50, 50, 10, 255);
+    camFillColor(&image, 50, 50, 255, -1);
+    camDrawCircle(&image, 80, 50, 5, 255);
+    camFillColor(&image, 80, 50, 255, -1);
+    camDrawCircle(&image, 100, 50, 3, 255);
+    camFillColor(&image, 100, 50, 255, -1);
 
 #if 1
     angle = 20;
@@ -1119,7 +1126,7 @@ void example_feature_points()
     camFreeKeypoints(&points);
 }
 
-void example_feature_points2()
+void example_keypoints2()
 {
     CamImage image, Y1, Y2;
     CamKeypoints points1, points2;
@@ -1128,7 +1135,7 @@ void example_feature_points2()
     CamKeypoint *best;
     float ratio = 2.0f/3;
 
-    printf("Feature point detection on Clooney :\n");
+    printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
     camLoadBMP(&image, "resources/clooney.bmp");
     Y1.imageData = NULL;
@@ -1170,13 +1177,13 @@ void example_feature_points2()
     camFreeKeypoints(&points2);
 }
 
-void example_feature_points3()
+void example_keypoints3()
 {
     CamImage image, Y;
     CamKeypoints points;
     int i;
    
-    printf("Feature point detection on sunflowers :\n");
+    printf("Keypoint detection on sunflowers :\n");
     image.imageData = NULL;
     camLoadBMP(&image, "resources/sunflower.bmp");
     Y.imageData = NULL;
@@ -1281,7 +1288,7 @@ int main()
     camInitBenchmark();
 
     // Legacy examples
-    example_filters();
+/*    example_filters();
     example_warping();
     example_binary();
     example_morpho();
@@ -1300,9 +1307,11 @@ int main()
     example_histogram();
     example_harris();
     example_integralimage();
-    example_feature_points();
-    example_feature_points2();
-    example_feature_points3();
+*/
+    example_keypoints();
+/*
+ * example_keypoints2();
+    example_keypoints3();
     example_capture();
     example_bmp();
     example_jpeg();
@@ -1319,7 +1328,8 @@ int main()
     cpp_example_alpha_composite();
     cpp_example_watershed();
     cpp_example_draw();
-    
+   */
+
     return 0;
 }
 

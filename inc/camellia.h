@@ -51,7 +51,7 @@
 #ifndef _CAMELLIA_H_
 #define _CAMELLIA_H_
 
-#define CAM_VERSION "2.8.0 alpha 1 : Beaubourg ($Rev$)"
+#define CAM_VERSION "2.8.0 alpha 2 : Beaubourg ($Rev$)"
 
 #include <stdlib.h>
 
