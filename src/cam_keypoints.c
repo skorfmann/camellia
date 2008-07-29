@@ -294,7 +294,6 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		    
 			// Let's try to compute the determinant
 			// First, we need to compute the abs value for Dxy
-			/*
 			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxy_sse2);
 			cmp_sse2 = _mm_cmplt_epi32(Dxy_sse2, _mm_setzero_si128());
 			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
@@ -302,24 +301,26 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			Dxy_sse2 = _mm_add_epi32(sse2_1, sse2_2);
 			// Then let's compute multiplications
 			sse2_1 = _mm_mul_epu32(Dxy_sse2, Dxy_sse2);
-			sse2_1 = _mm_mul_epu32(sse2_1, _mm_set_epi32(13, 0, 13, 0)); 
+			sse2_1 = _mm_mul_epu32(sse2_1, _mm_set_epi32(0, 13, 0, 13)); 
 			sse2_1 = _mm_srai_epi32(sse2_1, 4);
 			_mm_storeu_si128((__m128i*)_Dxy, sse2_1);
 			Dxy_sse2 = _mm_srli_si128(Dxy_sse2, 4);
 			sse2_2 = _mm_mul_epu32(Dxy_sse2, Dxy_sse2);
-			sse2_2 = _mm_mul_epu32(sse2_2, _mm_set_epi32(13, 0, 13, 0)); 
+			sse2_2 = _mm_mul_epu32(sse2_2, _mm_set_epi32(0, 13, 0, 13)); 
 			sse2_2 = _mm_srai_epi32(sse2_2, 4);
 			_mm_storeu_si128((__m128i*)&_Dxy[4], sse2_2);
-*/
+			_Dxy[1] = _Dxy[4];
+			_Dxy[3] = _Dxy[6];
+
 			_mm_storeu_si128((__m128i*)_Dxx, Dxx_sse2);
 			_mm_storeu_si128((__m128i*)_Dyy, Dyy_sse2);
-			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
+//			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
 
 			for (i = 0; i != 4; i++) {
 			    // _Dxx[i], _Dyy[i] and _Dxy[i] should be 12 to 13 bits wide max
 			    // det = _Dxx[i] * _Dyy[i] - 0.81 * _Dxy[i]^2
-			    det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
-			    //det = _Dxx[i] * _Dyy[i] - _Dxy[i << 1];
+			    //det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
+			    det = _Dxx[i] * _Dyy[i] - _Dxy[i];
 			    // det should then be 26 bits wide max
 			    if (det <= 0) det = 0;
 			    else {

@@ -70,12 +70,18 @@ int camCompareKeypoints(CamKeypoint *point1, CamKeypoint *point2)
 #ifdef __SSE2__
 #include <emmintrin.h>
 
+#ifdef _MSC_VER
+#define ALIGN(x, y) __declspec(align(y)) x
+#else
+#define ALIGN(x, y) x __attribute__((aligned(y)))
+#endif
+
 int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 {
     int i, j, distance = 0;
     __m128i sum, d1, d2, md, d, cmp;
     __m128i *p1 = (__m128i*)desc1, *p2 = (__m128i*)desc2;
-    int out_sse[4] __attribute__((aligned(16)));
+    ALIGN(int out_sse[4], 16);
 	
     /* Looks like a good idea... But this deteriorates performance...
     // Software prefetch
