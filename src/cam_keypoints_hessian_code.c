@@ -81,7 +81,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 #if defined(__SSE2__)
     __m128i val0_sse2, val1_sse2, val2_sse2, val3_sse2, Dxx_sse2, Dyy_sse2, tmp_sse2, sse2_1, sse2_2;
 #ifdef CAM_FAST_APPROX_HESSIAN
-    __m128i cmp_sse2, absDxx_sse2, absDyy_sse2, absDxx_sse2_s2, absDyy_sse2_s2, det_sse2, sse2_3, str_sse2[2];
+    __m128i cmp_sse2, cmp_sse2_2, absDxx_sse2, absDyy_sse2, absDxx_sse2_s2, absDyy_sse2_s2, det_sse2, str_sse2[2];
 #else
     __m128i Dxy_sse2; 
     int _Dxx[4], _Dyy[4], _Dxy[4];
@@ -218,14 +218,14 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			
 			// Compute absolute value of Dyy
 			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dyy_sse2);
-			cmp_sse2 = _mm_cmplt_epi32(Dyy_sse2, _mm_setzero_si128());
-			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
-			sse2_3 = _mm_andnot_si128(cmp_sse2, Dyy_sse2);
-			absDyy_sse2 = _mm_add_epi32(sse2_1, sse2_3);
+			cmp_sse2_2 = _mm_cmplt_epi32(Dyy_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2_2, sse2_1);
+			sse2_2 = _mm_andnot_si128(cmp_sse2_2, Dyy_sse2);
+			absDyy_sse2 = _mm_add_epi32(sse2_1, sse2_2);
 			
-			cmp_sse2 = _mm_xor_si128(sse2_2, sse2_3);
+			cmp_sse2 = _mm_xor_si128(cmp_sse2, cmp_sse2_2);
 			det_sse2 = _mm_add_epi32(absDxx_sse2, absDyy_sse2);
-			det_sse2 = _mm_andnot_si128(det_sse2, cmp_sse2);
+			det_sse2 = _mm_andnot_si128(cmp_sse2, det_sse2);
 			absDxx_sse2_s2 = _mm_slli_epi32(absDxx_sse2, 2);
 			absDyy_sse2_s2 = _mm_slli_epi32(absDyy_sse2, 2);
 			sse2_1 = _mm_cmplt_epi32(absDyy_sse2, absDxx_sse2_s2);
@@ -236,7 +236,8 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			i++;
 			if (i == 2) {
 			    i = 0;
-			    _mm_storeu_si128((__m128i*)dstptr, _mm_packs_epi32(str_sse2[0], str_sse2[1]));
+			    det_sse2 = _mm_packs_epi32(str_sse2[0], str_sse2[1]);
+			    _mm_storeu_si128((__m128i*)dstptr, det_sse2);
 			    dstptr += 8;
 			}
 #else
