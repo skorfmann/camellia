@@ -2164,7 +2164,7 @@ int camFindLocalMaximaCircle3(CamImage *source, CamKeypoints *points, int thresh
 int camIntegralImage(CamImage *src, CamImage *dest);
 
 /// Fast Hessian Detection (for one scale only)
-int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale, int rejection);
+int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale);
 
 /// Fast Hessian Detection (for all scales)
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold, int options);
