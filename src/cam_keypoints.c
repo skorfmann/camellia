@@ -83,7 +83,7 @@ static const int CamSampling[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
 
 
-#include "cam_keypoints_hessian.c"
+#include "cam_keypoints_hessian_code.c"
 
 // Keypoints allocation
 int camAllocateKeypoints(CamKeypoints *fpoints, int nbPoints)
