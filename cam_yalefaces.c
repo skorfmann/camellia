@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -84,7 +84,7 @@ int main()
 	points[i].id = i;
 	points[i].cx = cx[i];
 	points[i].cy = cy[i];
-	camFastHessianDetector(&imodel[i], &points[i], threshold, CAM_UPRIGHT);
+	camFastHessianDetector(&imodel[i], &points[i], threshold, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
 	camDrawKeypoints(&points[i], &image, 128);
 	sprintf(filename, "output/yalefaces%02d.pgm", i + 1);
 	camSavePGM(&image, filename);
@@ -104,7 +104,7 @@ int main()
 	    image.imageData = NULL;
 	    camLoadPGM(&image, filename);
 	    camAllocateKeypoints(&points2, 10000);
-	    camFastHessianDetector(&image, &points2, threshold, CAM_UPRIGHT);
+	    camFastHessianDetector(&image, &points2, threshold, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
 	    printf("# features = %d\n", points2.nbPoints);
 	    nbFeatures += points2.nbPoints;
 	    //bestMatch = camKeypointsMatching(&points2, models, 15, &matches);

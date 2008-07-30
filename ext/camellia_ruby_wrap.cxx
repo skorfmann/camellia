@@ -20565,7 +20565,7 @@ SWIGEXPORT void Init_camellia(void) {
   }
   
   SWIG_RubyInitializeTrackings();
-  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.8.0 alpha 2 : Beaubourg ($Rev: 328 $)"));
+  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.8.0 alpha 2 : Beaubourg ($Rev: 331 $)"));
   rb_define_const(mCamellia, "CAM_MAX_SCANLINE", SWIG_From_int(static_cast< int >(1280)));
   rb_define_const(mCamellia, "CAM_MAX_FRAME_HEIGHT", SWIG_From_int(static_cast< int >(1024)));
   rb_define_const(mCamellia, "CAM_DEPTH_SIGN", SWIG_From_int(static_cast< int >(0x80000000)));
@@ -21080,7 +21080,8 @@ SWIGEXPORT void Init_camellia(void) {
   cCamKeypoints.destroy = (void (*)(void *)) free_CamKeypoints;
   cCamKeypoints.trackObjects = 1;
   rb_define_const(mCamellia, "CAM_UPRIGHT", SWIG_From_int(static_cast< int >(1)));
-  rb_define_const(mCamellia, "CAM_NO_INTERPOLATION", SWIG_From_int(static_cast< int >(2)));
+  rb_define_const(mCamellia, "CAM_APPROX_HESSIAN", SWIG_From_int(static_cast< int >(2)));
+  rb_define_const(mCamellia, "CAM_NO_INTERPOLATION", SWIG_From_int(static_cast< int >(4)));
   rb_define_module_function(mCamellia, "camKeypointsSetParameters", VALUEFUNC(_wrap_camKeypointsSetParameters), -1);
   
   cCamKeypointsKdTree.klass = rb_define_class_under(mCamellia, "CamKeypointsKdTree", rb_cObject);

@@ -49,16 +49,24 @@
 /* CamKeypoints hessian computation
  * C code */
 
+#ifdef CAM_FAST_APPROX_HESSIAN
+int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
+#else
 int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
+#endif
 {
     int i, x, y;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
     signed short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
-    int acc=0, inc, det, coeff;
-    int Dxx, Dyy, Dxy, tmp;
-    int multiplier, shift;
+    int acc=0, inc, det;
+    int Dxx, Dyy, tmp;
+#ifdef CAM_FAST_APPROX_HESSIAN
+    int absDxx, absDyy;
+#else
+    int Dxy;
+#endif
     int offset0, offset1, offset2, offset3, offset4, offset5, offset6, offset7, offset8, offset9;
     int offset10, offset11, offset12, offset13, offset14, offset15, offset16, offset17, offset18, offset19;
     int startx2, endx2;
@@ -67,10 +75,17 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 #ifdef ELIMINATE_EDGE_RESPONSE
     int r;
 #endif
+#ifndef POST_SCALING
+    int coeff, multiplier, shift;
+#endif
 #if defined(__SSE2__)
-    __m128i val0_sse2, val1_sse2, val2_sse2, val3_sse2, Dxx_sse2, Dyy_sse2, Dxy_sse2, tmp_sse2, sse2_1, sse2_2;
-    __m128i cmp_sse2;
-    int _Dxx[4], _Dyy[4], _Dxy[8];
+    __m128i val0_sse2, val1_sse2, val2_sse2, val3_sse2, Dxx_sse2, Dyy_sse2, tmp_sse2, sse2_1, sse2_2;
+#ifdef CAM_FAST_APPROX_HESSIAN
+    __m128i cmp_sse2, absDxx_sse2, absDyy_sse2, absDxx_sse2_s2, absDyy_sse2_s2, det_sse2, sse2_3, str_sse2[2];
+#else
+    __m128i Dxy_sse2; 
+    int _Dxx[4], _Dyy[4], _Dxy[4];
+#endif
 #endif 
 
     CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, integral->imageData != NULL, "source integral image is not allocated");
@@ -100,12 +115,14 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     // Formula is 65536/(s*s)
     // multiplier = 65536 / (CamScale[scale] * CamScale[scale]);  
     // It is made more accurate by using specifically the surfaces used for computation
+#ifndef POST_SCALING
     multiplier = 65536 / ((CamScale[scale]*3 - 2 * CamOffset[scale][0]) * CamScale[scale]);  
     shift = 18 - 2 * scale;
     if (shift >= 0) 
     	coeff = (multiplier * multiplier) >> shift;
     else
 	coeff = (multiplier * multiplier) << (-shift); 
+#endif
     inc = (1 << CamSampling[scale]);
     //printf("scale #%d, multiplier = %d, coeff = %d\n", scale, multiplier, coeff);
     // Fill the offset tables
@@ -160,7 +177,11 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		
 #if defined(__SSE2__)
 		if (inc == 1) {
+#ifdef CAM_FAST_APPROX_HESSIAN
+		    for (i = 0; x < endx2 - 7; x += 4, srcptr += 4) {
+#else
 		    for (; x < endx2 - 3; x += 4, srcptr += 4, dstptr += 4) {
+#endif
 #define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
     val0_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oRight + oBottom)); \
     val1_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oLeft + oBottom)); \
@@ -186,6 +207,39 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			sse2_2 = _mm_sub_epi32(Dyy_sse2, tmp_sse2);
 			Dyy_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
 			Dyy_sse2 = _mm_srai_epi32(Dyy_sse2, scale);
+
+#ifdef CAM_FAST_APPROX_HESSIAN
+			// Compute absolute value of Dxx
+			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxx_sse2);
+			cmp_sse2 = _mm_cmplt_epi32(Dxx_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
+			sse2_2 = _mm_andnot_si128(cmp_sse2, Dxx_sse2);
+			absDxx_sse2 = _mm_add_epi32(sse2_1, sse2_2);
+			
+			// Compute absolute value of Dyy
+			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dyy_sse2);
+			cmp_sse2 = _mm_cmplt_epi32(Dyy_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
+			sse2_3 = _mm_andnot_si128(cmp_sse2, Dyy_sse2);
+			absDyy_sse2 = _mm_add_epi32(sse2_1, sse2_3);
+			
+			cmp_sse2 = _mm_xor_si128(sse2_2, sse2_3);
+			det_sse2 = _mm_add_epi32(absDxx_sse2, absDyy_sse2);
+			det_sse2 = _mm_andnot_si128(det_sse2, cmp_sse2);
+			absDxx_sse2_s2 = _mm_slli_epi32(absDxx_sse2, 2);
+			absDyy_sse2_s2 = _mm_slli_epi32(absDyy_sse2, 2);
+			sse2_1 = _mm_cmplt_epi32(absDyy_sse2, absDxx_sse2_s2);
+			sse2_2 = _mm_cmpgt_epi32(absDyy_sse2_s2, absDxx_sse2);
+			det_sse2 = _mm_and_si128(det_sse2, sse2_1);
+			str_sse2[i] = _mm_and_si128(det_sse2, sse2_2);
+
+			i++;
+			if (i == 2) {
+			    i = 0;
+			    _mm_storeu_si128((__m128i*)dstptr, _mm_packs_epi32(str_sse2[0], str_sse2[1]));
+			    dstptr += 8;
+			}
+#else
 			CAM_SSE2_LOAD(offset12, offset13, offset14, offset15);
 			CAM_SSE2_INTEGRAL(Dxy_sse2);
 			CAM_SSE2_LOAD(offset18, offset13, offset16, offset15);
@@ -229,6 +283,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			    acc += det;
 			    *(dstptr + i) = (unsigned short)det;
 			}
+#endif
 		    }
 
 		}
@@ -248,6 +303,30 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			(tmp + tmp + tmp);
 		    Dyy >>= scale;
 
+#ifdef CAM_FAST_APPROX_HESSIAN
+		    /* First basic algorithm
+		    if (Dxx > 0) {
+			if (Dyy > 0) {
+			    if ((Dyy < (Dxx << 2)) && ((Dyy << 2) > Dxx)) {
+				det = Dxx + Dyy;
+			    } else det = 0;
+			} else det = 0;
+		    } else {
+			if (Dyy < 0) {
+			    if ((Dyy > (Dxx << 2)) && ((Dyy << 2) < Dxx)) {
+				det = -(Dxx + Dyy);
+			    } else det = 0;
+			} else det = 0;
+		    }			
+		    */
+		    // A much better implementation, that makes use of conditional execution 
+		    if (Dxx > 0) { i = 1; absDxx = Dxx; } else { i = 0; absDxx = -Dxx; }
+		    if (Dyy > 0) { i ^= 0; absDyy = Dyy; } else { i ^= 1; absDyy = -Dyy; }
+		    if (i && (absDyy < (absDxx << 2)) && ((absDyy << 2) > absDxx))
+			det = absDxx + absDyy;
+		    else
+			det = 0;
+#else
 		    det = Dxx * Dyy;
 		    if (det <= 0) det = 0;
 		    else {
@@ -281,6 +360,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			}
 			acc += det;
 		    }
+#endif
 		    *dstptr = (unsigned short)det;
 		}
 		for (; x < endx ; x += (inc), srcptr += inc, dstptr++ ) *dstptr = 0;

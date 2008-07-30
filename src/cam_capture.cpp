@@ -846,11 +846,11 @@ CamCapture::CamCapture(int options)
     CamCaptureV4L *ptr=new CamCaptureV4L;
     handle=(void*)ptr;
 
-    char *sdevice="/dev/video0";
+    const char *sdevice = "/dev/video0";
     ptr->fd = open(sdevice, O_RDWR /* required */ | O_NONBLOCK, 0);
     if (ptr->fd == -1) {
         char s[256];
-        sprintf(s,"Couldn't open %s",sdevice);
+        sprintf(s, "Couldn't open %s", sdevice);
         camSetErrorStr(s);
 	delete ptr; handle = NULL;
         return;

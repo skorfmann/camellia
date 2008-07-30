@@ -1108,12 +1108,12 @@ void example_keypoints()
     dest.imageData = NULL; 
 	
     t1=camGetTimeMs();
-    for (c = 0; c < 100; c++)
+    for (c = 0; c < 10; c++)
     {
-	camFastHessianDetector(&image, &points, 2000, 0);
+	camFastHessianDetector(&image, &points, 2000, CAM_APPROX_HESSIAN);
     }	
     t2=camGetTimeMs();
-    printf("Fast hessian computation = %d us\n",(t2-t1)*10);
+    printf("Fast hessian computation = %d us\n",(t2-t1)*100);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }

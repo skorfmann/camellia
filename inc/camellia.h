@@ -2125,8 +2125,9 @@ typedef struct _CamKeypoints {
 } CamKeypoints;
 #endif
 
-#define CAM_UPRIGHT 1
-#define CAM_NO_INTERPOLATION 2
+#define CAM_UPRIGHT		1
+#define CAM_APPROX_HESSIAN	2
+#define CAM_NO_INTERPOLATION	4
 
 int camKeypointsSetParameters(int patchSize, int sigma, int threshGradient);
 
@@ -2166,6 +2167,9 @@ int camIntegralImage(CamImage *src, CamImage *dest);
 
 /// Fast Hessian Detection (for one scale only)
 int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale);
+
+/// Fast Hessian Detection (for one scale only)
+int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale);
 
 /// Fast Hessian Detection (for all scales)
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold, int options);
