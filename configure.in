@@ -1,5 +1,5 @@
 AC_INIT(src/camellia.cpp)
-AM_INIT_AUTOMAKE(CamelliaLib, 2.7.0)
+AM_INIT_AUTOMAKE(CamelliaLib, 2.8.0)
 AC_CONFIG_HEADER(inc/config.h)
 AM_PROG_LIBTOOL
 

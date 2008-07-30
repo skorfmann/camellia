@@ -1,5 +1,5 @@
 require 'mkmf'
-CAMELLIA_VERSION = "2.7.0"
+CAMELLIA_VERSION = "2.8.0"
 puts "Unzipping Camellia library..."
 `tar xvf ../CamelliaLib-#{CAMELLIA_VERSION}.tar.gz`
 Dir.chdir "CamelliaLib-#{CAMELLIA_VERSION}"

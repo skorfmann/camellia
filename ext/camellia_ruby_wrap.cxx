@@ -4138,6 +4138,137 @@ fail:
 
 
 SWIGINTERN VALUE
+_wrap_CamImage_copy_shift__SWIG_0(int argc, VALUE *argv, VALUE self) {
+  CamImage *arg1 = (CamImage *) 0 ;
+  int arg2 ;
+  CamImage *result = 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  VALUE vresult = Qnil;
+  
+  if ((argc < 1) || (argc > 1)) {
+    rb_raise(rb_eArgError, "wrong # of arguments(%d for 1)",argc); SWIG_fail;
+  }
+  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamImage, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamImage const *","copy_shift", 1, self )); 
+  }
+  arg1 = reinterpret_cast< CamImage * >(argp1);
+  ecode2 = SWIG_AsVal_int(argv[0], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "int","copy_shift", 2, argv[0] ));
+  } 
+  arg2 = static_cast< int >(val2);
+  result = (CamImage *)((CamImage const *)arg1)->copy_shift(arg2);
+  vresult = SWIG_NewPointerObj(SWIG_as_voidptr(result), SWIGTYPE_p_CamImage, 0 |  0 );
+  return vresult;
+fail:
+  return Qnil;
+}
+
+
+SWIGINTERN VALUE
+_wrap_CamImage_copy_shift__SWIG_1(int argc, VALUE *argv, VALUE self) {
+  CamImage *arg1 = (CamImage *) 0 ;
+  CamImage *arg2 = 0 ;
+  int arg3 ;
+  bool result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  VALUE vresult = Qnil;
+  
+  if ((argc < 2) || (argc > 2)) {
+    rb_raise(rb_eArgError, "wrong # of arguments(%d for 2)",argc); SWIG_fail;
+  }
+  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamImage, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamImage const *","copy_shift", 1, self )); 
+  }
+  arg1 = reinterpret_cast< CamImage * >(argp1);
+  res2 = SWIG_ConvertPtr(argv[0], &argp2, SWIGTYPE_p_CamImage,  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), Ruby_Format_TypeError( "", "CamImage &","copy_shift", 2, argv[0] )); 
+  }
+  if (!argp2) {
+    SWIG_exception_fail(SWIG_ValueError, Ruby_Format_TypeError("invalid null reference ", "CamImage &","copy_shift", 2, argv[0])); 
+  }
+  arg2 = reinterpret_cast< CamImage * >(argp2);
+  ecode3 = SWIG_AsVal_int(argv[1], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), Ruby_Format_TypeError( "", "int","copy_shift", 3, argv[1] ));
+  } 
+  arg3 = static_cast< int >(val3);
+  result = (bool)((CamImage const *)arg1)->copy_shift(*arg2,arg3);
+  vresult = SWIG_From_bool(static_cast< bool >(result));
+  return vresult;
+fail:
+  return Qnil;
+}
+
+
+SWIGINTERN VALUE _wrap_CamImage_copy_shift(int nargs, VALUE *args, VALUE self) {
+  int argc;
+  VALUE argv[4];
+  int ii;
+  
+  argc = nargs + 1;
+  argv[0] = self;
+  if (argc > 4) SWIG_fail;
+  for (ii = 1; (ii < argc); ++ii) {
+    argv[ii] = args[ii-1];
+  }
+  if (argc == 2) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_CamImage, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      {
+        int res = SWIG_AsVal_int(argv[1], NULL);
+        _v = SWIG_CheckState(res);
+      }
+      if (_v) {
+        return _wrap_CamImage_copy_shift__SWIG_0(nargs, args, self);
+      }
+    }
+  }
+  if (argc == 3) {
+    int _v;
+    void *vptr = 0;
+    int res = SWIG_ConvertPtr(argv[0], &vptr, SWIGTYPE_p_CamImage, 0);
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      void *vptr = 0;
+      int res = SWIG_ConvertPtr(argv[1], &vptr, SWIGTYPE_p_CamImage, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        {
+          int res = SWIG_AsVal_int(argv[2], NULL);
+          _v = SWIG_CheckState(res);
+        }
+        if (_v) {
+          return _wrap_CamImage_copy_shift__SWIG_1(nargs, args, self);
+        }
+      }
+    }
+  }
+  
+fail:
+  Ruby_Format_OverloadedError( argc, 4, "CamImage.copy_shift", 
+    "    bool CamImage.copy_shift(int shift)\n"
+    "    bool CamImage.copy_shift(CamImage &dest, int shift)\n");
+  
+  return Qnil;
+}
+
+
+SWIGINTERN VALUE
 _wrap_CamImage_allocatedq___(int argc, VALUE *argv, VALUE self) {
   CamImage *arg1 = (CamImage *) 0 ;
   bool result;
@@ -13087,7 +13218,7 @@ free_CamMorphoMathsKernel(CamMorphoMathsKernel *arg1) {
 swig_class cCamRun;
 
 SWIGINTERN VALUE
-_wrap_CamRun_value_set(int argc, VALUE *argv, VALUE self) {
+_wrap_CamRun_x_set(int argc, VALUE *argv, VALUE self) {
   CamRun *arg1 = (CamRun *) 0 ;
   unsigned short arg2 ;
   void *argp1 = 0 ;
@@ -13100,15 +13231,15 @@ _wrap_CamRun_value_set(int argc, VALUE *argv, VALUE self) {
   }
   res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","value", 1, self )); 
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","x", 1, self )); 
   }
   arg1 = reinterpret_cast< CamRun * >(argp1);
   ecode2 = SWIG_AsVal_unsigned_SS_short(argv[0], &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "unsigned short","value", 2, argv[0] ));
+    SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "unsigned short","x", 2, argv[0] ));
   } 
   arg2 = static_cast< unsigned short >(val2);
-  if (arg1) (arg1)->value = arg2;
+  if (arg1) (arg1)->x = arg2;
   
   return Qnil;
 fail:
@@ -13117,7 +13248,7 @@ fail:
 
 
 SWIGINTERN VALUE
-_wrap_CamRun_value_get(int argc, VALUE *argv, VALUE self) {
+_wrap_CamRun_x_get(int argc, VALUE *argv, VALUE self) {
   CamRun *arg1 = (CamRun *) 0 ;
   unsigned short result;
   void *argp1 = 0 ;
@@ -13129,10 +13260,10 @@ _wrap_CamRun_value_get(int argc, VALUE *argv, VALUE self) {
   }
   res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
   if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","value", 1, self )); 
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","x", 1, self )); 
   }
   arg1 = reinterpret_cast< CamRun * >(argp1);
-  result = (unsigned short) ((arg1)->value);
+  result = (unsigned short) ((arg1)->x);
   vresult = SWIG_From_unsigned_SS_short(static_cast< unsigned short >(result));
   return vresult;
 fail:
@@ -13195,6 +13326,60 @@ fail:
 
 
 SWIGINTERN VALUE
+_wrap_CamRun_value_set(int argc, VALUE *argv, VALUE self) {
+  CamRun *arg1 = (CamRun *) 0 ;
+  unsigned short arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  unsigned short val2 ;
+  int ecode2 = 0 ;
+  
+  if ((argc < 1) || (argc > 1)) {
+    rb_raise(rb_eArgError, "wrong # of arguments(%d for 1)",argc); SWIG_fail;
+  }
+  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","value", 1, self )); 
+  }
+  arg1 = reinterpret_cast< CamRun * >(argp1);
+  ecode2 = SWIG_AsVal_unsigned_SS_short(argv[0], &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "unsigned short","value", 2, argv[0] ));
+  } 
+  arg2 = static_cast< unsigned short >(val2);
+  if (arg1) (arg1)->value = arg2;
+  
+  return Qnil;
+fail:
+  return Qnil;
+}
+
+
+SWIGINTERN VALUE
+_wrap_CamRun_value_get(int argc, VALUE *argv, VALUE self) {
+  CamRun *arg1 = (CamRun *) 0 ;
+  unsigned short result;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  VALUE vresult = Qnil;
+  
+  if ((argc < 0) || (argc > 0)) {
+    rb_raise(rb_eArgError, "wrong # of arguments(%d for 0)",argc); SWIG_fail;
+  }
+  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","value", 1, self )); 
+  }
+  arg1 = reinterpret_cast< CamRun * >(argp1);
+  result = (unsigned short) ((arg1)->value);
+  vresult = SWIG_From_unsigned_SS_short(static_cast< unsigned short >(result));
+  return vresult;
+fail:
+  return Qnil;
+}
+
+
+SWIGINTERN VALUE
 _wrap_CamRun_blob_set(int argc, VALUE *argv, VALUE self) {
   CamRun *arg1 = (CamRun *) 0 ;
   unsigned short arg2 ;
@@ -13241,60 +13426,6 @@ _wrap_CamRun_blob_get(int argc, VALUE *argv, VALUE self) {
   }
   arg1 = reinterpret_cast< CamRun * >(argp1);
   result = (unsigned short) ((arg1)->blob);
-  vresult = SWIG_From_unsigned_SS_short(static_cast< unsigned short >(result));
-  return vresult;
-fail:
-  return Qnil;
-}
-
-
-SWIGINTERN VALUE
-_wrap_CamRun_line_set(int argc, VALUE *argv, VALUE self) {
-  CamRun *arg1 = (CamRun *) 0 ;
-  unsigned short arg2 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  unsigned short val2 ;
-  int ecode2 = 0 ;
-  
-  if ((argc < 1) || (argc > 1)) {
-    rb_raise(rb_eArgError, "wrong # of arguments(%d for 1)",argc); SWIG_fail;
-  }
-  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","line", 1, self )); 
-  }
-  arg1 = reinterpret_cast< CamRun * >(argp1);
-  ecode2 = SWIG_AsVal_unsigned_SS_short(argv[0], &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "unsigned short","line", 2, argv[0] ));
-  } 
-  arg2 = static_cast< unsigned short >(val2);
-  if (arg1) (arg1)->line = arg2;
-  
-  return Qnil;
-fail:
-  return Qnil;
-}
-
-
-SWIGINTERN VALUE
-_wrap_CamRun_line_get(int argc, VALUE *argv, VALUE self) {
-  CamRun *arg1 = (CamRun *) 0 ;
-  unsigned short result;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  VALUE vresult = Qnil;
-  
-  if ((argc < 0) || (argc > 0)) {
-    rb_raise(rb_eArgError, "wrong # of arguments(%d for 0)",argc); SWIG_fail;
-  }
-  res1 = SWIG_ConvertPtr(self, &argp1,SWIGTYPE_p_CamRun, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), Ruby_Format_TypeError( "", "CamRun *","line", 1, self )); 
-  }
-  arg1 = reinterpret_cast< CamRun * >(argp1);
-  result = (unsigned short) ((arg1)->line);
   vresult = SWIG_From_unsigned_SS_short(static_cast< unsigned short >(result));
   return vresult;
 fail:
@@ -20434,7 +20565,7 @@ SWIGEXPORT void Init_camellia(void) {
   }
   
   SWIG_RubyInitializeTrackings();
-  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.7.0 : Bastille ($Rev: 270 $)"));
+  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.8.0 alpha 2 : Beaubourg ($Rev: 328 $)"));
   rb_define_const(mCamellia, "CAM_MAX_SCANLINE", SWIG_From_int(static_cast< int >(1280)));
   rb_define_const(mCamellia, "CAM_MAX_FRAME_HEIGHT", SWIG_From_int(static_cast< int >(1024)));
   rb_define_const(mCamellia, "CAM_DEPTH_SIGN", SWIG_From_int(static_cast< int >(0x80000000)));
@@ -20541,6 +20672,7 @@ SWIGEXPORT void Init_camellia(void) {
   rb_define_alias(cCamImage.klass, "dup", "clone");
   rb_define_method(cCamImage.klass, "copy", VALUEFUNC(_wrap_CamImage_copy), -1);
   rb_define_alias(cCamImage.klass, "copy_to", "copy");
+  rb_define_method(cCamImage.klass, "copy_shift", VALUEFUNC(_wrap_CamImage_copy_shift), -1);
   rb_define_method(cCamImage.klass, "allocated?", VALUEFUNC(_wrap_CamImage_allocatedq___), -1);
   rb_define_method(cCamImage.klass, "alloc", VALUEFUNC(_wrap_CamImage_alloc), -1);
   rb_define_method(cCamImage.klass, "fill_header", VALUEFUNC(_wrap_CamImage_fill_header), -1);
@@ -20743,19 +20875,23 @@ SWIGEXPORT void Init_camellia(void) {
   cCamMorphoMathsKernel.mark = 0;
   cCamMorphoMathsKernel.destroy = (void (*)(void *)) free_CamMorphoMathsKernel;
   cCamMorphoMathsKernel.trackObjects = 1;
+  rb_define_const(mCamellia, "CAM_RLEOPTS_ZERO_ENCODED", SWIG_From_int(static_cast< int >(1)));
+  rb_define_const(mCamellia, "CAM_RLEOPTS_LINES_ENCODED", SWIG_From_int(static_cast< int >(2)));
+  rb_define_const(mCamellia, "CAM_RLEOPTS_STRUCTELT", SWIG_From_int(static_cast< int >(4)));
+  rb_define_const(mCamellia, "CAM_RLEOPTS_LABELLED", SWIG_From_int(static_cast< int >(8)));
   
   cCamRun.klass = rb_define_class_under(mCamellia, "CamRun", rb_cObject);
   SWIG_TypeClientData(SWIGTYPE_p_CamRun, (void *) &cCamRun);
   rb_define_alloc_func(cCamRun.klass, _wrap_CamRun_allocate);
   rb_define_method(cCamRun.klass, "initialize", VALUEFUNC(_wrap_new_CamRun), -1);
-  rb_define_method(cCamRun.klass, "value=", VALUEFUNC(_wrap_CamRun_value_set), -1);
-  rb_define_method(cCamRun.klass, "value", VALUEFUNC(_wrap_CamRun_value_get), -1);
+  rb_define_method(cCamRun.klass, "x=", VALUEFUNC(_wrap_CamRun_x_set), -1);
+  rb_define_method(cCamRun.klass, "x", VALUEFUNC(_wrap_CamRun_x_get), -1);
   rb_define_method(cCamRun.klass, "length=", VALUEFUNC(_wrap_CamRun_length_set), -1);
   rb_define_method(cCamRun.klass, "length", VALUEFUNC(_wrap_CamRun_length_get), -1);
+  rb_define_method(cCamRun.klass, "value=", VALUEFUNC(_wrap_CamRun_value_set), -1);
+  rb_define_method(cCamRun.klass, "value", VALUEFUNC(_wrap_CamRun_value_get), -1);
   rb_define_method(cCamRun.klass, "blob=", VALUEFUNC(_wrap_CamRun_blob_set), -1);
   rb_define_method(cCamRun.klass, "blob", VALUEFUNC(_wrap_CamRun_blob_get), -1);
-  rb_define_method(cCamRun.klass, "line=", VALUEFUNC(_wrap_CamRun_line_set), -1);
-  rb_define_method(cCamRun.klass, "line", VALUEFUNC(_wrap_CamRun_line_get), -1);
   cCamRun.mark = 0;
   cCamRun.destroy = (void (*)(void *)) free_CamRun;
   cCamRun.trackObjects = 1;
