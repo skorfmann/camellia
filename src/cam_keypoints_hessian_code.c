@@ -158,7 +158,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 
 		for (x = startx; x < startx2 ; x += inc, srcptr += inc, dstptr++ ) *dstptr = 0;
 		
-#if 0 //defined(__SSE2__)
+#if defined(__SSE2__)
 		if (inc == 1) {
 		    for (; x < endx2 - 3; x += 4, srcptr += 4, dstptr += 4) {
 #define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
@@ -267,8 +267,8 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 				// coeff is a 7 bits wide max param
 				// and thus the det should stay within 26 bits by shifting with 6 bits
 				// 10 bits more and det is on 16 bits max
-				det >>= 10;
-				//det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+				//det >>= 10;
+				det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
 			}
 			acc += det;
 		    }

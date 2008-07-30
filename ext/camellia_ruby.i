@@ -461,9 +461,9 @@ static void mark_CamKeypointsMatches(void *ptr) {
 
 // Exception handling
 %header %{
-void camErrorRuby(char *module, char *error)
+void camErrorRuby(const char *module, const char *error)
 {
-    rb_raise(rb_eRuntimeError,"Error in %s : %s",module,error);
+    rb_raise(rb_eRuntimeError, "Error in %s : %s", module, error);
 }
 
 static VALUE camellia_set_image_data(VALUE self, VALUE str)

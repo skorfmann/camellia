@@ -894,7 +894,12 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 	}
     }
     points->nbPoints = pNbPoints;
-    
+   
+    if (options & CAM_NO_INTERPOLATION) {
+	for (i = 0; i < points->nbPoints; i++) {
+	    points->keypoint[i]->scale = CamScale[points->keypoint[i]->scale] << 2;
+	}
+    } else {
     /* Interpolation :
      * Maxima : solve([y1=a*(x1-p)^2+b,y2=a*(-p)^2+b,y3=a*(x3-p)^2+b],[a,b,p])
      * Maxima yields the following formula for parabolic interpolation
@@ -904,49 +909,48 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
                                    2 x1 y3 + (2 x3 - 2 x1) y2 - 2 x3 y1
     
      */
-    for (i = 0; i < points->nbPoints; i++) {
-	//if (1) { // Disable parabolic interpolation
-	if (points->keypoint[i]->scale == 0 || points->keypoint[i]->scale == nbScales - 1) {
-	    points->keypoint[i]->scale = CamScale[points->keypoint[i]->scale] << 2;
-	    // Remove this point : its scale can't be interpolated
-	    points->keypoint[i]->size = 1;
-	} else {
-	    x1 = CamScale[points->keypoint[i]->scale - 1] - CamScale[points->keypoint[i]->scale];
-	    x3 = CamScale[points->keypoint[i]->scale + 1] - CamScale[points->keypoint[i]->scale];
-	    
-	    scale = points->keypoint[i]->scale - 1;
-	    ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
-	    y1 = *ptr;
-	    // Scale the point
-	    //y1 = (y1 * coeff[scale]) >> 6;
+	for (i = 0; i < points->nbPoints; i++) {
+	    if (points->keypoint[i]->scale == 0 || points->keypoint[i]->scale == nbScales - 1) {
+		// Remove this point : its scale can't be interpolated
+		points->keypoint[i]->size = 1;
+	    } else {
+		x1 = CamScale[points->keypoint[i]->scale - 1] - CamScale[points->keypoint[i]->scale];
+		x3 = CamScale[points->keypoint[i]->scale + 1] - CamScale[points->keypoint[i]->scale];
 
-	    scale = points->keypoint[i]->scale;
-	    ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
-	    y2 = *ptr;
-	    // Scale the point
-	    //y2 = (y2 * coeff[scale]) >> 6;
+		scale = points->keypoint[i]->scale - 1;
+		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		y1 = *ptr;
+		// Scale the point
+		//y1 = (y1 * coeff[scale]) >> 6;
 
-	    scale = points->keypoint[i]->scale + 1;
-	    ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
-	    y3 = *ptr;
-	    // Scale the point
-	    //y3 = (y3 * coeff[scale]) >> 6;
-	    
-	    if (y3 > y2) {
-		points->keypoint[i]->scale++;
-		i--; continue;
-	    }
-	    if (y1 > y2) {
-		points->keypoint[i]->scale--;
-		i--; continue;
-	    }
-	    num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
-	    den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
-	    if (den == 0)
-		points->keypoint[i]->size = 1; // Destroy
-	    else {
-		p = (num << 1) / den;	    
-		points->keypoint[i]->scale = p + (CamScale[points->keypoint[i]->scale] << 2);
+		scale = points->keypoint[i]->scale;
+		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		y2 = *ptr;
+		// Scale the point
+		//y2 = (y2 * coeff[scale]) >> 6;
+
+		scale = points->keypoint[i]->scale + 1;
+		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		y3 = *ptr;
+		// Scale the point
+		//y3 = (y3 * coeff[scale]) >> 6;
+
+		if (y3 > y2) {
+		    points->keypoint[i]->scale++;
+		    i--; continue;
+		}
+		if (y1 > y2) {
+		    points->keypoint[i]->scale--;
+		    i--; continue;
+		}
+		num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
+		den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
+		if (den == 0)
+		    points->keypoint[i]->size = 1; // Destroy
+		else {
+		    p = (num << 1) / den;	    
+		    points->keypoint[i]->scale = p + (CamScale[points->keypoint[i]->scale] << 2);
+		}
 	    }
 	}
     }

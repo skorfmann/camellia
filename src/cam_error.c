@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2006, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -103,7 +103,7 @@ const char *camGetErrorStr()
     return error;
 }
 
-void camStdErrorFunct(char *module, char *error)
+void camStdErrorFunct(const char *module, const char *error)
 {
     char str[256];
 #ifdef _WIN32
@@ -124,19 +124,19 @@ void camStdErrorFunct(char *module, char *error)
     exit(0);
 }
 
-static camErrorFunct errfunct=camStdErrorFunct;
+static camErrorFunct errfunct = camStdErrorFunct;
 
 /* Error management routine
 */
-void camError(char *module, char *error)
+void camError(const char *module, const char *error)
 {
-    if (error!=NULL) {
+    if (error != NULL) {
         camSetErrorStr(error);
     }
-    errfunct(module,error);
+    errfunct(module, error);
 }
 
 void camSetErrorFunct(camErrorFunct funct)
 {
-    errfunct=funct;
+    errfunct = funct;
 }

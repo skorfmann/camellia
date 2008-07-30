@@ -2207,9 +2207,9 @@ static void mark_CamKeypointsMatches(void *ptr) {
 
 
 
-void camErrorRuby(char *module, char *error)
+void camErrorRuby(const char *module, const char *error)
 {
-    rb_raise(rb_eRuntimeError,"Error in %s : %s",module,error);
+    rb_raise(rb_eRuntimeError, "Error in %s : %s", module, error);
 }
 
 static VALUE camellia_set_image_data(VALUE self, VALUE str)
@@ -21080,6 +21080,7 @@ SWIGEXPORT void Init_camellia(void) {
   cCamKeypoints.destroy = (void (*)(void *)) free_CamKeypoints;
   cCamKeypoints.trackObjects = 1;
   rb_define_const(mCamellia, "CAM_UPRIGHT", SWIG_From_int(static_cast< int >(1)));
+  rb_define_const(mCamellia, "CAM_NO_INTERPOLATION", SWIG_From_int(static_cast< int >(2)));
   rb_define_module_function(mCamellia, "camKeypointsSetParameters", VALUEFUNC(_wrap_camKeypointsSetParameters), -1);
   
   cCamKeypointsKdTree.klass = rb_define_class_under(mCamellia, "CamKeypointsKdTree", rb_cObject);

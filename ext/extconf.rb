@@ -7,6 +7,7 @@ puts "Configuring Camellia library..."
 `./configure`
 puts "Compiling and installing Camellia library..."
 `make install`
+Dir.chdir ".."
 CONFIG['LDSHARED'] = "g++ -shared -lCamellia"
 create_makefile('camellia')
 

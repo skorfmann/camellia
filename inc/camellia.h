@@ -2126,6 +2126,7 @@ typedef struct _CamKeypoints {
 #endif
 
 #define CAM_UPRIGHT 1
+#define CAM_NO_INTERPOLATION 2
 
 int camKeypointsSetParameters(int patchSize, int sigma, int threshGradient);
 
@@ -2456,8 +2457,8 @@ public:
 #ifndef SWIG
 
 /// Error management function
-void camError(char *module, char *error);
-typedef void (*camErrorFunct)(char *,char*);
+void camError(const char *module, const char *error);
+typedef void (*camErrorFunct)(const char *, const char*);
 void camSetErrorFunct(camErrorFunct funct);
 //@}
 
