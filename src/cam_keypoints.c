@@ -62,6 +62,7 @@
 
 #define SEPARATED_NORMALIZATION
 //#define SURF_DESCRIPTOR
+#define POST_SCALING
 
 static int camPatchSizeParam = 8*3;
 static int camSigmaParam = 5;
@@ -81,7 +82,6 @@ static const int CamOffset[][2] = {
     };
 static const int CamSampling[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
-
 
 #include "cam_keypoints_hessian_code.c"
 
@@ -692,6 +692,8 @@ int camSortKeypoints(const void *p1x, const void *p2x)
     return -1;
 }
 
+#define CAM_MAX_SCALES 20
+
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold, int options)
 {
     CamImage integral;
@@ -715,9 +717,12 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     CamKeypoint **first2scan[5];
 
     int x1, x3, y1, y2, y3, p, num, den;
-    signed short *ptr;
+    unsigned short *ptr;
     CamImage filter;
 
+    int multiplier, shift, coeff[CAM_MAX_SCALES];
+
+    // Parameters checking
     CAM_CHECK(camFastHessianDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
     CAM_CHECK_ARGS(camFastHessianDetector, (source->depth & CAM_DEPTH_MASK) >= 8);
     CAM_CHECK_ARGS(camFastHessianDetector, points->allocated != 0);
@@ -726,6 +731,16 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     height = iROI.srcroi.height;
     points->width = width;
     points->height = height;
+
+    // Algorithm initialization
+    for (scale = 0; scale < nbScales; scale++) {
+	multiplier = 65536 / ((CamScale[scale]*3 - 2 * CamOffset[scale][0]) * CamScale[scale]);  
+	shift = 18 - 2 * scale;
+	if (shift >= 0) 
+	    coeff[scale] = (multiplier * multiplier) >> shift;
+	else
+	    coeff[scale] = (multiplier * multiplier) << (-shift); 
+    }
 
     integral.imageData = NULL;
     roi = source->roi;
@@ -758,6 +773,9 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 	pNbPoints = points->nbPoints;
 	camFindLocalMaximaCircle5(&results[scale], points, threshold);
 	for (i = pNbPoints; i < points->nbPoints; i++) {
+#ifdef POST_SCALING
+	    points->keypoint[i]->value = (points->keypoint[i]->value * coeff[scale]) >> 6;
+#endif
 	    points->keypoint[i]->scale = scale;
 	    points->keypoint[i]->x <<= CamSampling[scale];
 	    points->keypoint[i]->y <<= CamSampling[scale];
@@ -918,22 +936,27 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 		x3 = CamScale[points->keypoint[i]->scale + 1] - CamScale[points->keypoint[i]->scale];
 
 		scale = points->keypoint[i]->scale - 1;
-		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
 		y1 = *ptr;
 		// Scale the point
-		//y1 = (y1 * coeff[scale]) >> 6;
-
+#ifdef POST_SCALING
+		y1 = (y1 * coeff[scale]) >> 6;
+#endif
 		scale = points->keypoint[i]->scale;
-		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
 		y2 = *ptr;
 		// Scale the point
-		//y2 = (y2 * coeff[scale]) >> 6;
+#ifdef POST_SCALING
+		y2 = (y2 * coeff[scale]) >> 6;
+#endif
 
 		scale = points->keypoint[i]->scale + 1;
-		ptr = (signed short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
 		y3 = *ptr;
 		// Scale the point
-		//y3 = (y3 * coeff[scale]) >> 6;
+#ifdef POST_SCALING
+		y3 = (y3 * coeff[scale]) >> 6;
+#endif
 
 		if (y3 > y2) {
 		    points->keypoint[i]->scale++;

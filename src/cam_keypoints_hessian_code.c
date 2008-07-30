@@ -216,10 +216,15 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 				    det = 0;
 				else 
 #endif
-				    // coeff is a 7 bits wide max param
-				    // and thus the det should stay within 26 bits
-				    det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
-				// det is on 16 bits max
+#ifdef POST_SCALING
+				// det is 16 bits max wide and can be stored in an unsigned short
+				det >>= 10;
+#else
+				// coeff is a 7 bits wide max param
+				// and thus the det should stay within 26 bits by shifting with 6 bits
+				// 10 bits more and det is on 16 bits max
+				det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+#endif
 			    }
 			    acc += det;
 			    *(dstptr + i) = (unsigned short)det;
@@ -252,7 +257,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			    CAM_INTEGRAL(srcptr, offset18, offset19, offset16, offset17); 
 			Dxy >>= scale;
 
-			// Dxx, Dyy and Dxy should be 12 to 13 bits wide max
+			// Dxx, Dyy and Dxy should be 13 bits wide max
 			// det = Dxx * Dyy - 0.81 * Dxy^2
 			det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
 			// det should then be 26 bits wide max
@@ -264,11 +269,15 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 				det = 0;
 			    else 
 #endif
+#ifdef POST_SCALING
+				// det is 16 bits max wide and can be stored in an unsigned short
+				det >>= 10;
+#else
 				// coeff is a 7 bits wide max param
 				// and thus the det should stay within 26 bits by shifting with 6 bits
 				// 10 bits more and det is on 16 bits max
-				//det >>= 10;
 				det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+#endif
 			}
 			acc += det;
 		    }
