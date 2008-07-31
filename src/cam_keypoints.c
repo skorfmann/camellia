@@ -787,8 +787,8 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 	} else {
 	    camFastHessianDetectorFixedScale(&integral, &results[scale], scale);
 	}
-	sprintf(str, "output/features_fast_hessian2_%02d.pgm", scale);
-	camSavePGM(&results[scale], str);
+	//sprintf(str, "output/features_fast_hessian_%02d.pgm", scale);
+	//camSavePGM(&results[scale], str);
 	pNbPoints = points->nbPoints;
 	camFindLocalMaximaCircle5(&results[scale], points, threshold);
 	for (i = pNbPoints; i < points->nbPoints; i++) {

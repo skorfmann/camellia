@@ -59,7 +59,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     int i, c, x, y;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
-    signed short *dstptr, *tmpdstptr;
+    unsigned short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
     int acc = 0, inc, det;
     int Dxx, Dyy, tmp;
@@ -177,7 +177,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 
 		for (x = startx; x < startx2 ; x += inc, srcptr += inc, dstptr++ ) *dstptr = 0;
 
-#if 0 //defined(__SSE2__)
+#if defined(__SSE2__)
 		if (inc == 1) {
 #undef CAM_SSE2_LOAD
 #define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
@@ -346,8 +346,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 			}
 		    }
 		    if (i == 1) {
-			det_sse2 = _mm_packs_epi32(str_sse2[0], str_sse2[0]);
-			_mm_storeu_si128((__m128i*)val, det_sse2);
+			_mm_storeu_si128((__m128i*)val, str_sse2[0]);
 			for (i = 0; i != 4; i++, dstptr++) *dstptr = val[i];
 		    }
 #else
