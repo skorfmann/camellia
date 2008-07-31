@@ -80,12 +80,12 @@ static const int CamScale[] = {3, 5, 7, 9, 13, 17, 25, 33, 49, 65};
 static const int CamOffset[][2] = {
 	{2, 1}, {3, 2}, {4, 2}, {6, 3}, {9, 4}, {11, 6}, {17, 8}, {22, 11}, {33, 16}, {43, 22}		
     };
-/*
 static const int CamSampling[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
-*/
+/*
 static const int CamSampling[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+*/
 
 #include "cam_keypoints_hessian_code.c"
 #define CAM_FAST_APPROX_HESSIAN
@@ -727,6 +727,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     CamImage filter;
 
     int multiplier, shift, coeff[CAM_MAX_SCALES];
+    char str[64]; // for debug purpose
 
     // Parameters checking
     CAM_CHECK(camFastHessianDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
@@ -786,12 +787,13 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 	} else {
 	    camFastHessianDetectorFixedScale(&integral, &results[scale], scale);
 	}
-	// camSavePGM(&results[scale], "output/features_fast_hessian.pgm");
+	sprintf(str, "output/features_fast_hessian2_%02d.pgm", scale);
+	camSavePGM(&results[scale], str);
 	pNbPoints = points->nbPoints;
 	camFindLocalMaximaCircle5(&results[scale], points, threshold);
 	for (i = pNbPoints; i < points->nbPoints; i++) {
 #ifdef POST_SCALING
-	    points->keypoint[i]->value *= coeff[scale];
+	    points->keypoint[i]->value = ((points->keypoint[i]->value * coeff[scale]) >> 6);
 #endif
 	    points->keypoint[i]->scale = scale;
 	    points->keypoint[i]->x <<= CamSampling[scale];
@@ -957,14 +959,14 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 		y1 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
-		y1 *= coeff[scale];
+		y1 = ((y1 * coeff[scale]) >> 6);
 #endif
 		scale = points->keypoint[i]->scale;
 		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
 		y2 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
-		y2 *= coeff[scale];
+		y2 = ((y2 * coeff[scale]) >> 6);
 #endif
 
 		scale = points->keypoint[i]->scale + 1;
@@ -972,7 +974,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 		y3 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
-		y3 *= coeff[scale];
+		y3 = ((y3 * coeff[scale]) >> 6);
 #endif
 
 		if (y3 > y2) {

@@ -49,18 +49,19 @@
 /* CamKeypoints hessian computation
  * C code */
 
+#ifndef INCLUDED
 #ifdef CAM_FAST_APPROX_HESSIAN
 int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
 #else
 int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
 #endif
 {
-    int i, x, y;
+    int i, c, x, y;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
     signed short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
-    int acc=0, inc, det;
+    int acc = 0, inc, det;
     int Dxx, Dyy, tmp;
 #ifdef CAM_FAST_APPROX_HESSIAN
     int absDxx, absDyy;
@@ -80,6 +81,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 #endif
 #if defined(__SSE2__)
     __m128i val0_sse2, val1_sse2, val2_sse2, val3_sse2, Dxx_sse2, Dyy_sse2, tmp_sse2, sse2_1, sse2_2;
+    int *ptr, val[4];
 #ifdef CAM_FAST_APPROX_HESSIAN
     __m128i cmp_sse2, cmp_sse2_2, absDxx_sse2, absDyy_sse2, absDxx_sse2_s2, absDyy_sse2_s2, det_sse2, str_sse2[2];
 #else
@@ -174,14 +176,10 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		}
 
 		for (x = startx; x < startx2 ; x += inc, srcptr += inc, dstptr++ ) *dstptr = 0;
-		
-#if defined(__SSE2__)
+
+#if 0 //defined(__SSE2__)
 		if (inc == 1) {
-#ifdef CAM_FAST_APPROX_HESSIAN
-		    for (i = 0; x < endx2 - 7; x += 4, srcptr += 4) {
-#else
-		    for (; x < endx2 - 3; x += 4, srcptr += 4, dstptr += 4) {
-#endif
+#undef CAM_SSE2_LOAD
 #define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
     val0_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oRight + oBottom)); \
     val1_sse2 = _mm_loadu_si128((__m128i*)(srcptr + oLeft + oBottom)); \
@@ -191,103 +189,22 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     sse2_1 = _mm_sub_epi32(val0_sse2, val1_sse2); \
     sse2_2 = _mm_sub_epi32(val2_sse2, val3_sse2); \
     i = _mm_sub_epi32(sse2_1, sse2_2) 
-			CAM_SSE2_LOAD(offset0, offset3, offset1, offset4);
-			CAM_SSE2_INTEGRAL(tmp_sse2);
-			CAM_SSE2_LOAD(offset0, offset2, offset1, offset5);
-			CAM_SSE2_INTEGRAL(Dxx_sse2);
-			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
-			sse2_2 = _mm_sub_epi32(Dxx_sse2, tmp_sse2);
-			Dxx_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
-			Dxx_sse2 = _mm_srai_epi32(Dxx_sse2, scale);
-			CAM_SSE2_LOAD(offset7, offset10, offset8, offset11);
-			CAM_SSE2_INTEGRAL(tmp_sse2);
-			CAM_SSE2_LOAD(offset6, offset10, offset9, offset11);
-			CAM_SSE2_INTEGRAL(Dyy_sse2);
-			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
-			sse2_2 = _mm_sub_epi32(Dyy_sse2, tmp_sse2);
-			Dyy_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
-			Dyy_sse2 = _mm_srai_epi32(Dyy_sse2, scale);
-
-#ifdef CAM_FAST_APPROX_HESSIAN
-			// Compute absolute value of Dxx
-			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxx_sse2);
-			cmp_sse2 = _mm_cmplt_epi32(Dxx_sse2, _mm_setzero_si128());
-			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
-			sse2_2 = _mm_andnot_si128(cmp_sse2, Dxx_sse2);
-			absDxx_sse2 = _mm_add_epi32(sse2_1, sse2_2);
-			
-			// Compute absolute value of Dyy
-			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dyy_sse2);
-			cmp_sse2_2 = _mm_cmplt_epi32(Dyy_sse2, _mm_setzero_si128());
-			sse2_1 = _mm_and_si128(cmp_sse2_2, sse2_1);
-			sse2_2 = _mm_andnot_si128(cmp_sse2_2, Dyy_sse2);
-			absDyy_sse2 = _mm_add_epi32(sse2_1, sse2_2);
-			
-			cmp_sse2 = _mm_xor_si128(cmp_sse2, cmp_sse2_2);
-			det_sse2 = _mm_add_epi32(absDxx_sse2, absDyy_sse2);
-			det_sse2 = _mm_andnot_si128(cmp_sse2, det_sse2);
-			absDxx_sse2_s2 = _mm_slli_epi32(absDxx_sse2, 2);
-			absDyy_sse2_s2 = _mm_slli_epi32(absDyy_sse2, 2);
-			sse2_1 = _mm_cmplt_epi32(absDyy_sse2, absDxx_sse2_s2);
-			sse2_2 = _mm_cmpgt_epi32(absDyy_sse2_s2, absDxx_sse2);
-			det_sse2 = _mm_and_si128(det_sse2, sse2_1);
-			str_sse2[i] = _mm_and_si128(det_sse2, sse2_2);
-
-			i++;
-			if (i == 2) {
-			    i = 0;
-			    det_sse2 = _mm_packs_epi32(str_sse2[0], str_sse2[1]);
-			    _mm_storeu_si128((__m128i*)dstptr, det_sse2);
-			    dstptr += 8;
-			}
-#else
-			CAM_SSE2_LOAD(offset12, offset13, offset14, offset15);
-			CAM_SSE2_INTEGRAL(Dxy_sse2);
-			CAM_SSE2_LOAD(offset18, offset13, offset16, offset15);
-			CAM_SSE2_INTEGRAL(sse2_1);
-			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
-			CAM_SSE2_LOAD(offset12, offset19, offset14, offset17);
-			CAM_SSE2_INTEGRAL(sse2_1);
-			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
-			CAM_SSE2_LOAD(offset18, offset19, offset16, offset17); 
-			CAM_SSE2_INTEGRAL(sse2_1);
-			Dxy_sse2 = _mm_add_epi32(Dxy_sse2, sse2_1);
-			Dxy_sse2 = _mm_srai_epi32(Dxy_sse2, scale);
-		    
-			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
-			_mm_storeu_si128((__m128i*)_Dxx, Dxx_sse2);
-			_mm_storeu_si128((__m128i*)_Dyy, Dyy_sse2);
-
-			for (i = 0; i != 4; i++) {
-			    // _Dxx[i], _Dyy[i] and _Dxy[i] should be 12 to 13 bits wide max
-			    // det = _Dxx[i] * _Dyy[i] - 0.81 * _Dxy[i]^2
-			    det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
-			    // det should then be 26 bits wide max
-			    if (det <= 0) det = 0;
-			    else {
-#ifdef ELIMINATE_EDGE_RESPONSE
-				r = (_Dxx[i] + _Dyy[i]) * (_Dxx[i] + _Dyy[i]);
-				if (r > 10 * det)
-				    det = 0;
-				else 
-#endif
-#ifdef POST_SCALING
-				// det is 16 bits max wide and can be stored in an unsigned short
-				det >>= 10;
-#else
-				// coeff is a 7 bits wide max param
-				// and thus the det should stay within 26 bits by shifting with 6 bits
-				// 10 bits more and det is on 16 bits max
-				det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
-#endif
-			    }
-			    acc += det;
-			    *(dstptr + i) = (unsigned short)det;
-			}
-#endif
-		    }
-
+#define INCLUDED
+#include "cam_keypoints_hessian_code.c"
+		} else {
+#undef CAM_SSE2_LOAD
+#define CAM_SSE2_LOAD(oLeft, oTop, oRight, oBottom) \
+    for (c = 0, ptr = (int*)srcptr + oRight + oBottom; c != 4; c++, ptr+=inc) val[c] = *ptr; \
+    val0_sse2 = _mm_set_epi32(val[3], val[2], val[1], val[0]); \
+    for (c = 0, ptr = (int*)srcptr + oLeft + oBottom; c != 4; c++, ptr+=inc) val[c] = *ptr; \
+    val1_sse2 = _mm_set_epi32(val[3], val[2], val[1], val[0]); \
+    for (c = 0, ptr = (int*)srcptr + oRight + oTop; c != 4; c++, ptr+=inc) val[c] = *ptr; \
+    val2_sse2 = _mm_set_epi32(val[3], val[2], val[1], val[0]); \
+    for (c = 0, ptr = (int*)srcptr + oLeft + oTop; c != 4; c++, ptr+=inc) val[c] = *ptr; \
+    val3_sse2 = _mm_set_epi32(val[3], val[2], val[1], val[0]);
+#include "cam_keypoints_hessian_code.c"
 		}
+#undef INCLUDED
 #endif
 
 		for (; x < endx2; x += inc, srcptr += inc, dstptr++) {
@@ -376,4 +293,109 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     return acc;    
 }
 
+#else // INCLUDED
+		    for (i = 0; x < endx2 - 3 * inc; x += 4 * inc, srcptr += 4 * inc) {
+			CAM_SSE2_LOAD(offset0, offset3, offset1, offset4);
+			CAM_SSE2_INTEGRAL(tmp_sse2);
+			CAM_SSE2_LOAD(offset0, offset2, offset1, offset5);
+			CAM_SSE2_INTEGRAL(Dxx_sse2);
+			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
+			sse2_2 = _mm_sub_epi32(Dxx_sse2, tmp_sse2);
+			Dxx_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
+			Dxx_sse2 = _mm_srai_epi32(Dxx_sse2, scale);
+			CAM_SSE2_LOAD(offset7, offset10, offset8, offset11);
+			CAM_SSE2_INTEGRAL(tmp_sse2);
+			CAM_SSE2_LOAD(offset6, offset10, offset9, offset11);
+			CAM_SSE2_INTEGRAL(Dyy_sse2);
+			sse2_1 = _mm_add_epi32(tmp_sse2, tmp_sse2);
+			sse2_2 = _mm_sub_epi32(Dyy_sse2, tmp_sse2);
+			Dyy_sse2 = _mm_sub_epi32(sse2_2, sse2_1);
+			Dyy_sse2 = _mm_srai_epi32(Dyy_sse2, scale);
+
+#ifdef CAM_FAST_APPROX_HESSIAN
+			// Compute absolute value of Dxx
+			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dxx_sse2);
+			cmp_sse2 = _mm_cmplt_epi32(Dxx_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2, sse2_1);
+			sse2_2 = _mm_andnot_si128(cmp_sse2, Dxx_sse2);
+			absDxx_sse2 = _mm_add_epi32(sse2_1, sse2_2);
+			
+			// Compute absolute value of Dyy
+			sse2_1 = _mm_sub_epi32(_mm_setzero_si128(), Dyy_sse2);
+			cmp_sse2_2 = _mm_cmplt_epi32(Dyy_sse2, _mm_setzero_si128());
+			sse2_1 = _mm_and_si128(cmp_sse2_2, sse2_1);
+			sse2_2 = _mm_andnot_si128(cmp_sse2_2, Dyy_sse2);
+			absDyy_sse2 = _mm_add_epi32(sse2_1, sse2_2);
+			
+			cmp_sse2 = _mm_xor_si128(cmp_sse2, cmp_sse2_2);
+			det_sse2 = _mm_add_epi32(absDxx_sse2, absDyy_sse2);
+			det_sse2 = _mm_andnot_si128(cmp_sse2, det_sse2);
+			absDxx_sse2_s2 = _mm_slli_epi32(absDxx_sse2, 2);
+			absDyy_sse2_s2 = _mm_slli_epi32(absDyy_sse2, 2);
+			sse2_1 = _mm_cmplt_epi32(absDyy_sse2, absDxx_sse2_s2);
+			sse2_2 = _mm_cmpgt_epi32(absDyy_sse2_s2, absDxx_sse2);
+			det_sse2 = _mm_and_si128(det_sse2, sse2_1);
+			str_sse2[i] = _mm_and_si128(det_sse2, sse2_2);
+
+			i++;
+			if (i == 2) {
+			    i = 0;
+			    det_sse2 = _mm_packs_epi32(str_sse2[0], str_sse2[1]);
+			    _mm_storeu_si128((__m128i*)dstptr, det_sse2);
+			    dstptr += 8;
+			}
+		    }
+		    if (i == 1) {
+			det_sse2 = _mm_packs_epi32(str_sse2[0], str_sse2[0]);
+			_mm_storeu_si128((__m128i*)val, det_sse2);
+			for (i = 0; i != 4; i++, dstptr++) *dstptr = val[i];
+		    }
+#else
+			
+			CAM_SSE2_LOAD(offset12, offset13, offset14, offset15);
+			CAM_SSE2_INTEGRAL(Dxy_sse2);
+			CAM_SSE2_LOAD(offset18, offset13, offset16, offset15);
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
+			CAM_SSE2_LOAD(offset12, offset19, offset14, offset17);
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_sub_epi32(Dxy_sse2, sse2_1);
+			CAM_SSE2_LOAD(offset18, offset19, offset16, offset17); 
+			CAM_SSE2_INTEGRAL(sse2_1);
+			Dxy_sse2 = _mm_add_epi32(Dxy_sse2, sse2_1);
+			Dxy_sse2 = _mm_srai_epi32(Dxy_sse2, scale);
+		    
+			_mm_storeu_si128((__m128i*)_Dxy, Dxy_sse2);
+			_mm_storeu_si128((__m128i*)_Dxx, Dxx_sse2);
+			_mm_storeu_si128((__m128i*)_Dyy, Dyy_sse2);
+
+			for (i = 0; i != 4; i++, dstptr++) {
+			    // _Dxx[i], _Dyy[i] and _Dxy[i] should be 12 to 13 bits wide max
+			    // det = _Dxx[i] * _Dyy[i] - 0.81 * _Dxy[i]^2
+			    det = _Dxx[i] * _Dyy[i] - ((13 * _Dxy[i] * _Dxy[i]) >> 4);
+			    // det should then be 26 bits wide max
+			    if (det <= 0) det = 0;
+			    else {
+#ifdef ELIMINATE_EDGE_RESPONSE
+				r = (_Dxx[i] + _Dyy[i]) * (_Dxx[i] + _Dyy[i]);
+				if (r > 10 * det)
+				    det = 0;
+				else 
+#endif
+#ifdef POST_SCALING
+				// det is 16 bits max wide and can be stored in an unsigned short
+				det >>= 10;
+#else
+				// coeff is a 7 bits wide max param
+				// and thus the det should stay within 26 bits by shifting with 6 bits
+				// 10 bits more and det is on 16 bits max
+				det = (((unsigned int)det) * ((unsigned int)coeff)) >> 16;
+#endif
+			    }
+			    acc += det;
+			    *dstptr = (unsigned short)det;
+			}
+		    }
+#endif
+#endif // INCLUDED
 
