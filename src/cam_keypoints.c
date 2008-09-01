@@ -65,7 +65,7 @@
 #define POST_SCALING
 
 static int camPatchSizeParam = 8*3;
-static int camSigmaParam = 5;
+int camSigmaParam = 5;
 static int camThreshGradientParam = 128;
 
 int camKeypointsSetParameters(int patchSize, int sigma, int threshGradient)
@@ -82,10 +82,6 @@ static const int CamOffset[][2] = {
     };
 static const int CamSampling[] = {0, 0, 0, 0, 1, 1, 2, 2, 3, 3};
 static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 1, 1, 3, 3};
-/*
-static const int CamSampling[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static const int CamSamplingOffset[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-*/
 
 #include "cam_keypoints_hessian_code.c"
 #define CAM_FAST_APPROX_HESSIAN
@@ -244,7 +240,8 @@ int camSortStrength(const void *p1x, const void *p2x)
     return -1;
 }
 
-int camKeypointOrientation(CamImage *source, CamKeypoint *point, CamImage *filter, CamKeypoints *points)
+// Returns 1 if two orientations have been selected
+int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point)
 {
     CamWarpingParams params;
     CamImage scaled, filtered_h, filtered_v;
@@ -262,7 +259,7 @@ int camKeypointOrientation(CamImage *source, CamKeypoint *point, CamImage *filte
 
     camAllocateImage(&scaled, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, source->depth);
 
-    // Scale the image
+    // Scale the stamp 
     params.perspective=0;
     params.interpolation=1;
     scale = (point->scale * camPatchSizeParam * 3) << 9;
@@ -373,12 +370,9 @@ int camKeypointOrientation(CamImage *source, CamKeypoint *point, CamImage *filte
 			    }
 			} else {
 			    // Add a new keypoint 
-			    if (points->keypoint[points->nbPoints - 1] - points->bag != points->allocated) {
-				points->keypoint[points->nbPoints] = points->keypoint[points->nbPoints - 1] + 1;
-				*points->keypoint[points->nbPoints] = *point;
-				points->keypoint[points->nbPoints]->angle = angle;
-				points->nbPoints++;
-			    }
+			    *next_point = *point;
+			    next_point->angle = angle;
+			    return 1;
 			}
 			break;
 		    } 
@@ -387,112 +381,116 @@ int camKeypointOrientation(CamImage *source, CamKeypoint *point, CamImage *filte
 	    
 	} else break;
     }
-    return 1;
+    return 0;
 }
 
-static int camFPNbAttPoints[20 * 20], camFPAttPoint[20 * 20 * 4], camFPCoeff[20 * 20 * 4];
+static int camFPNbAttPoints[20 * 20] = {-1}, camFPAttPoint[20 * 20 * 4], camFPCoeff[20 * 20 * 4];
 
 void camKeypointsInternalsPrepareDescriptor()
 {
     int x, y, i;
 
-    for (i = 0; i < 20 * 20 * 4; i++) {
-	camFPAttPoint[i] = 0;
-	camFPCoeff[i] = 0;
-    }
-    // For all the camFPAttPoints, find the attraction camFPAttPoints
-    // and compute the bilinear interpolation camFPCoefficients
-    for (y = 0, i = 0; y < 20; y++) {
-	for (x = 0; x < 20; x++, i++) {
-	    if (x < 2) {
-		if (y <= 2) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = 0;
-		    camFPCoeff[i * 4] =  25;
-		} else if (y >= 17) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = 12;
-		    camFPCoeff[i * 4] = 25;
-		} else if ((y - 2) % 5 == 0) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4;
-		    camFPCoeff[i * 4] = 25;
+    // Test whether this initialization has already been done before
+    if (camFPNbAttPoints[0] == -1) {
+
+	for (i = 0; i < 20 * 20 * 4; i++) {
+	    camFPAttPoint[i] = 0;
+	    camFPCoeff[i] = 0;
+	}
+	// For all the camFPAttPoints, find the attraction camFPAttPoints
+	// and compute the bilinear interpolation camFPCoefficients
+	for (y = 0, i = 0; y < 20; y++) {
+	    for (x = 0; x < 20; x++, i++) {
+		if (x < 2) {
+		    if (y <= 2) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = 0;
+			camFPCoeff[i * 4] =  25;
+		    } else if (y >= 17) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = 12;
+			camFPCoeff[i * 4] = 25;
+		    } else if ((y - 2) % 5 == 0) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4;
+			camFPCoeff[i * 4] = 25;
+		    } else {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4;
+			camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4;
+			camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
+		    }
+		} else if (x > 17) {
+		    if (y <= 2) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = 3;
+			camFPCoeff[i * 4] =  25;
+		    } else if (y >= 17) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = 15;
+			camFPCoeff[i * 4] = 25;
+		    } else if ((y - 2) % 5 == 0) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + 3;
+			camFPCoeff[i * 4] = 25;
+		    } else {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + 3;
+			camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4 + 3;
+			camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
+		    }
+		} else if ((x - 2) % 5 == 0) {
+		    if (y <= 2) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = (x - 2) / 5;
+			camFPCoeff[i * 4] =  25;
+		    } else if (y >= 17) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = 12 + (x - 2) / 5;
+			camFPCoeff[i * 4] = 25;
+		    } else if ((y - 2) % 5 == 0) {
+			camFPNbAttPoints[i] = 1;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
+			camFPCoeff[i * 4] = 25;
+		    } else {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
+			camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5;
+			camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
+		    }
 		} else {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4;
-		    camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4;
-		    camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
-		}
-	    } else if (x > 17) {
-		if (y <= 2) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = 3;
-		    camFPCoeff[i * 4] =  25;
-		} else if (y >= 17) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = 15;
-		    camFPCoeff[i * 4] = 25;
-		} else if ((y - 2) % 5 == 0) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + 3;
-		    camFPCoeff[i * 4] = 25;
-		} else {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + 3;
-		    camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4 + 3;
-		    camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
-		}
-	    } else if ((x - 2) % 5 == 0) {
-		if (y <= 2) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = (x - 2) / 5;
-		    camFPCoeff[i * 4] =  25;
-		} else if (y >= 17) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = 12 + (x - 2) / 5;
-		    camFPCoeff[i * 4] = 25;
-		} else if ((y - 2) % 5 == 0) {
-		    camFPNbAttPoints[i] = 1;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
-		    camFPCoeff[i * 4] = 25;
-		} else {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 1] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5;
-		    camFPCoeff[i * 4] = 25 - 5 * ((y - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((y - 2) % 5);
-		}
-	    } else {
-		if (y <= 2) {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 1] = (x - 2) / 5 + 1;
-		    camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
-		} else if (y >= 17) {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = 12 + (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 1] = 13 + (x - 2) / 5;
-		    camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
-		} else if ((y - 2) % 5 == 0) {
-		    camFPNbAttPoints[i] = 2;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 1] = ((y - 2) / 5) * 4 + (x - 2) / 5 + 1;
-		    camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
-		    camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
-		} else {
-		    camFPNbAttPoints[i] = 4;
-		    camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 1] = ((y - 2) / 5) * 4 + (x - 2) / 5 + 1;
-		    camFPAttPoint[i * 4 + 2] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5;
-		    camFPAttPoint[i * 4 + 3] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5 + 1;
-		    camFPCoeff[i * 4] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
-		    camFPCoeff[i * 4 + 1] = (5 - ((y - 2) % 5)) * ((x - 2) % 5);
-		    camFPCoeff[i * 4 + 2] = ((y - 2) % 5) * (5 - ((x - 2) % 5));
-		    camFPCoeff[i * 4 + 3] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
+		    if (y <= 2) {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = (x - 2) / 5;
+			camFPAttPoint[i * 4 + 1] = (x - 2) / 5 + 1;
+			camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
+		    } else if (y >= 17) {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = 12 + (x - 2) / 5;
+			camFPAttPoint[i * 4 + 1] = 13 + (x - 2) / 5;
+			camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
+		    } else if ((y - 2) % 5 == 0) {
+			camFPNbAttPoints[i] = 2;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
+			camFPAttPoint[i * 4 + 1] = ((y - 2) / 5) * 4 + (x - 2) / 5 + 1;
+			camFPCoeff[i * 4] = 25 - 5 * ((x - 2) % 5);
+			camFPCoeff[i * 4 + 1] = 5 * ((x - 2) % 5);
+		    } else {
+			camFPNbAttPoints[i] = 4;
+			camFPAttPoint[i * 4] = ((y - 2) / 5) * 4 + (x - 2) / 5;
+			camFPAttPoint[i * 4 + 1] = ((y - 2) / 5) * 4 + (x - 2) / 5 + 1;
+			camFPAttPoint[i * 4 + 2] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5;
+			camFPAttPoint[i * 4 + 3] = ((y - 2) / 5 + 1) * 4 + (x - 2) / 5 + 1;
+			camFPCoeff[i * 4] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
+			camFPCoeff[i * 4 + 1] = (5 - ((y - 2) % 5)) * ((x - 2) % 5);
+			camFPCoeff[i * 4 + 2] = ((y - 2) % 5) * (5 - ((x - 2) % 5));
+			camFPCoeff[i * 4 + 3] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
+		    }
 		}
 	    }
 	}
@@ -689,38 +687,40 @@ int camKeypointsDescriptor(CamImage *source, CamKeypoint *point, CamImage *filte
     return 1;
 }
 
-int camSortKeypoints(const void *p1x, const void *p2x)
+int camSortKeypointsShort(const void *p1x, const void *p2x)
 {
-    CamKeypoint **p1 = (CamKeypoint**)p1x;
-    CamKeypoint **p2 = (CamKeypoint**)p2x;
+    CamKeypointShort **p1 = (CamKeypointShort**)p1x;
+    CamKeypointShort **p2 = (CamKeypointShort**)p2x;
     if ((*p1)->value < (*p2)->value) return 1;
     if ((*p1)->value == (*p2)->value) return 0;
     return -1;
 }
 
 #define CAM_MAX_SCALES 20
+#define CAM_MAX_KEYPOINTS 10000
 
-int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold, int options)
+int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
 {
     CamImage integral;
     CamImage results[sizeof(CamScale) / sizeof(CamScale[0])];
     int width, height;
     int i, j, k, scale;
-    int pNbPoints;
     CamInternalROIPolicyStruct iROI;
     CamROI *roi, roix;
     const int nbScales = sizeof(CamScale) / sizeof(CamScale[0]);
+    CamKeypointShort *keypoints;
+    int nb_keypoints = 0, pnb_keypoints;
 
     int x, y, d, thr;
     int widthClusters, heightClusters;
     int nbClusters, cluster;
     int *nbPerCluster;
-    CamKeypoint ***firstPoint; 
-    CamKeypoint **ptrPoints;
-    CamKeypoint *point1, *point2;
-    CamKeypoint *bigOne, *smallOne;
+    CamKeypointShort ***firstPoint; 
+    CamKeypointShort **ptrPoints;
+    CamKeypointShort *point1, *point2;
+    CamKeypointShort *bigOne, *smallOne;
     int nbClusters2scan, nbPoints2scan[5];
-    CamKeypoint **first2scan[5];
+    CamKeypointShort **first2scan[5];
 
     int x1, x3, y1, y2, y3, p, num, den;
     unsigned short *ptr;
@@ -732,7 +732,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     // Parameters checking
     CAM_CHECK(camFastHessianDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
     CAM_CHECK_ARGS(camFastHessianDetector, (source->depth & CAM_DEPTH_MASK) >= 8);
-    CAM_CHECK_ARGS(camFastHessianDetector, points->allocated != 0);
+    CAM_CHECK_ARGS(camFastHessianDetector, points->allocated >= 0);
     CAM_CHECK_ARGS(camFastHessianDetector, source->nChannels == 1 || ((source->nChannels == 3) && (source->dataOrder == CAM_DATA_ORDER_PLANE)));
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
@@ -762,22 +762,11 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     roix.coi = 1;
     source->roi = &roix;
     camIntegralImage(source, &integral);
-    points->nbPoints = 0;
     integral.roi = &iROI.srcroi;
     source->roi = roi;
 
-    // Bag allocation
-    if (points->bag == NULL) {
-#ifdef __SSE2__
-	points->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * points->allocated, 16);
-#else
-	points->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * points->allocated);
-#endif
-    }
-    for (i = 0; i < points->allocated; i++) {
-        points->keypoint[i] = &points->bag[i];
-    }
-    points->nbPoints = 0;
+    // Allocate temp memory for keypoints
+    keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
 
     // Fast Hessian Detector for all scales
     for (scale = 0; scale < nbScales; scale++) {
@@ -789,18 +778,18 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 	}
 	//sprintf(str, "output/features_fast_hessian_%02d.pgm", scale);
 	//camSavePGM(&results[scale], str);
-	pNbPoints = points->nbPoints;
-	camFindLocalMaximaCircle5(&results[scale], points, threshold);
-	for (i = pNbPoints; i < points->nbPoints; i++) {
+	camFindLocalMaximaCircle5(&results[scale], &keypoints[nb_keypoints], &j);
+	for (i = nb_keypoints; i < nb_keypoints + j; i++) {
 #ifdef POST_SCALING
-	    points->keypoint[i]->value = ((points->keypoint[i]->value * coeff[scale]) >> 6);
+	    keypoints[i].value = ((keypoints[i].value * coeff[scale]) >> 6);
 #endif
-	    points->keypoint[i]->scale = scale;
-	    points->keypoint[i]->x <<= CamSampling[scale];
-	    points->keypoint[i]->y <<= CamSampling[scale];
-	    points->keypoint[i]->x += CamSamplingOffset[scale];
-	    points->keypoint[i]->y += CamSamplingOffset[scale];
+	    keypoints[i].scale = scale;
+	    keypoints[i].x <<= CamSampling[scale];
+	    keypoints[i].y <<= CamSampling[scale];
+	    keypoints[i].x += CamSamplingOffset[scale];
+	    keypoints[i].y += CamSamplingOffset[scale];
 	}
+	nb_keypoints += j;
     }	
 
     // Spatial clustering
@@ -811,27 +800,24 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     nbClusters = widthClusters * heightClusters;
     nbPerCluster = (int*)malloc(nbClusters * sizeof(int));
     for (i = 0; i < nbClusters; i++) nbPerCluster[i] = 0;
-    for (i = 0; i < points->nbPoints; i++) {
-	cluster = (points->keypoint[i]->y >> 5) * widthClusters + (points->keypoint[i]->x >> 5);
+    for (i = 0; i < nb_keypoints; i++) {
+	cluster = (keypoints[i].y >> 5) * widthClusters + (keypoints[i].x >> 5);
 	nbPerCluster[cluster]++;
     }
-    firstPoint =  (CamKeypoint***)malloc(nbClusters * sizeof(CamKeypoint**));    
+    firstPoint =  (CamKeypointShort***)malloc(nbClusters * sizeof(CamKeypointShort**));    
     // Cluster ordered pointers to the points in clusters
-    ptrPoints = (CamKeypoint**)malloc(points->nbPoints * sizeof(CamKeypoint*));
+    ptrPoints = (CamKeypointShort**)malloc(nb_keypoints * sizeof(CamKeypointShort*));
     firstPoint[0] = ptrPoints;
     for (i = 1; i < nbClusters; i++) firstPoint[i] = firstPoint[i - 1] + nbPerCluster[i - 1]; 
     // 2nd pass : Start again and register pointers
-    for (i = 0; i < points->nbPoints; i++) {
-	cluster = (points->keypoint[i]->y >> 5) * widthClusters + (points->keypoint[i]->x >> 5);
-	*firstPoint[cluster] = points->keypoint[i];
+    for (i = 0; i < nb_keypoints; i++) {
+	cluster = (keypoints[i].y >> 5) * widthClusters + (keypoints[i].x >> 5);
+	*firstPoint[cluster] = &keypoints[i];
 	firstPoint[cluster]++;	
     }
     firstPoint[0] = ptrPoints;
     for (i = 1; i < nbClusters; i++) firstPoint[i] = firstPoint[i - 1] + nbPerCluster[i - 1]; 
     // OK. clustering is finished.
-    
-    // Set all points to unmarked
-    for (i = 0; i < points->nbPoints; i++) points->keypoint[i]->size = 0;
     
     // Now, scan all the clusters and the points inside
     // for bad points removal
@@ -899,13 +885,13 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 			// Are they of similar value ?
 			if (abs(point1->value - point2->value) < ((point1->value + point2->value) >> 4)) {
 			    // Yes they are. Keep the bigger.
-			    smallOne->size = 1;
+			    smallOne->value = -1;
 			} else {
 			    // No they are not. Keep the better.
 			    if (point1->value > point2->value) {
-				point2->size = 1;
+				point2->value = -1;
 			    } else {
-				point1->size = 1;
+				point1->value = -1;
 			    }
 			}
 		    }
@@ -919,22 +905,22 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     free(firstPoint);
 
     // Remove all the points that have been marked to be destroyed
-    pNbPoints = 0;
+    pnb_keypoints = 0;
     i = 0;
-    while (i < points->nbPoints && points->keypoint[i]->size == 0) {
+    while (i < nb_keypoints && keypoints[i].value != -1) {
 	i++;
-	pNbPoints++;
+	pnb_keypoints++;
     }
-    for (; i < points->nbPoints; i++) {
-	if (points->keypoint[i]->size == 0) {
-	    points->keypoint[pNbPoints++] = points->keypoint[i];
+    for (; i < nb_keypoints; i++) {
+	if (keypoints[i].value != -1) {
+	    keypoints[pnb_keypoints++] = keypoints[i];
 	}
     }
-    points->nbPoints = pNbPoints;
+    nb_keypoints = pnb_keypoints;
    
     if (options & CAM_NO_INTERPOLATION) {
-	for (i = 0; i < points->nbPoints; i++) {
-	    points->keypoint[i]->scale = CamScale[points->keypoint[i]->scale] << 2;
+	for (i = 0; i < nb_keypoints; i++) {
+	    keypoints[i].scale = CamScale[keypoints[i].scale] << 2;
 	}
     } else {
     /* Interpolation :
@@ -946,31 +932,31 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
                                    2 x1 y3 + (2 x3 - 2 x1) y2 - 2 x3 y1
     
      */
-	for (i = 0; i < points->nbPoints; i++) {
-	    if (points->keypoint[i]->scale == 0 || points->keypoint[i]->scale == nbScales - 1) {
+	for (i = 0; i < nb_keypoints; i++) {
+	    if (keypoints[i].scale == 0 || keypoints[i].scale == nbScales - 1) {
 		// Remove this point : its scale can't be interpolated
-		points->keypoint[i]->size = 1;
+		keypoints[i].value = -1;
 	    } else {
-		x1 = CamScale[points->keypoint[i]->scale - 1] - CamScale[points->keypoint[i]->scale];
-		x3 = CamScale[points->keypoint[i]->scale + 1] - CamScale[points->keypoint[i]->scale];
+		x1 = CamScale[keypoints[i].scale - 1] - CamScale[keypoints[i].scale];
+		x3 = CamScale[keypoints[i].scale + 1] - CamScale[keypoints[i].scale];
 
-		scale = points->keypoint[i]->scale - 1;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		scale = keypoints[i].scale - 1;
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y1 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
 		y1 = ((y1 * coeff[scale]) >> 6);
 #endif
-		scale = points->keypoint[i]->scale;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		scale = keypoints[i].scale;
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y2 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
 		y2 = ((y2 * coeff[scale]) >> 6);
 #endif
 
-		scale = points->keypoint[i]->scale + 1;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (points->keypoint[i]->y >> CamSampling[scale])) + (points->keypoint[i]->x >> CamSampling[scale]);
+		scale = keypoints[i].scale + 1;
+		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y3 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
@@ -978,20 +964,20 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
 #endif
 
 		if (y3 > y2) {
-		    points->keypoint[i]->scale++;
+		    keypoints[i].scale++;
 		    i--; continue;
 		}
 		if (y1 > y2) {
-		    points->keypoint[i]->scale--;
+		    keypoints[i].scale--;
 		    i--; continue;
 		}
 		num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
 		den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
 		if (den == 0)
-		    points->keypoint[i]->size = 1; // Destroy
+		    keypoints[i].value = -1; // Destroy
 		else {
 		    p = (num << 1) / den;	    
-		    points->keypoint[i]->scale = p + (CamScale[points->keypoint[i]->scale] << 2);
+		    keypoints[i].scale = p + (CamScale[keypoints[i].scale] << 2);
 		}
 	    }
 	}
@@ -1004,33 +990,67 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     camDeallocateImage(&integral);
 
     // Remove again all the points that have been marked to be destroyed
-    pNbPoints = 0;
+    pnb_keypoints = 0;
     i = 0;
-    while (i < points->nbPoints && points->keypoint[i]->size == 0) {
+    while (i < nb_keypoints && keypoints[i].value != -1) {
 	i++;
-	pNbPoints++;
+	pnb_keypoints++;
     }
-    for (; i < points->nbPoints; i++) {
-	if (points->keypoint[i]->size == 0) {
-	    points->keypoint[pNbPoints++] = points->keypoint[i];
+    for (; i < nb_keypoints; i++) {
+	if (keypoints[i].value != -1) {
+	    keypoints[pnb_keypoints++] = keypoints[i];
 	}
     }
-    points->nbPoints = pNbPoints;
+    nb_keypoints = pnb_keypoints;
  
+    // Sort the features according to value
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    
     // Angle
     if (options & CAM_UPRIGHT) {
-	for (i = 0; i < points->nbPoints; i++) {
-	    points->keypoint[i]->angle = 0;
+	for (i = 0; i < nb_keypoints; i++) {
+	    keypoints[i].angle = 0;
 	}
     } else {
         camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
 	camBuildGaussianFilter(&filter, camSigmaParam);
-	pNbPoints = points->nbPoints;
-	for (i = 0; i < pNbPoints; i++) {
-	    camKeypointOrientation(source, points->keypoint[i], &filter, points);
+	pnb_keypoints = nb_keypoints;
+	if (pnb_keypoints > nb_max_keypoints) pnb_keypoints = nb_max_keypoints;
+	for (i = 0; i < pnb_keypoints; i++) {
+	    nb_keypoints += camKeypointOrientation(source, &keypoints[i], &filter, &keypoints[nb_keypoints]);
 	}
 	camDeallocateImage(&filter);
     }
+    
+    // Sort again the features according to value
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    
+    // Keypoints allocation
+    pnb_keypoints = nb_keypoints;
+    if (pnb_keypoints > nb_max_keypoints) pnb_keypoints = nb_max_keypoints;
+    if (points->allocated == 0) {
+	camAllocateKeypoints(points, pnb_keypoints);
+    } else if (points->allocated < pnb_keypoints) {
+	camFreeKeypoints(points);
+	camAllocateKeypoints(points, pnb_keypoints);
+    }
+    if (points->bag == NULL) {
+#ifdef __SSE2__
+	points->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * pnb_keypoints, 16);
+#else
+	points->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * pnb_keypoints);
+#endif
+    }
+    for (i = 0; i < pnb_keypoints; i++) {
+        points->keypoint[i] = &points->bag[i];
+	points->keypoint[i]->x = keypoints[i].x;
+	points->keypoint[i]->y = keypoints[i].y;
+	points->keypoint[i]->scale = keypoints[i].scale;
+	points->keypoint[i]->value = keypoints[i].value;
+	points->keypoint[i]->angle = keypoints[i].angle;
+    }
+    points->nbPoints = pnb_keypoints;
+    free(keypoints);
 
     camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
     camBuildGaussianFilter(&filter, camSigmaParam);
@@ -1045,9 +1065,6 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold
     for (i = 0; i < points->nbPoints; i++) {
 	points->keypoint[i]->set = points;
     }
-
-    // Sort the features according to value
-    qsort(points->keypoint, points->nbPoints, sizeof(CamKeypoint*), camSortKeypoints);
 
     camDeallocateImage(&filter);
     camInternalROIPolicyExit(&iROI);

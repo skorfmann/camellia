@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -343,30 +343,30 @@ static const int camCircle7StructElt[7][7]={
 
 #undef CAM_MM_OPT_CIRCLE7
 
-int camFindLocalMaximaCircle5(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaCircle5(CamImage *source, CamKeypointShort *points, int *nb_points)
 {
     if ((source->depth&CAM_DEPTH_MASK)>8) {
-        return camFindLocalMaximaCircle516(source, points, threshold);
+        return camFindLocalMaximaCircle516(source, points, nb_points);
     } else {
-        return camFindLocalMaximaCircle58(source, points, threshold);
+        return camFindLocalMaximaCircle58(source, points, nb_points);
     }
 }
 
-int camFindLocalMaximaSquare3(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaSquare3(CamImage *source, CamKeypointShort *points, int *nb_points)
 {
     if ((source->depth&CAM_DEPTH_MASK)>8) {
-        return camFindLocalMaximaSquare316(source, points, threshold);
+        return camFindLocalMaximaSquare316(source, points, nb_points);
     } else {
-        return camFindLocalMaximaSquare38(source, points, threshold);
+        return camFindLocalMaximaSquare38(source, points, nb_points);
     }
 }
 
-int camFindLocalMaximaCircle7(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaCircle7(CamImage *source, CamKeypointShort *points, int *nb_points)
 {
     if ((source->depth&CAM_DEPTH_MASK)>8) {
-        return camFindLocalMaximaCircle716(source, points, threshold);
+        return camFindLocalMaximaCircle716(source, points, nb_points);
     } else {
-        return camFindLocalMaximaCircle78(source, points, threshold);
+        return camFindLocalMaximaCircle78(source, points, nb_points);
     }
 }
 

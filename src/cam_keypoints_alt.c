@@ -1,11 +1,18 @@
 /* CamKeypoints alternative implementation using gradient search
  * C code */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include "camellia.h"
+#include "camellia_internals.h"
+#ifdef __SSE2__
+#include <emmintrin.h>
+#endif
 
 #define CAM_MAX_SCALE 100
+#define CAM_MAX_KEYPOINTS 10000
+#define CAM_ORIENTATION_STAMP_SIZE 30
 
 typedef struct {
     CamImage *integral;
@@ -113,6 +120,115 @@ int camHessianEstimate(CamHessianEstimateData *data, int x, int y, int scale)
     det *= data->coeff[scale];
     // it should stay in 32 bits range
     return det;
+}
+
+extern int camSigmaParam;
+int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
+int camSortKeypointsShort(const void *p1x, const void *p2x);
+
+int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
+{
+    CamImage integral, filter;
+    CamInternalROIPolicyStruct iROI;
+    CamHessianEstimateData data;
+    CamROI *roi, roix;
+    int width, height;
+    int i;
+    int nb_keypoints = 0, pnb_keypoints;
+    CamKeypointShort *keypoints;
+
+    // Parameters checking
+    CAM_CHECK(camKeypointsDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
+    CAM_CHECK_ARGS(camKeypointsDetector, (source->depth & CAM_DEPTH_MASK) >= 8);
+    CAM_CHECK_ARGS(camKeypointsDetector, points->allocated >= 0);
+    CAM_CHECK_ARGS(camKeypointsDetector, source->nChannels == 1 || ((source->nChannels == 3) && (source->dataOrder == CAM_DATA_ORDER_PLANE)));
+    width = iROI.srcroi.width;
+    height = iROI.srcroi.height;
+    points->width = width;
+    points->height = height;
+
+    // Compute integral image
+    integral.imageData = NULL;
+    roi = source->roi;
+    camSetMaxROI(&roix, source);
+    roix.coi = 1;
+    source->roi = &roix;
+    camIntegralImage(source, &integral);
+    points->nbPoints = 0;
+    integral.roi = &iROI.srcroi;
+    source->roi = roi;
+
+    // Allocate temp memory for keypoints
+    keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
+
+    // Integral Image is now useless
+    camDeallocateImage(&integral);
+
+    // Sort the features according to value
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    
+    // Angle
+    if (options & CAM_UPRIGHT) {
+	for (i = 0; i < nb_keypoints; i++) {
+	    keypoints[i].angle = 0;
+	}
+    } else {
+        camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
+	camBuildGaussianFilter(&filter, camSigmaParam);
+	pnb_keypoints = nb_keypoints;
+	if (pnb_keypoints > nb_max_keypoints) pnb_keypoints = nb_max_keypoints;
+	for (i = 0; i < pnb_keypoints; i++) {
+	    nb_keypoints += camKeypointOrientation(source, &keypoints[i], &filter, &keypoints[nb_keypoints]);
+	}
+	camDeallocateImage(&filter);
+    }
+    
+    // Sort again the features according to value
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    
+    // Keypoints allocation
+    pnb_keypoints = nb_keypoints;
+    if (pnb_keypoints > nb_max_keypoints) pnb_keypoints = nb_max_keypoints;
+    if (points->allocated == 0) {
+	camAllocateKeypoints(points, pnb_keypoints);
+    } else if (points->allocated < pnb_keypoints) {
+	camFreeKeypoints(points);
+	camAllocateKeypoints(points, pnb_keypoints);
+    }
+    if (points->bag == NULL) {
+#ifdef __SSE2__
+	points->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * pnb_keypoints, 16);
+#else
+	points->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * pnb_keypoints);
+#endif
+    }
+    for (i = 0; i < pnb_keypoints; i++) {
+        points->keypoint[i] = &points->bag[i];
+	points->keypoint[i]->x = keypoints[i].x;
+	points->keypoint[i]->y = keypoints[i].y;
+	points->keypoint[i]->scale = keypoints[i].scale;
+	points->keypoint[i]->value = keypoints[i].value;
+	points->keypoint[i]->angle = keypoints[i].angle;
+    }
+    points->nbPoints = pnb_keypoints;
+    free(keypoints);
+
+    camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
+    camBuildGaussianFilter(&filter, camSigmaParam);
+    
+    camKeypointsInternalsPrepareDescriptor();
+    // Get the signature from the selected feature points
+    for (i = 0; i < points->nbPoints; i++) {
+	camKeypointsDescriptor(source, points->keypoint[i], &filter, options);
+    }
+
+    // Finally, set the points' set 
+    for (i = 0; i < points->nbPoints; i++) {
+	points->keypoint[i]->set = points;
+    }
+
+    camDeallocateImage(&filter);
+    camInternalROIPolicyExit(&iROI);
 }
 
 void test_camKeypointsAlt()

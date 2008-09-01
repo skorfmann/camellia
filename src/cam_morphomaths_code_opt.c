@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,7 @@
 // Square3 optimized morphology kernel
 #ifdef CAM_MM_OPT_SQUARE3
 #ifdef CAM_MM_FINDLOCALMAXIMA
-int camFindLocalMaximaSquare3(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaSquare3(CamImage *source, CamKeypointShort *points, int *nb_points)
 #define CAM_MM_DO_DILATION
 #else
 #ifdef CAM_MM_GRADIENT
@@ -72,7 +72,7 @@ int camDilateSquare3(CamImage *source, CamImage *dest)
 // Circle5 optimized morphology kernel
 #ifdef CAM_MM_OPT_CIRCLE5
 #ifdef CAM_MM_FINDLOCALMAXIMA
-int camFindLocalMaximaCircle5(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaCircle5(CamImage *source, CamKeypointShort *points, int *nb_points)
 #define CAM_MM_DO_DILATION
 #else
 #ifdef CAM_MM_GRADIENT
@@ -92,7 +92,7 @@ int camDilateCircle5(CamImage *source, CamImage *dest)
 // Circle7 optimized morphology kernel
 #ifdef CAM_MM_OPT_CIRCLE7
 #ifdef CAM_MM_FINDLOCALMAXIMA
-int camFindLocalMaximaCircle7(CamImage *source, CamKeypoints *points, int threshold)
+int camFindLocalMaximaCircle7(CamImage *source, CamKeypointShort *points, int *nb_points)
 #define CAM_MM_DO_DILATION
 #else
 #ifdef CAM_MM_GRADIENT
@@ -155,6 +155,8 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
     CAM_CHECK(camFindLocalMaxima, camInternalROIPolicy(source, NULL, &iROI, 1));
     CAM_CHECK_ARGS(camFindLocalMaxima, iROI.nChannels==1);
     CAM_CHECK_ARGS2(camFindLocalMaxima, points != NULL, "points destination parameter should not be set to NULL");
+
+    *nb_points = 0;
 #else
     CamMorphoMathsKernel params;
     CAM_CHECK(camMorphoMathsKernel,camInternalROIPolicy(source, dest, &iROI, 1));
@@ -437,7 +439,7 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
 
 #ifdef CAM_MM_FINDLOCALMAXIMA
 		    valcenter = linesPtr[CAM_MM_NEIGHB / 2][x - CAM_MM_NEIGHB + 1 + CAM_MM_NEIGHB / 2];	
-		    if (valdil[0] == valcenter && valcenter >= threshold && valcenter != 0) {
+		    if (valdil[0] == valcenter && valcenter != 0) {
 			// Check that it is the only point with this maximum (in the upper part)
 			for (yp = 0, zp = 0, found = 0; yp < lines2test; yp++) {
 			    for (xp = start2test[yp]; xp <= end2test[yp]; xp++) {
@@ -449,18 +451,13 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
 			}
 			if (!found) {
 			    // Keep this point : this is a local maximum
-			    if (points->nbPoints < points->allocated) {
-				points->keypoint[points->nbPoints]->x = x - CAM_MM_NEIGHB + 1;
-				points->keypoint[points->nbPoints]->y = y;
-				points->keypoint[points->nbPoints]->scale = 0;
-				points->keypoint[points->nbPoints]->angle = 0;
-				points->keypoint[points->nbPoints]->value = valcenter;
-				points->nbPoints++;
-				acc += valdil[0];
-			    } else {
-				camInternalROIPolicyExit(&iROI);
-				return 0;
-			    }
+			    points[*nb_points].x = x - CAM_MM_NEIGHB + 1;
+			    points[*nb_points].y = y;
+			    points[*nb_points].scale = 0;
+			    points[*nb_points].angle = 0;
+			    points[*nb_points].value = valcenter;
+			    *nb_points++;
+			    acc += valdil[0];
 			}
 		    }
 #else	
@@ -528,7 +525,7 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
 
 #ifdef CAM_MM_FINDLOCALMAXIMA
 		    valcenter = linesPtr[CAM_MM_NEIGHB / 2][x - CAM_MM_NEIGHB + 1 + CAM_MM_NEIGHB / 2];	
-		    if (valdil[0] == valcenter && valcenter >= threshold && valcenter != 0) {
+		    if (valdil[0] == valcenter && valcenter != 0) {
 			// Check that it is the only point with this maximum (in the upper part)
 			for (yp = 0, zp = 0, found = 0; yp < lines2test; yp++) {
 			    for (xp = start2test[yp]; xp <= end2test[yp]; xp++) {
@@ -541,18 +538,13 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
 			if (!found)
 			{
 			    // Keep this point : this is a local maximum
-			    if (points->nbPoints < points->allocated) {
-				points->keypoint[points->nbPoints]->x = x - CAM_MM_NEIGHB + 1;
-				points->keypoint[points->nbPoints]->y = y;
-				points->keypoint[points->nbPoints]->scale = 0;
-				points->keypoint[points->nbPoints]->angle = 0;
-				points->keypoint[points->nbPoints]->value = valcenter;
-				points->nbPoints++;
-				acc += valdil[0];
-			    } else {
-				camInternalROIPolicyExit(&iROI);
-				return 0;
-			    }
+			    points[*nb_points].x = x - CAM_MM_NEIGHB + 1;
+			    points[*nb_points].y = y;
+			    points[*nb_points].scale = 0;
+			    points[*nb_points].angle = 0;
+			    points[*nb_points].value = valcenter;
+			    *nb_points++;
+			    acc += valdil[0];
 			}
 		    }
 #else	

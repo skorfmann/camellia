@@ -1058,7 +1058,7 @@ void example_keypoints()
     
     printf("Keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
-    camAllocateKeypoints(&points, 1000);
+    camAllocateKeypoints(&points, 20);
 
     camSet(&image, 0);
     camDrawRectangle(&image, 102, 120, 156, 152, 255);
@@ -1109,7 +1109,7 @@ void example_keypoints()
     t1=camGetTimeMs();
     for (c = 0; c < 10; c++)
     {
-	camFastHessianDetector(&image, &points, 2000, CAM_APPROX_HESSIAN);
+	camFastHessianDetector(&image, &points, 20, CAM_APPROX_HESSIAN);
     }	
     t2=camGetTimeMs();
     printf("Fast hessian computation = %d us\n",(t2-t1)*100);

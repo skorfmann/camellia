@@ -2040,7 +2040,16 @@ typedef struct {
 #else
     struct _CamKeypoints *set;
 } CamKeypoint;
+
 #endif
+
+typedef struct {
+    int x;		    ///< x coordinate of keypoints in image
+    int y;		    ///< y coordinate of keypoints in image
+    int scale;		    ///< Scale in pixels
+    int angle;		    ///< Angle in degrees
+    int value;		    ///< Hessian value
+} CamKeypointShort;
 
 typedef struct {
     CamKeypoint *p1;
@@ -2154,13 +2163,13 @@ int camDrawKeypoint(CamKeypoint *point, CamImage *dest, int color);
 int camHarris(CamImage *source, CamKeypoints *points, int k);
 
 /// Local maxima finder (Circle7 neighborhood)
-int camFindLocalMaximaCircle7(CamImage *source, CamKeypoints *points, int threshold);
+int camFindLocalMaximaCircle7(CamImage *source, CamKeypointShort *points, int *nb_points);
 
 /// Local maxima finder (Circle5 neighborhood)
-int camFindLocalMaximaCircle5(CamImage *source, CamKeypoints *points, int threshold);
+int camFindLocalMaximaCircle5(CamImage *source, CamKeypointShort *points, int *nb_points);
 
 /// Local maxima finder (Square3 neighborhood)
-int camFindLocalMaximaCircle3(CamImage *source, CamKeypoints *points, int threshold);
+int camFindLocalMaximaCircle3(CamImage *source, CamKeypointShort *points, int *nb_points);
 
 /// Integral image computation
 int camIntegralImage(CamImage *src, CamImage *dest);
@@ -2172,7 +2181,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale);
 
 /// Fast Hessian Detection (for all scales)
-int camFastHessianDetector(CamImage *source, CamKeypoints *points, int threshold, int options);
+int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
 
 /// Find a keypoint in a set of keypoints
 CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist1, int *dist2);
