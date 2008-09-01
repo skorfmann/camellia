@@ -256,7 +256,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 
 			// Dxx, Dyy and Dxy should be 13 bits wide max
 			// det = Dxx * Dyy - 0.81 * Dxy^2
-			det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
+			det -= ((13 * Dxy * Dxy) >> 4);
 			// det should then be 26 bits wide max
 			if (det <= 0) det = 0;
 			else {

@@ -1038,7 +1038,7 @@ int camKeypointInternalsPrepareOrientation();
 
 void example_keypoints()
 {
-    CamImage image, integral, dest;
+    CamImage image, dest;
     CamKeypoints points;
     int i;
     int c, t1, t2;
@@ -1104,7 +1104,6 @@ void example_keypoints()
     camFillColor(&image, 50, 192, 255, -1);
 
 #endif
-    integral.imageData = NULL; /* in order to use automatic allocation */
     dest.imageData = NULL; 
 	
     t1=camGetTimeMs();
@@ -1121,7 +1120,6 @@ void example_keypoints()
     camSavePGM(&image, "output/features_reference.pgm");
 
     camDeallocateImage(&image);
-    camDeallocateImage(&integral);
     camDeallocateImage(&dest);
     camFreeKeypoints(&points);
 }
@@ -1283,6 +1281,8 @@ void cpp_example_alpha_composite();
 void cpp_example_watershed();
 void cpp_example_draw();
 
+void test_camKeypointsAlt();
+
 int main()
 {
     camInitBenchmark();
@@ -1309,6 +1309,7 @@ int main()
     example_integralimage();
 */
     example_keypoints();
+    test_camKeypointsAlt();
 /*
  * example_keypoints2();
     example_keypoints3();
