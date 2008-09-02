@@ -128,7 +128,12 @@ int camFreeKeypoints(CamKeypoints *fpoints)
 {
     CAM_CHECK_ARGS(camKeypointsDeallocate, fpoints != NULL);
     if (fpoints->keypoint) free(fpoints->keypoint);
-    if (fpoints->bag) free(fpoints->bag);
+    if (fpoints->bag) 
+#ifdef __SSE2__
+	_mm_free(fpoints->bag);
+#else
+	free(fpoints->bag);
+#endif
     fpoints->keypoint = NULL;
     fpoints->bag = NULL;
     fpoints->nbPoints = 0;
@@ -689,15 +694,15 @@ int camKeypointsDescriptor(CamImage *source, CamKeypoint *point, CamImage *filte
 
 int camSortKeypointsShort(const void *p1x, const void *p2x)
 {
-    CamKeypointShort **p1 = (CamKeypointShort**)p1x;
-    CamKeypointShort **p2 = (CamKeypointShort**)p2x;
-    if ((*p1)->value < (*p2)->value) return 1;
-    if ((*p1)->value == (*p2)->value) return 0;
+    CamKeypointShort *p1 = (CamKeypointShort*)p1x;
+    CamKeypointShort *p2 = (CamKeypointShort*)p2x;
+    if (p1->value < p2->value) return 1;
+    if (p1->value == p2->value) return 0;
     return -1;
 }
 
 #define CAM_MAX_SCALES 20
-#define CAM_MAX_KEYPOINTS 10000
+#define CAM_MAX_KEYPOINTS 100000
 
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
 {
@@ -1004,7 +1009,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
     nb_keypoints = pnb_keypoints;
  
     // Sort the features according to value
-    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
     
     // Angle
     if (options & CAM_UPRIGHT) {
@@ -1023,7 +1028,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
     }
     
     // Sort again the features according to value
-    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
     
     // Keypoints allocation
     pnb_keypoints = nb_keypoints;

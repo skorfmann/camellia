@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795 
+#endif
 #include "camellia.h"
 #include "camellia_internals.h"
 #ifdef __SSE2__
@@ -83,7 +86,7 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 	// determinant will have already been shifted by data->preshift[scale] * 2 bits
 	// that is divided by 2^(data->preshift[scale] * 2). 
 	// The multiplier should be augmented accordingly
-	data->coeff[scale] = pow(2, 16) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2);
+	data->coeff[scale] = (int)floor(pow(2, 16) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2) + 0.5);
 	// All data->coeff[scale] should be in the range from 1 to 2^6 = 64, turning a 26 bits max determinant into a 32 bits max determinant
 	printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
     }
@@ -125,6 +128,9 @@ int camHessianEstimate(CamHessianEstimateData *data, int x, int y, int scale)
 extern int camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 int camSortKeypointsShort(const void *p1x, const void *p2x);
+int camBuildGaussianFilter(CamImage *image, double sigma);
+void camKeypointsInternalsPrepareDescriptor();
+int camKeypointsDescriptor(CamImage *source, CamKeypoint *point, CamImage *filter, int option);
 
 int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
 {
@@ -165,7 +171,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     camDeallocateImage(&integral);
 
     // Sort the features according to value
-    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
     
     // Angle
     if (options & CAM_UPRIGHT) {
@@ -184,7 +190,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     }
     
     // Sort again the features according to value
-    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort*), camSortKeypointsShort);
+    qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
     
     // Keypoints allocation
     pnb_keypoints = nb_keypoints;
@@ -229,6 +235,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 
     camDeallocateImage(&filter);
     camInternalROIPolicyExit(&iROI);
+    return 1;
 }
 
 void test_camKeypointsAlt()

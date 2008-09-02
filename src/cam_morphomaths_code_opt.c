@@ -543,7 +543,7 @@ int camDilateCircle7(CamImage *source, CamImage *dest)
 			    points[*nb_points].scale = 0;
 			    points[*nb_points].angle = 0;
 			    points[*nb_points].value = valcenter;
-			    *nb_points++;
+			    (*nb_points)++;
 			    acc += valdil[0];
 			}
 		    }

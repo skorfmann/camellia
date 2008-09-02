@@ -509,6 +509,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\cam_keypoints_alt.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\cam_keypoints_hessian_code.c"
 				>
 				<FileConfiguration

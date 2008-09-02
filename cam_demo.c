@@ -984,14 +984,13 @@ void example_harris()
 {
 #define CONTRAST 128 
     CamImage image;
-    CamKeypoints points;
+    CamKeypointShort points[1024];
     int xp[]={32,64,32,8,64,100,100,64,32,48,32,16};
     int yp[]={8,32,64,32,64,64,100,100,70,86,102,86};
-    int i;
+    int i, nbPoints;
 
     printf("Harris corner point detection :\n");
     camAllocateImage(&image, 128, 128, CAM_DEPTH_8U);
-    camAllocateKeypoints(&points, 128);
     camSet(&image, 0);
     for (i=0;i<4;i++) {
 	camDrawLine(&image, xp[i], yp[i], xp[(i+1)%4], yp[(i+1)%4], CONTRAST);
@@ -1002,16 +1001,15 @@ void example_harris()
     camFillColor(&image, 65, 65, CONTRAST, -1);
     camFillColor(&image, 32, 86, CONTRAST, -1);
     camFixedFilter(&image, &image, CAM_GAUSSIAN_5x5);
-    camHarris(&image, &points, 41);
+    nbPoints = camHarris(&image, points, 41);
 
-    for (i=0; i < points.nbPoints; i++) {
-	printf("x=%d y=%d mark=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value);
-	if (points.keypoint[i]->value > 2000) 
-	    camPlot(&image, points.keypoint[i]->x, points.keypoint[i]->y, 255, CAM_CROSS);
+    for (i=0; i < nbPoints; i++) {
+	printf("x=%d y=%d mark=%d\n", points[i].x, points[i].y, points[i].value);
+	if (points[i].value > 2000) 
+	    camPlot(&image, points[i].x, points[i].y, 255, CAM_CROSS);
     }
     camSavePGM(&image, "output/harris.pgm");
     camDeallocateImage(&image);    
-    camFreeKeypoints(&points);
 }
 
 void example_integralimage()
@@ -1048,7 +1046,6 @@ void example_keypoints()
     int angle;
     double costheta;
     double sintheta;
-    CamROI roi;
 
     const int xp[4] = {-1, 1, 1, -1};
     const int yp[4] = {-1, -1, 1, 1};
@@ -1058,7 +1055,7 @@ void example_keypoints()
     
     printf("Keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
-    camAllocateKeypoints(&points, 20);
+    camAllocateKeypoints(&points, 30);
 
     camSet(&image, 0);
     camDrawRectangle(&image, 102, 120, 156, 152, 255);
@@ -1109,7 +1106,8 @@ void example_keypoints()
     t1=camGetTimeMs();
     for (c = 0; c < 10; c++)
     {
-	camFastHessianDetector(&image, &points, 20, CAM_APPROX_HESSIAN);
+	printf("%d ", c);
+	camFastHessianDetector(&image, &points, 30, CAM_APPROX_HESSIAN);
     }	
     t2=camGetTimeMs();
     printf("Fast hessian computation = %d us\n",(t2-t1)*100);

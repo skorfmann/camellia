@@ -898,9 +898,9 @@ bool CamImage::draw_keypoint(const CamKeypoint &point, int color)
     return (camDrawKeypoint((CamKeypoint*)&point, (CamImage*)this, color)) ? true : false; 
 }
 
-bool CamImage::harris(CamKeypoints &points, int k) const
+int CamImage::harris(CamKeypointShort &points, int k) const
 {   
-    return (camHarris((CamImage*)this, (CamKeypoints*)&points, k)) ? true : false; 
+    return camHarris((CamImage*)this, (CamKeypointShort*)&points, k); 
 }
 
 bool CamImage::integral_image(CamImage &dest) const

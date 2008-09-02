@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -49,29 +49,17 @@
 #include "camellia.h"
 #include "camellia_internals.h"
 
-int camHarris(CamImage *source, CamKeypoints *points, int k)
+int camHarris(CamImage *source, CamKeypointShort *points, int k)
 {
     CamImage X, Y, XY, R, tr;
-    int i, width, height;
+    int width, height, nbPoints;
     CamInternalROIPolicyStruct iROI;
     CamArithmParams params;
 
     CAM_CHECK(camHarris, camInternalROIPolicy(source, NULL, &iROI, 1));
     CAM_CHECK_ARGS(camHarris, (source->depth & CAM_DEPTH_MASK) >= 8);
-    CAM_CHECK_ARGS(camHarris, points->allocated != 0);
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
-
-    // Bag allocation
-    if (points->bag == NULL) {
-	points->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * points->allocated);
-	for (i = 0; i < points->allocated; i++) {
-	    points->keypoint[i] = &points->bag[i];
-	    points->bag[i].set = points;
-	}
-    }
-    points->nbPoints = 0;
-
     params.operation = CAM_ARITHM_MUL;
 
     camAllocateImage(&X, width, height, CAM_DEPTH_16S);
@@ -110,10 +98,10 @@ int camHarris(CamImage *source, CamKeypoints *points, int k)
 	params.c3 = 10;
 	camDyadicArithm(&R, &tr, &R, &params);
     }
-    camFindLocalMaximaCircle7(&R, points, 0);
+    camFindLocalMaximaCircle7(&R, points, &nbPoints);
 /*
-    for (i=0; i<points->nbPoints; i++) {
-	camPlot(&A, points->keypoint[i].x, points->keypoint[i].y, 32767, CAM_CROSS);
+    for (i = 0; i < nbPoints; i++) {
+	camPlot(&A, points[i].x, points[i].y, 32767, CAM_CROSS);
     }
     camAbs(&A, &A);
     camSavePGM(&A, "output/test_harris.pgm");
@@ -126,7 +114,7 @@ int camHarris(CamImage *source, CamKeypoints *points, int k)
     camDeallocateImage(&tr);
 
     camInternalROIPolicyExit(&iROI);
-    return 1;
+    return nbPoints;
 }
 
 

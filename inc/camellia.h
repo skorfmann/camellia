@@ -168,6 +168,7 @@ struct CamImage;
 struct CamTableOfBasins;
 struct CamBitmapFont;
 struct CamKeypoints;
+struct CamKeypointShort;
 struct CamKeypoint;
 
 /// The IPL Region Of Interest structure
@@ -470,9 +471,9 @@ typedef struct {
     int hierarchical_watershed_contours(CamImage &ws, CamTableOfBasins &tob) const;     ///< C++ wrapping for camHierarchicalWatershedContours() function
     int hierarchical_watershed_regions(const CamTableOfBasins &tob);                    ///< C++ wrapping for camHierarchicalWatershedRegions() function
 
-    bool draw_keypoints(const CamKeypoints &points, int color = 255);		///< C++ wrapping for camDrawKeypoints() function
-    bool draw_keypoint(const CamKeypoint &point, int color = 255);		///< C++ wrapping for camDrawKeypoint() function
-    bool harris(CamKeypoints &points, int k = 41) const;				///< C++ wrapping for camHarris() function
+    bool draw_keypoints(const CamKeypoints &points, int color = 255);			///< C++ wrapping for camDrawKeypoints() function
+    bool draw_keypoint(const CamKeypoint &point, int color = 255);			///< C++ wrapping for camDrawKeypoint() function
+    int harris(CamKeypointShort &points, int k = 41) const;				///< C++ wrapping for camHarris() function
     bool integral_image(CamImage &dest) const;						///< C++ wrapping for camIntegralImage() function	
     CamImage *integral_image() const;							///< C++ wrapping for camIntegralImage() function	
     bool fast_hessian_detector(CamKeypoints &points, int threshold, int options = 0) const; /// C++ wrapping for camFastHessianDetector() function
@@ -2043,13 +2044,21 @@ typedef struct {
 
 #endif
 
+#ifdef __cplusplus
+struct CamKeypointShort {
+#else
 typedef struct {
+#endif // __cplusplus
     int x;		    ///< x coordinate of keypoints in image
     int y;		    ///< y coordinate of keypoints in image
     int scale;		    ///< Scale in pixels
     int angle;		    ///< Angle in degrees
     int value;		    ///< Hessian value
+#ifdef __cplusplus
+};
+#else
 } CamKeypointShort;
+#endif __cplusplus
 
 typedef struct {
     CamKeypoint *p1;
@@ -2160,7 +2169,7 @@ int camDrawKeypoint(CamKeypoint *point, CamImage *dest, int color);
 /// Harris corner detector.
 /** \param k Harris' corner detection parameter (default value is 41, matching k=0.04 in Harris' article)
  */
-int camHarris(CamImage *source, CamKeypoints *points, int k);
+int camHarris(CamImage *source, CamKeypointShort *points, int k);
 
 /// Local maxima finder (Circle7 neighborhood)
 int camFindLocalMaximaCircle7(CamImage *source, CamKeypointShort *points, int *nb_points);
