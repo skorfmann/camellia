@@ -14,11 +14,14 @@
 #endif
 
 #define CAM_MAX_SCALE 100
-#define CAM_MAX_KEYPOINTS 10000
+#define CAM_MAX_KEYPOINTS 100000
+#define CAM_MAX_SEEDS 20000
 #define CAM_ORIENTATION_STAMP_SIZE 30
 
 typedef struct {
     CamImage *integral;
+    int count;
+    int min_distance_to_border[CAM_MAX_SCALE];
     int offset[CAM_MAX_SCALE][8 * 4];
     int preshift[CAM_MAX_SCALE];
     int coeff[CAM_MAX_SCALE];
@@ -32,6 +35,7 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
     int scale;
 
     data->integral = integral;
+    data->count = 0;
     linc = integral->widthStep / 4;
 
     for (scale = 0; scale < CAM_MAX_SCALE; scale++) {
@@ -44,6 +48,7 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 	if (!(widthp & 1)) { // if is even
 	    widthp++;
 	}
+	data->min_distance_to_border[scale] = sizep + scale + 1;
 
 // 0 : top-left, 1 : top-right, 2 : bottom-left, 3 : bottom-right
 #define SET_OFFSET(i) \
@@ -88,7 +93,7 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 	// The multiplier should be augmented accordingly
 	data->coeff[scale] = (int)floor(pow(2, 16) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2) + 0.5);
 	// All data->coeff[scale] should be in the range from 1 to 2^6 = 64, turning a 26 bits max determinant into a 32 bits max determinant
-	printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
+	//printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
     }
 }
 
@@ -96,18 +101,31 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 // so the determinant is proportional to sizep^4.
 // For scale = 100, sizep = 201 and sizep^4 = 1.6b (compared to 81 width scale = 1). We need prescaling before multiply (preshifting indeed).
 
-// This code involves 8 * 4 = 32 memory accesses to the integral image
+typedef struct {
+    int c[3];   
+} CamKeypointLocation;
+
+// This code involves (exscluding boundaries checking) 8 * 4 = 32 memory accesses to the integral image
 // 4 right shifts (1 with constant), and 5 32-bits multiplications (not overflowing - no need for 64 bits result)
 // (and approximately 8 * (4 + 3) + 2 * 3 + 3 + 1 = 66 additions) 
-int camHessianEstimate(CamHessianEstimateData *data, int x, int y, int scale)
+int camHessianEstimate(CamHessianEstimateData *data, CamKeypointLocation *keypoint)
 {
     int det, Dxx, Dyy, Dxy, tmp;
-    unsigned long *imptr = ((unsigned long*)(data->integral + y * data->integral->widthStep)) + x;
+    int x = keypoint->c[0], y = keypoint->c[1], scale = keypoint->c[2];
     int *offset_ptr = data->offset[scale];
+    unsigned long *imptr;
+
+    // Check boundaries
+    if ((x < tmp) || (x > data->integral->width - tmp) || (y < tmp) || (y > data->integral->height - tmp) || (scale < 1) || (scale >= CAM_MAX_SCALE)) 
+	return 0;
+    
+    tmp = data->min_distance_to_border[scale];
+    data->count++;
+    imptr = ((unsigned long*)(data->integral + y * data->integral->widthStep)) + x;
 
 #define CAM_INTEGRAL(i) \
     ( *(imptr + offset_ptr[i * 4]) - *(imptr + offset_ptr[i * 4 + 1]) - *(imptr + offset_ptr[i * 4 + 2]) + *(imptr + offset_ptr[i * 4 + 3]) )
-		    
+    
     tmp = CAM_INTEGRAL(0);
     Dxx = CAM_INTEGRAL(1) - (tmp + tmp + tmp);
     Dxx >>= data->preshift[scale]; 
@@ -119,9 +137,9 @@ int camHessianEstimate(CamHessianEstimateData *data, int x, int y, int scale)
     // With this preshifting, Dxx, Dyy and Dxy are 13 bits wide max
     // det = Dxx * Dyy - 0.81 * Dxy^2
     det = Dxx * Dyy - ((13 * Dxy * Dxy) >> 4);
-    // det certainly stands in 26 bits 
+    // det certainly stands within 26 bits 
     det *= data->coeff[scale];
-    // it should stay in 32 bits range
+    // it should stay within 32 bits range
     return det;
 }
 
@@ -139,9 +157,13 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     CamHessianEstimateData data;
     CamROI *roi, roix;
     int width, height;
-    int i;
+    int c, i, x, y, ok;
     int nb_keypoints = 0, pnb_keypoints;
+    int nb_seeds = 0, nb_tests, found_better, move, counter_not_found;
     CamKeypointShort *keypoints;
+    CamKeypointLocation *seeds, neighbour, best_keypoint, current_keypoint, gradient, min_gradient;
+    int best_keypoint_value, current_keypoint_value, neighbour_value;
+    int stat_upscales, stat_moves, stat_good;
 
     // Parameters checking
     CAM_CHECK(camKeypointsDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
@@ -164,15 +186,120 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     integral.roi = &iROI.srcroi;
     source->roi = roi;
 
-    // Allocate temp memory for keypoints
+    // Allocate temp memory for keypoints and seeds
     keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
+
+    // Ready to go
+    // Seeding
+    seeds = (CamKeypointLocation*)malloc(CAM_MAX_SEEDS * sizeof(CamKeypointLocation));
+#define INTERVAL 10
+    for (x = INTERVAL; x < integral.width; x += INTERVAL) {
+	for (y = INTERVAL; y < integral.height; y += INTERVAL) {
+	    seeds[nb_seeds].c[0] = x;
+	    seeds[nb_seeds].c[1] = y;
+	    seeds[nb_seeds].c[2] = INTERVAL / 2;
+	    nb_seeds++;
+	}
+    }	
+
+    // Go !
+    stat_upscales = 0; stat_moves = 0; stat_good = 0;
+    for (c = 0; c < nb_seeds; c++) {
+#define MAX_TESTS 100
+#define MAX_NOT_FOUND 10
+#define INV_GAIN 2
+#define INV_GAIN_GRADIENT 4
+	current_keypoint = seeds[c];
+        current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &best_keypoint);
+	nb_tests = 1;
+	best_keypoint = current_keypoint;
+	counter_not_found = 0;
+	do {
+	    found_better = 0;
+	    move = current_keypoint.c[2] >> INV_GAIN;
+	    if (move == 0) move = 1;
+	    // Compute gradient
+	    for (i = 0; i != 3; i++) {
+		neighbour = current_keypoint;
+		neighbour.c[i] += move; 
+		neighbour_value = camHessianEstimate(&data, &neighbour);
+		nb_tests++;
+		if (neighbour_value > best_keypoint_value) {
+		    found_better = 1; best_keypoint = neighbour; best_keypoint_value = neighbour_value;
+		}
+		gradient.c[i] = neighbour_value - current_keypoint_value;
+	    }
+	    // Search at gradient ascent location
+	    move = 0;
+	    for (i = 1; i != 3; i++) {
+		if (abs(gradient.c[i]) > abs(gradient.c[move])) {
+		    move = i;
+		}
+	    }
+	    for (i = 0; i != 3; i++) min_gradient.c[i] = 0;
+	    min_gradient.c[move] = (gradient.c[move] > 0) ? 1 : -1;
+	    for (ok = 0, i = 0; i != 3; i++) {
+		gradient.c[i] = (gradient.c[i] * current_keypoint.c[2]) >> INV_GAIN_GRADIENT;
+		if (gradient.c[i] != 0) ok = 1;
+	    }
+	    if (!ok) gradient = min_gradient;
+	    neighbour = current_keypoint;
+	    for (i = 0; i != 3; i++) neighbour.c[i] += gradient.c[i];
+	    neighbour_value = camHessianEstimate(&data, &neighbour);
+	    nb_tests++;
+	    if (neighbour_value > best_keypoint_value) {
+		found_better = 1; best_keypoint = neighbour; best_keypoint_value = neighbour_value;
+	    }
+	    if (!found_better) {
+		counter_not_found++;
+		if (counter_not_found >= MAX_NOT_FOUND) {
+		    // It's been quite some time
+		    // Try upscaling
+		    current_keypoint = best_keypoint;
+		    current_keypoint.c[2] = (current_keypoint.c[2] * 3) / 2;
+		    current_keypoint_value = camHessianEstimate(&data, &current_keypoint);
+		    nb_tests++;
+		    stat_upscales++;
+		    if (current_keypoint_value > best_keypoint_value) {
+			best_keypoint = current_keypoint; best_keypoint_value = current_keypoint_value;
+			counter_not_found = 0;
+			stat_good++;
+		    }
+		} else {
+		    // Take the direction of gradient, even if it's not better
+		    current_keypoint = neighbour;
+		    current_keypoint_value = neighbour_value;
+		    stat_moves++;
+		}
+	    } else {
+		// OK. Good ! Let's move on !
+		counter_not_found = 0;
+		current_keypoint = best_keypoint;
+		current_keypoint_value = best_keypoint_value;
+		stat_good++;
+	    }
+	} while (nb_tests < MAX_TESTS);
+	// Let's record this keypoint
+	keypoints[nb_keypoints].x = best_keypoint.c[0];
+	keypoints[nb_keypoints].y = best_keypoint.c[1];
+	keypoints[nb_keypoints].scale = best_keypoint.c[2];
+	keypoints[nb_keypoints].value = best_keypoint_value;
+	nb_keypoints++;
+    }
+
+    free(seeds);
+    
+    printf("Good = %d, Moves = %d, Upscales = %d, MaxCount = ", stat_good, stat_moves, stat_upscales, nb_seeds * MAX_TESTS);
+    printf("Count = %d\n", data.count);
 
     // Integral Image is now useless
     camDeallocateImage(&integral);
 
     // Sort the features according to value
     qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
-    
+
+    // Remove duplicates
+
     // Angle
     if (options & CAM_UPRIGHT) {
 	for (i = 0; i < nb_keypoints; i++) {
@@ -259,7 +386,7 @@ void test_camKeypointsAlt()
 
     printf("Alternative keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
-    camAllocateKeypoints(&points, 1000);
+    camAllocateKeypoints(&points, 100);
 
     camSet(&image, 0);
     camDrawRectangle(&image, 102, 120, 156, 152, 255);
@@ -305,14 +432,22 @@ void test_camKeypointsAlt()
     camFillColor(&image, 50, 192, 255, -1);
 
 #endif
-    integral.imageData = NULL; /* in order to use automatic allocation */
     dest.imageData = NULL; 
-	
+
+    /*
+    integral.imageData = NULL; // in order to use automatic allocation
     camIntegralImage(&image, &integral);
     camHessianEstimateDataBuild(&data, &integral);
-
-    camDeallocateImage(&image);
     camDeallocateImage(&integral);
+    */
+    camKeypointsDetector(&image, &points, 100, 0);
+    for (i = 0; i < points.nbPoints; i++) {
+	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
+    }
+    camDrawKeypoints(&points, &image, 128);
+    camSavePGM(&image, "output/features_reference.pgm");
+    
+    camDeallocateImage(&image);
     camDeallocateImage(&dest);
     camFreeKeypoints(&points);
 }

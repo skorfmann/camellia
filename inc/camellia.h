@@ -2058,7 +2058,7 @@ typedef struct {
 };
 #else
 } CamKeypointShort;
-#endif __cplusplus
+#endif // __cplusplus
 
 typedef struct {
     CamKeypoint *p1;

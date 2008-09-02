@@ -71,7 +71,7 @@ int main()
     CamROI roi;
     CamFPKdTreeNode *kdTree;
 
-    const int threshold = 100; 
+    const int nb_keypoints  = 100; 
 
     for (i = 0; i < 15; i++) {
 	sprintf(filename, "resources/yalefaces/subject%02d.normal.pgm", i + 1);
@@ -80,11 +80,11 @@ int main()
 	camLoadPGM(&imodel[i], filename);
 	image.imageData = NULL; image.depth = CAM_DEPTH_8U;
 	camCopy(&imodel[i], &image); // Automatic allocation
-	camAllocateKeypoints(&points[i], 10000);
+	camAllocateKeypoints(&points[i], nb_keypoints);
 	points[i].id = i;
 	points[i].cx = cx[i];
 	points[i].cy = cy[i];
-	camFastHessianDetector(&imodel[i], &points[i], threshold, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
+	camFastHessianDetector(&imodel[i], &points[i], nb_keypoints, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
 	camDrawKeypoints(&points[i], &image, 128);
 	sprintf(filename, "output/yalefaces%02d.pgm", i + 1);
 	camSavePGM(&image, filename);
@@ -103,8 +103,8 @@ int main()
 	    printf("Feature point detection on %s ...\n", filename);
 	    image.imageData = NULL;
 	    camLoadPGM(&image, filename);
-	    camAllocateKeypoints(&points2, 10000);
-	    camFastHessianDetector(&image, &points2, threshold, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
+	    camAllocateKeypoints(&points2, nb_keypoints);
+	    camFastHessianDetector(&image, &points2, nb_keypoints, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
 	    printf("# features = %d\n", points2.nbPoints);
 	    nbFeatures += points2.nbPoints;
 	    //bestMatch = camKeypointsMatching(&points2, models, 15, &matches);

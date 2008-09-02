@@ -74,7 +74,7 @@ int main()
     CamImage dimage;
     CamROI roi;
 
-    const int threshold = 50; 
+    const int nb_keypoints = 1000; 
 
     for (i = 0; i < 3; i++) {
 	sprintf(filename, "resources/photos/%s.bmp", model_images[i]);
@@ -87,11 +87,11 @@ int main()
 	*/
 	camAllocateYUVImage(&image, imodel[i].width, imodel[i].height);
 	camRGB2YUV(&imodel[i], &image);
-	camAllocateKeypoints(&points[i], 100000);
+	camAllocateKeypoints(&points[i], 0);
 	points[i].id = i;
 	points[i].cx = cx[i];
 	points[i].cy = cy[i];
-	camFastHessianDetector(&image, &points[i], threshold, CAM_UPRIGHT);
+	camFastHessianDetector(&image, &points[i], nb_keypoints, CAM_UPRIGHT);
 	/*
 	camDrawKeypoints(&points[i], &image, 128);
 	sprintf(filename, "output/%s.pgm", model_images[i]);
@@ -118,8 +118,8 @@ int main()
 	*/
 	camAllocateYUVImage(&image, color_image.width, color_image.height);
 	camRGB2YUV(&color_image, &image);
-	camAllocateKeypoints(&points2, 100000);
-	camFastHessianDetector(&image, &points2, threshold, CAM_UPRIGHT);
+	camAllocateKeypoints(&points2, 0);
+	camFastHessianDetector(&image, &points2, nb_keypoints, CAM_UPRIGHT);
 	printf("# features = %d\n", points2.nbPoints);
 	nbFeatures += points2.nbPoints;
 
