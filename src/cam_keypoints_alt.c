@@ -116,12 +116,14 @@ int camHessianEstimate(CamHessianEstimateData *data, CamKeypointLocation *keypoi
     unsigned long *imptr;
 
     // Check boundaries
-    if ((x < tmp) || (x > data->integral->width - tmp) || (y < tmp) || (y > data->integral->height - tmp) || (scale < 1) || (scale >= CAM_MAX_SCALE)) 
+    if ((scale < 1) || (scale >= CAM_MAX_SCALE)) 
+	return 0;
+    tmp = data->min_distance_to_border[scale];
+    if ((x < tmp) || (x > data->integral->width - tmp) || (y < tmp) || (y > data->integral->height - tmp)) 
 	return 0;
     
-    tmp = data->min_distance_to_border[scale];
     data->count++;
-    imptr = ((unsigned long*)(data->integral + y * data->integral->widthStep)) + x;
+    imptr = ((unsigned long*)(data->integral->imageData + y * data->integral->widthStep)) + x;
 
 #define CAM_INTEGRAL(i) \
     ( *(imptr + offset_ptr[i * 4]) - *(imptr + offset_ptr[i * 4 + 1]) - *(imptr + offset_ptr[i * 4 + 2]) + *(imptr + offset_ptr[i * 4 + 3]) )
@@ -186,6 +188,8 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     integral.roi = &iROI.srcroi;
     source->roi = roi;
 
+    camHessianEstimateDataBuild(&data, &integral);
+
     // Allocate temp memory for keypoints and seeds
     keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
 
@@ -193,8 +197,8 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     // Seeding
     seeds = (CamKeypointLocation*)malloc(CAM_MAX_SEEDS * sizeof(CamKeypointLocation));
 #define INTERVAL 10
-    for (x = INTERVAL; x < integral.width; x += INTERVAL) {
-	for (y = INTERVAL; y < integral.height; y += INTERVAL) {
+    for (y = INTERVAL * 2; y < integral.height - INTERVAL * 2; y += INTERVAL) {
+	for (x = INTERVAL * 2; x < integral.width - INTERVAL * 2; x += INTERVAL) {
 	    seeds[nb_seeds].c[0] = x;
 	    seeds[nb_seeds].c[1] = y;
 	    seeds[nb_seeds].c[2] = INTERVAL / 2;
@@ -210,7 +214,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 #define INV_GAIN 2
 #define INV_GAIN_GRADIENT 4
 	current_keypoint = seeds[c];
-        current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &best_keypoint);
+        current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &current_keypoint);
 	nb_tests = 1;
 	best_keypoint = current_keypoint;
 	counter_not_found = 0;
