@@ -191,11 +191,11 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     // Should take ROI into consideration
     seeds = (CamKeypointLocation*)malloc(CAM_MAX_SEEDS * sizeof(CamKeypointLocation));
 #define INTERVAL 20
-    for (y = INTERVAL * 2; y < height - INTERVAL * 2; y += INTERVAL) {
-	for (x = INTERVAL * 2; x < width - INTERVAL * 2; x += INTERVAL) {
+    for (y = INTERVAL * 2; y < height - INTERVAL * 3; y += INTERVAL) {
+	for (x = INTERVAL * 2; x < width - INTERVAL * 3; x += INTERVAL) {
 	    seeds[nb_seeds].c[0] = x + iROI.srcroi.xOffset;
 	    seeds[nb_seeds].c[1] = y + iROI.srcroi.yOffset;
-	    seeds[nb_seeds].c[2] = INTERVAL;
+	    seeds[nb_seeds].c[2] = INTERVAL / 2;
 	    nb_seeds++;
 	}
     }	
@@ -231,6 +231,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 	        TEST_NEIGHBOUR;	
 		gradient.c[i] = neighbour_value - current_keypoint_value;
 	    }
+	    if (i != 3) break;
 	    // Search at gradient ascent location
 	    move = 0;
 	    for (i = 1; i != 3; i++) {
