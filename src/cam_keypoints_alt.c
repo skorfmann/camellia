@@ -79,21 +79,21 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 	SET_OFFSET(7);
 
 	data->preshift[scale] = (int)(2 * log(sizep) / log(2));
-	data->preshift[scale] -= 5; // So that when it should have shifted back to 8 bits, it shifts back only to 13...
+	data->preshift[scale] -= 3; // So that when it should have shifted back to 10 bits, it shifts back only to 13...
 	if (data->preshift[scale] < 1) data->preshift[scale] = 1;
 
 	// Coeff : for sizep, divider should be sizep^4
-	// With data in 8 bits range, 2D integral is in (8 bits * sizep) ^ 2
-	// In order to stay in 8 bits range, one should multiply by 1 / (8 * sizep^4)
-	// which is equivalent to (2^16 / (sizep ^ 4)) >> 24
-	// We need to stay in 32 bits range, so we can multiply by (2^16 / (sizep ^ 4)) only
+	// With data in 8 bits range, 2D integral is in (8 bits * 2 * sizep) ^ 2
+	// In order to stay in 8 bits range, one should multiply by 1 / (8 * 8 * sizep^4)
+	// which is equivalent to (2^13 / (sizep ^ 4)) >> 24
+	// We need to stay in 31 bits range, so we can multiply by (2^12 / (sizep ^ 4)) only
 	// This is without considering preshifting
 	// determinant will have already been shifted by data->preshift[scale] * 2 bits
 	// that is divided by 2^(data->preshift[scale] * 2). 
 	// The multiplier should be augmented accordingly
-	data->coeff[scale] = (int)floor(pow(2, 16) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2) + 0.5);
+	data->coeff[scale] = (int)floor(pow(2, 12) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2) + 0.5);
 	// All data->coeff[scale] should be in the range from 1 to 2^6 = 64, turning a 26 bits max determinant into a 32 bits max determinant
-	//printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
+	printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
     }
 }
 
@@ -152,7 +152,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     CamHessianEstimateData data;
     CamROI *roi, roix;
     int width, height;
-    int c, i, x, y, ok, tmp;
+    int c, i, x, y, ok, tmp, sum, multiplier;
     int nb_keypoints = 0, pnb_keypoints;
     int nb_seeds = 0, nb_tests, found_better, move, counter_not_found;
     CamKeypointShort *keypoints;
@@ -215,7 +215,6 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     for (c = 0; c < nb_seeds; c++) {
 #define MAX_NOT_FOUND 10
 #define INV_GAIN_MOVE 2
-#define INV_GAIN_GRADIENT 24
 	current_keypoint = seeds[c];
         current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &current_keypoint);
 	nb_tests = 1;
@@ -228,7 +227,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 	    // Compute gradient
 	    for (i = 0; i != 3; i++) {
 		neighbour = current_keypoint;
-		neighbour.c[i] += move;
+		neighbour.c[i] -= move;
 	        TEST_NEIGHBOUR;	
 		gradient.c[i] = neighbour_value - current_keypoint_value;
 	    }
@@ -239,13 +238,21 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 	    }
 	    for (i = 0; i != 3; i++) min_gradient.c[i] = 0;
 	    min_gradient.c[move] = (gradient.c[move] > 0) ? 1 : -1;
+	    for (i = 0; i != 3; i++) gradient.c[i] >>= 8;
+	    // Normalize gradient
+	    sum = abs(gradient.c[0]);
+	    for (i = 1; i != 3; i++) sum += abs(gradient.c[i]);
+	    if (sum == 0) break;
+	    multiplier = (1 << 23) / sum; 
 	    for (ok = 0, i = 0; i != 3; i++) {
-		gradient.c[i] = (gradient.c[i] * current_keypoint.c[2]) >> INV_GAIN_GRADIENT;
+		// Progress in the gradient direction at 1/4 of the scale
+		tmp = (abs(gradient.c[i]) * current_keypoint.c[2] * multiplier) >> (23 + 2);
+		if (gradient.c[i] > 0) gradient.c[i] = tmp; else gradient.c[i] = -tmp;
 		if (gradient.c[i] != 0) ok = 1;
 	    }
 	    if (!ok) gradient = min_gradient;
 	    neighbour = current_keypoint;
-	    for (i = 0; i != 3; i++) neighbour.c[i] += gradient.c[i];
+	    for (i = 0; i != 3; i++) neighbour.c[i] -= gradient.c[i];
 	    TEST_NEIGHBOUR;
 	    if (!found_better) {
 		counter_not_found++;
@@ -267,7 +274,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 		current_keypoint = best_keypoint;
 		current_keypoint_value = best_keypoint_value;
 	    }
-	} while (1);
+	} while (counter_not_found < 2 * MAX_NOT_FOUND);
 	
 	// Let's record this keypoint
 	if (best_keypoint_value > 0) {
@@ -427,20 +434,23 @@ void test_camKeypointsAlt()
 #endif
     dest.imageData = NULL; 
 
+    /*
     integral.imageData = NULL; // in order to use automatic allocation
     camIntegralImage(&image, &integral);
     camHessianEstimateDataBuild(&data, &integral);
-    camDeallocateImage(&integral);
     key.c[0] = 50; key.c[1] = 50; key.c[2] = 6;
     printf("Value = %d\n", camHessianEstimate(&data, &key));
-
-    /*
+    key.c[0] = 193; key.c[1] = 193; key.c[2] = 10;
+    printf("Value = %d\n", camHessianEstimate(&data, &key));
+    camDeallocateImage(&integral);
+    */
+    
     camKeypointsDetector(&image, &points, 100, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
     camDrawKeypoints(&points, &image, 128);
-    */camSavePGM(&image, "output/features_reference.pgm");
+    camSavePGM(&image, "output/features_reference.pgm");
     
     camDeallocateImage(&image);
     camDeallocateImage(&dest);
