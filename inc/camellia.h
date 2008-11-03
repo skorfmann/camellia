@@ -2111,8 +2111,6 @@ struct CamKeypoints {
 /// The CamKeypoints structure
 typedef struct _CamKeypoints {
 #endif
-    int width, height;		    ///< Original size of object (or picture of object)
-    int cx, cy;			    ///< Reference coordinate of object (center)
     int id;			    ///< Id of reference object
 #ifdef SWIG
     %immutable;
@@ -2122,7 +2120,7 @@ typedef struct _CamKeypoints {
     CamKeypoint **keypoint; ///< Array of keypoints
     CamKeypoint *bag;	    ///< Bag of keypoints
 #ifdef __cplusplus
-    CamKeypoints() {allocated = 0; nbPoints = 0; keypoint = NULL; bag = NULL; cx = 0; cy = 0;} ///< Default constructor
+    CamKeypoints() {allocated = 0; nbPoints = 0; keypoint = NULL; bag = NULL; } ///< Default constructor
     CamKeypoints(int nbPoints);			///< Constructor with max number of points
 #ifndef SWIG
     CamKeypoint& operator[](int index);

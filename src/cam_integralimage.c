@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -110,7 +110,9 @@ int camIntegralImage(CamImage *src, CamImage *dest)
     CAM_CHECK_ARGS2(camIntegralImage, src->imageData != NULL, "source image is not allocated");
     if (dest->imageData==NULL) {
         // Automatic allocation
-        camAllocateImage(dest, src->width, src->height, CAM_DEPTH_32U);
+	CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, NULL, &iROI, 0));
+        camAllocateImage(dest, iROI.srcroi.width, iROI.srcroi.height, CAM_DEPTH_32U);
+	CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, dest, &iROI, 0));
     }
     CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, dest, &iROI, 0));
     CAM_CHECK_ARGS(camIntegralImage, iROI.nChannels == 1);

@@ -2,7 +2,7 @@ require 'rubygems'
 
 spec = Gem::Specification.new do |s|
   s.name = "camellia"
-  CAMELLIA_VERSION = "2.7.0"
+  CAMELLIA_VERSION = "2.8.0"
   s.version = CAMELLIA_VERSION
   s.author = "Bruno STEUX"
   s.email = "bruno.steux@ensmp.fr"

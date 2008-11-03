@@ -82,8 +82,6 @@ int main()
 	camCopy(&imodel[i], &image); // Automatic allocation
 	camAllocateKeypoints(&points[i], nb_keypoints);
 	points[i].id = i;
-	points[i].cx = cx[i];
-	points[i].cy = cy[i];
 	camFastHessianDetector(&imodel[i], &points[i], nb_keypoints, CAM_UPRIGHT | CAM_APPROX_HESSIAN);
 	camDrawKeypoints(&points[i], &image, 128);
 	sprintf(filename, "output/yalefaces%02d.pgm", i + 1);

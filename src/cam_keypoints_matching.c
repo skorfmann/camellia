@@ -225,61 +225,6 @@ void camKeypointsClusterFree(CamKeypointsCluster *cluster)
     free(cluster->points);
 }
 
-// Cluster size is 64 pixels (right shift of 6 bits)
-#define CAM_CLUSTER_SIZE 6
-
-int camKeypointsClustering(CamKeypoints *object, CamKeypointsCluster *cluster)
-{
-    int i, c, nbClusters, wc;
-    int *count;
-    
-    // Memory allocation
-    wc = (((object->width - 1) >> CAM_CLUSTER_SIZE) + 1); 
-    nbClusters = wc * (((object->height - 1) >> CAM_CLUSTER_SIZE) + 1);
-    cluster->index = (int*)malloc(nbClusters * sizeof(int));
-    cluster->points = (CamKeypoint**)malloc(object->nbPoints * sizeof(CamKeypoint*));
-
-    count = (int*)malloc(nbClusters * sizeof(int));
-    for (i = 0; i < nbClusters; i++) count[i] = 0;
-	
-    // First pass : count the number of points per cluster
-    for (i = 0; i < object->nbPoints; i++) {
-	c = (object->keypoint[i]->x >> CAM_CLUSTER_SIZE) + wc * (object->keypoint[i]->y >> CAM_CLUSTER_SIZE);
-	count[c]++;
-    }
-    // Initialize indexes
-    cluster->index[0] = 0;
-    for (i = 1; i < object->nbPoints; i++) {
-	cluster->index[i] = cluster->index[i-1] + count[i-1];
-    }
-    for (i = 0; i < nbClusters; i++) count[i] = 0;
-    // Second pass : fill the pointers
-    for (i = 0; i < object->nbPoints; i++) {
-	c = (object->keypoint[i]->x >> CAM_CLUSTER_SIZE) + wc * (object->keypoint[i]->y >> CAM_CLUSTER_SIZE);
-	cluster->points[cluster->index[c] + count[c]] = object->keypoint[i];
-	count[c]++;
-    }
-    free(count);
-    return 1;
-}
-
-int camKeypointsSmartMatching(CamKeypoints *model, CamKeypoints *target)
-{
-    CamKeypointsCluster model_cluster, target_cluster;
-
-    // Spatial clustering
-    camKeypointsClustering(model, &model_cluster); 
-    camKeypointsClustering(target, &target_cluster); 
-       
-    // A* Algorithm
-    // ...
-
-    // Free memory 
-    camKeypointsClusterFree(&model_cluster);
-    camKeypointsClusterFree(&target_cluster);
-    return 0;
-}
-
 int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, CamKeypointsMatches *matches)
 {
     int i, c, model, best, nbModels = 0;

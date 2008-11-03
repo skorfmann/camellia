@@ -4,9 +4,9 @@ include Camellia
 def cam_myobjects
   
   # Parameters 
-  threshold = 50 
+  nb_keypoints = 1000
   displayed_model = 2
-
+  
   # Constants
   model_images = ["edog5", "dvd", "mrpotato4"]
   test_images = ["scene1", "scene3", "scene4", "scene5", "scene7"]
@@ -24,11 +24,9 @@ def cam_myobjects
     image = CamImage.new
     imodel << image # Store this image
     image.load_bmp(filename)
-    points = CamKeypoints.new(100000)
+    points = CamKeypoints.new
     points.id = i
-    points.cx = cx[i]
-    points.cy = cy[i]
-    image.to_yuv.fast_hessian_detector(points, threshold, CAM_UPRIGHT)
+    image.to_yuv.fast_hessian_detector(points, nb_keypoints, CAM_UPRIGHT)
     models << points
   end
 
@@ -45,8 +43,8 @@ def cam_myobjects
     puts "Feature point detection on #{test_images[i]}..."
     image = CamImage.new
     image.load_bmp(filename)
-    points = CamKeypoints.new(100000)
-    image.to_yuv.fast_hessian_detector(points, threshold, CAM_UPRIGHT)
+    points = CamKeypoints.new
+    image.to_yuv.fast_hessian_detector(points, nb_keypoints, CAM_UPRIGHT)
     puts "# features = #{points.nb_points}"
     nb_features += points.nb_points
 
@@ -87,14 +85,14 @@ def cam_myobjects
 	uv[c] = CamPoint.new
       end
       # Draw box on model and target
-      xy[0].x = xy[3].x = models[j].cx - width[j] / 2
-      xy[0].y = xy[1].y = models[j].cy - height[j] / 2
-      xy[1].x = xy[2].x = models[j].cx + width[j] / 2
-      xy[2].y = xy[3].y = models[j].cy + height[j] / 2
-      xy[4].x = xy[5].x = models[j].cx
-      xy[4].y = xy[6].y = models[j].cy 
-      xy[5].y = models[j].cy - height[j] / 4
-      xy[6].x = models[j].cx + width[j] / 4
+      xy[0].x = xy[3].x = cx[j] - width[j] / 2
+      xy[0].y = xy[1].y = cy[j] - height[j] / 2
+      xy[1].x = xy[2].x = cx[j] + width[j] / 2
+      xy[2].y = xy[3].y = cy[j] + height[j] / 2
+      xy[4].x = xy[5].x = cx[j]
+      xy[4].y = xy[6].y = cy[j]
+      xy[5].y = cy[j] - height[j] / 4
+      xy[6].x = cx[j] + width[j] / 4
       for c in 0..6 do 
         uv[c] = xy[c].apply_affine_transform(res[0])
         uv[c].y += image.height

@@ -92,8 +92,6 @@ int camAllocateKeypoints(CamKeypoints *fpoints, int nbPoints)
 {
     CAM_CHECK_ARGS(camAllocateKeypoints, fpoints != NULL);
     fpoints->nbPoints = 0;
-    fpoints->cx = 0;
-    fpoints->cy = 0;
     fpoints->keypoint = (CamKeypoint**)malloc(sizeof(CamKeypoint*) * nbPoints);
     fpoints->bag = NULL;
     if (fpoints->keypoint == NULL) {
@@ -741,8 +739,6 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
     CAM_CHECK_ARGS(camFastHessianDetector, source->nChannels == 1 || ((source->nChannels == 3) && (source->dataOrder == CAM_DATA_ORDER_PLANE)));
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
-    points->width = width;
-    points->height = height;
 
     // Algorithm initialization
     if (options & CAM_APPROX_HESSIAN) {

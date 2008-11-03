@@ -145,6 +145,13 @@ int camBuildGaussianFilter(CamImage *image, double sigma);
 void camKeypointsInternalsPrepareDescriptor();
 int camKeypointsDescriptor(CamImage *source, CamKeypoint *point, CamImage *filter, int option);
 
+typedef struct _CamKeypointSeed {
+    CamKeypointLocation seed;
+    struct _CamKeypointSeed *neighbours[2];
+    int best_value;
+    int keep_it;
+} CamKeypointSeed;
+
 int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
 {
     CamImage integral, filter;
@@ -156,7 +163,8 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     int nb_keypoints = 0, pnb_keypoints;
     int nb_seeds = 0, nb_tests, found_better, move, counter_not_found;
     CamKeypointShort *keypoints;
-    CamKeypointLocation *seeds, neighbour, best_keypoint, current_keypoint, gradient, min_gradient;
+    CamKeypointSeed *seeds;
+    CamKeypointLocation neighbour, best_keypoint, current_keypoint, gradient, min_gradient;
     int best_keypoint_value, current_keypoint_value, neighbour_value;
     int stat_upscales, stat_moves, stat_good;
 
@@ -167,8 +175,6 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     CAM_CHECK_ARGS(camKeypointsDetector, source->nChannels == 1 || ((source->nChannels == 3) && (source->dataOrder == CAM_DATA_ORDER_PLANE)));
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
-    points->width = width;
-    points->height = height;
 
     // Compute integral image
     integral.imageData = NULL;
@@ -189,13 +195,14 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     // Ready to go
     // Seeding
     // Should take ROI into consideration
-    seeds = (CamKeypointLocation*)malloc(CAM_MAX_SEEDS * sizeof(CamKeypointLocation));
+    seeds = (CamKeypointSeed*)malloc(CAM_MAX_SEEDS * sizeof(CamKeypointSeed));
+
 #define INTERVAL 20
     for (y = INTERVAL * 2; y < height - INTERVAL * 3; y += INTERVAL) {
 	for (x = INTERVAL * 2; x < width - INTERVAL * 3; x += INTERVAL) {
-	    seeds[nb_seeds].c[0] = x + iROI.srcroi.xOffset;
-	    seeds[nb_seeds].c[1] = y + iROI.srcroi.yOffset;
-	    seeds[nb_seeds].c[2] = INTERVAL / 2;
+	    seeds[nb_seeds].seed.c[0] = x + iROI.srcroi.xOffset;
+	    seeds[nb_seeds].seed.c[1] = y + iROI.srcroi.yOffset;
+	    seeds[nb_seeds].seed.c[2] = INTERVAL / 2;
 	    nb_seeds++;
 	}
     }	
@@ -213,9 +220,9 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     
     stat_upscales = 0; stat_moves = 0; stat_good = 0;
     for (c = 0; c < nb_seeds; c++) {
-#define MAX_NOT_FOUND 10
+#define MAX_NOT_FOUND 10 
 #define INV_GAIN_MOVE 2
-	current_keypoint = seeds[c];
+	current_keypoint = seeds[c].seed;
         current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &current_keypoint);
 	nb_tests = 1;
 	best_keypoint = current_keypoint;
@@ -244,7 +251,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 	    sum = abs(gradient.c[0]);
 	    for (i = 1; i != 3; i++) sum += abs(gradient.c[i]);
 	    if (sum == 0) break;
-	    multiplier = (1 << 23) / sum; 
+	    multiplier = (1 << 23) / sum; // Division ! 
 	    for (ok = 0, i = 0; i != 3; i++) {
 		// Progress in the gradient direction at 1/4 of the scale
 		tmp = (abs(gradient.c[i]) * current_keypoint.c[2] * multiplier) >> (23 + 2);
@@ -257,7 +264,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 	    TEST_NEIGHBOUR;
 	    if (!found_better) {
 		counter_not_found++;
-		if (counter_not_found >= MAX_NOT_FOUND) {
+		if (counter_not_found >= MAX_NOT_FOUND / 2) {
 		    // Try upscaling
 		    stat_upscales++;
 		    neighbour = best_keypoint;
@@ -275,7 +282,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 		current_keypoint = best_keypoint;
 		current_keypoint_value = best_keypoint_value;
 	    }
-	} while (counter_not_found < 2 * MAX_NOT_FOUND);
+	} while (counter_not_found < MAX_NOT_FOUND);
 	
 	// Let's record this keypoint
 	if (best_keypoint_value > 0) {

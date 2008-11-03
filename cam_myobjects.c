@@ -89,8 +89,6 @@ int main()
 	camRGB2YUV(&imodel[i], &image);
 	camAllocateKeypoints(&points[i], 0);
 	points[i].id = i;
-	points[i].cx = cx[i];
-	points[i].cy = cy[i];
 	camFastHessianDetector(&image, &points[i], nb_keypoints, CAM_UPRIGHT);
 	/*
 	camDrawKeypoints(&points[i], &image, 128);

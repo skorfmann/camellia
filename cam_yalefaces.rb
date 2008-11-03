@@ -4,7 +4,7 @@ include Camellia
 def cam_yalefaces
   
   # Parameters 
-  threshold = 0 
+  nb_keypoints = 100 
 
   # Constants
   cx = [181, 195, 164, 193, 189, 118, 162, 161, 155, 171, 183, 208, 191, 133, 168]
@@ -20,11 +20,9 @@ def cam_yalefaces
     image = CamImage.new
     imodel << image # Store this image
     image.load_pgm(filename)
-    points = CamKeypoints.new(10000)
+    points = CamKeypoints.new
     points.id = i
-    points.cx = cx[i-1]
-    points.cy = cy[i-1]
-    image.fast_hessian_detector(points, threshold, CAM_UPRIGHT)
+    image.fast_hessian_detector(points, nb_keypoints, CAM_UPRIGHT)
     models << points
   end
 
@@ -44,8 +42,8 @@ def cam_yalefaces
       puts "Feature point detection on #{filename}..."
       image = CamImage.new
       image.load_pgm(filename)
-      points = CamKeypoints.new(10000)
-      image.fast_hessian_detector(points, threshold, CAM_UPRIGHT)
+      points = CamKeypoints.new
+      image.fast_hessian_detector(points, nb_keypoints, CAM_UPRIGHT)
       puts "# features = #{points.nb_points}"
       nb_features += points.nb_points
       matches = CamKeypointsMatches.new
@@ -86,14 +84,14 @@ def cam_yalefaces
 	  m.p2.draw(dimage, 128)
 	end
 	# Draw box on model and target
-	xy[0].x = xy[3].x = models[i - 1].cx - width / 2
-	xy[0].y = xy[1].y = models[i - 1].cy - height / 2
-	xy[1].x = xy[2].x = models[i - 1].cx + width / 2
-	xy[2].y = xy[3].y = models[i - 1].cy + height / 2
-	xy[4].x = xy[5].x = models[i - 1].cx
-	xy[4].y = xy[6].y = models[i - 1].cy
-	xy[5].y = models[i - 1].cy - height / 4
-	xy[6].x = models[i - 1].cx + width / 4
+	xy[0].x = xy[3].x = cx[i - 1] - width / 2
+	xy[0].y = xy[1].y = cy[i - 1] - height / 2
+	xy[1].x = xy[2].x = cx[i - 1] + width / 2
+	xy[2].y = xy[3].y = cy[i - 1] + height / 2
+	xy[4].x = xy[5].x = cx[i - 1]
+	xy[4].y = xy[6].y = cy[i - 1]
+	xy[5].y = cy[i - 1] - height / 4
+	xy[6].x = cx[i - 1] + width / 4
 	for c in 0..6 do 
 	  uv[c] = xy[c].apply_affine_transform(res[0])
 	  uv[c].y += image.height
