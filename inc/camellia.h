@@ -66,9 +66,6 @@
 // 64-bit processor or memory bandwidth?
 #define CAM_64BITS
 
-// Pentium4 optimizations?
-#define CAM_OPT_P4
-
 // Big endian architecture?
 //#define CAM_BIG_ENDIAN
 
@@ -78,13 +75,41 @@
 /*                                         *
  *******************************************/ 
 
+// Check integer types
 #ifdef _WIN32
 #define CAM_INT64 __int64
 #define CAM_UINT64 unsigned __int64
+#define CAM_UINT32 unsigned long
+#define CAM_INT32 signed long
+#define CAM_UINT16 unsigned short
+#define CAM_INT16 signed short
+#define CAM_TYPES_OK
 #else
+// UNIX-like
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#ifdef HAVE_INTTYPES_H
+#include "inttypes.h"
+#define CAM_INT64 int64_t
+#define CAM_UINT64 uint64_t
+#define CAM_UINT32 uint32_t
+#define CAM_INT32 int32_t
+#define CAM_UINT16 uint16_t
+#define CAM_INT16 int16_t
+#define CAM_TYPES_OK
+#endif // HAVE_INTTYPES_H
+#endif
+#endif // _WIN32
+
+#ifndef CAM_TYPES_OK
+// Assume this is a 32 bits target
 #define CAM_INT64 long long
 #define CAM_UINT64 unsigned long long
-#endif
+#define CAM_UINT32 unsigned long
+#define CAM_INT32 signed long
+#define CAM_UINT16 unsigned short
+#define CAM_INT16 signed short
+#endif // HAVE_TYPES_OK
 
 #ifdef __INTEL_COMPILER
 #define CAM_ALIGN16 __declspec(align(16))
@@ -92,7 +117,7 @@
 #define CAM_ALIGN16
 #endif
 
-#define CAM_FIXED_POINT signed long
+#define CAM_FIXED_POINT CAM_INT32 
 #define CAM_FLOAT2FIXED(x,dot_pos) ((CAM_FIXED_POINT)((x)*(1<<dot_pos)))
 
 #define CAM_DEPTH_SIGN 0x80000000               
@@ -981,7 +1006,7 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 #define CAM_RLEOPTS_STRUCTELT	    4
 #define CAM_RLEOPTS_LABELLED	    8
 
-#define CAM_RLE_INT_TYPE unsigned short
+#define CAM_RLE_INT_TYPE CAM_UINT16 
 
 /// The CamRun structure, basic element of a Run-Length Encoding (RLE) of an image.
 /** sizeof(CamRun) is 8 (64 bits)
