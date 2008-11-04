@@ -104,7 +104,7 @@ static void get_num_pbm(FILE *f, char *b, int *bi, int *res)
 
 int camLoadPGM(CamImage *im, char *fn)
 {
-    int i,j,k,n,m,bi, b;
+    int i, j, k, n, m, bi, b, g, r;
     unsigned char ucval;
     int val;
     long here;
@@ -128,7 +128,7 @@ int camLoadPGM(CamImage *im, char *fn)
 	case '4':       k=4; break;
 	case '5':       k=5; break;
 	case '6':       k=6; break;
-	default:        k=0; camError("camLoadPGM","Not a PBM/PGM/PPM file."); return 0;
+	default:        k=0; fclose(f); camError("camLoadPGM","Not a PBM/PGM/PPM file."); return 0;
 	}
     } else k=0;
     bi = 2;
@@ -138,33 +138,37 @@ int camLoadPGM(CamImage *im, char *fn)
     if (k!=1 && k!=4) get_num_pbm(f,buf1,&bi,&b); // Max value
     else b=1;
     
-    // Binary file? Re-open as 'rb'
-    if (k>3) {
-	here = ftell(f);
-	fclose(f);
-	f = fopen(fn,"rb");       
-	here--;
-        if (fseek(f,here,0) != 0) {
-	    camError("camLoadPGM","Unable to load binary PGM files");
+    // Allocate the image
+    if (k == 3 || k == 6) {       // Colour
+	if (k == 6 && b < 256) {
+	    camAllocateRGBImage(im, m, n);
+            for (i = 0; i < n; i++) {
+                for (j = 0; j < m; j++) {
+                    fscanf(f, "%c", &r);
+                    fscanf(f, "%c", &g);
+                    fscanf(f, "%c", &b);
+
+		    *((unsigned char*)im->imageData + j * 3 + i * im->widthStep)     = r;
+		    *((unsigned char*)im->imageData + j * 3 + i * im->widthStep + 1) = g;
+		    *((unsigned char*)im->imageData + j * 3 + i * im->widthStep + 2) = b;
+		}
+	    }
+	} else {
+	    fclose(f);
+	    camError("camLoadPGM","Can't handle this kind of images");
 	    return 0;
 	}
-    }
-    
-    // Allocate the image
-    if (k==3 || k==6) {       // Colour
-	camError("camLoadPGM","Can't load color images");
-	return 0;
     } else  {
-        if (b>255) {
+        if (b > 255) {
             camAllocateImage(im, m, n, CAM_DEPTH_16U);
             for (i=0; i<n; i++) {
                 for (j=0; j<m; j++) {
                     if (k<3) {
                         fscanf(f, "%d", &val);
-                        *((unsigned short*)(im->imageData+i*im->widthStep)+j) = (unsigned short)val;
+                        *((CAM_UINT16*)(im->imageData+i*im->widthStep)+j) = (CAM_UINT16)val;
                     } else {
                         fscanf(f, "%c", &ucval);
-                        *((unsigned short*)(im->imageData+i*im->widthStep)+j) = (unsigned short)ucval;
+                        *((CAM_UINT16*)(im->imageData+i*im->widthStep)+j) = (CAM_UINT16)ucval;
                     }
                 }
             }
@@ -242,7 +246,7 @@ int camSavePGM(CamImage *image, char *filename)
     } else if ((image->depth&CAM_DEPTH_MASK)<=16) {
 	for (i=0; i<iROI.srcroi.height; i++) {
 	    for (j=0; j<iROI.srcroi.width; j++) {
-		pixel=(int)*((unsigned short*)(image->imageData+iROI.srcchoffset+(iROI.srcroi.yOffset+i)*image->widthStep)+(iROI.srcroi.xOffset+j)*iROI.srcinc);
+		pixel=(int)*((CAM_UINT16*)(image->imageData+iROI.srcchoffset+(iROI.srcroi.yOffset+i)*image->widthStep)+(iROI.srcroi.xOffset+j)*iROI.srcinc);
 		fprintf(f, "%d ", pixel);
 		k++;
 		if (k > perline) {

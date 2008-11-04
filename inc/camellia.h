@@ -2136,21 +2136,21 @@ struct CamKeypoints {
 /// The CamKeypoints structure
 typedef struct _CamKeypoints {
 #endif
-    int id;			    ///< Id of reference object
+    int id;			///< Id of reference object
 #ifdef SWIG
     %immutable;
 #endif
     int allocated;
-    int nbPoints;	            ///< Number of valid points
-    CamKeypoint **keypoint; ///< Array of keypoints
-    CamKeypoint *bag;	    ///< Bag of keypoints
+    int nbPoints;	        ///< Number of valid points
+    CamKeypoint **keypoint;     ///< Array of keypoints
+    CamKeypoint *bag;	        ///< Bag of keypoints
 #ifdef __cplusplus
     CamKeypoints() {allocated = 0; nbPoints = 0; keypoint = NULL; bag = NULL; } ///< Default constructor
-    CamKeypoints(int nbPoints);			///< Constructor with max number of points
+    CamKeypoints(int nbPoints); ///< Constructor with max number of points
 #ifndef SWIG
     CamKeypoint& operator[](int index);
 #endif
-    ~CamKeypoints();                                ///< Default destructor
+    ~CamKeypoints();            ///< Default destructor
 
     bool add(CamKeypoint &p);
     CamKeypoints& operator<<(CamKeypoint &p) { add(p); return *this; }
