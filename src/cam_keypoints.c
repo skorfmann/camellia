@@ -659,11 +659,15 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
 
 		if (y3 > y2) {
 		    keypoints[i].scale++;
-		    i--; continue;
+		    keypoints[i].value = -1; // Destroy
+		    //i--;
+		    continue;
 		}
 		if (y1 > y2) {
 		    keypoints[i].scale--;
-		    i--; continue;
+		    keypoints[i].value = -1; // Destroy
+		    //i--;
+		    continue;
 		}
 		num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
 		den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;

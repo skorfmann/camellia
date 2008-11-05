@@ -55,7 +55,7 @@
 #include <assert.h>
 
 #ifdef CAM_EUCLIDIAN_DISTANCE
-int camCompareKeypoints(CamKeypoint *point1, CamKeypoint *point2)
+int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {
     int i;
     long long distance = 0, x;
@@ -143,7 +143,7 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
     return out_sse[0] + out_sse[1] + out_sse[2] + out_sse[3];
 }
 
-int camCompareKeypoints(CamKeypoint *point1, CamKeypoint *point2)
+int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {
     return camCompareDescriptors(point1->descriptor, point2->descriptor, point1->size);
 }
@@ -158,7 +158,7 @@ int camCompareDescriptors(int *d1, int *d2, int s)
     return distance;
 }
 
-int camCompareKeypoints(CamKeypoint *point1, CamKeypoint *point2)
+int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {
     return camCompareDescriptors(point1->descriptor, point2->descriptor, point1->size);
 }
@@ -190,8 +190,8 @@ CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist
 {
     int i, best = 0;
     int distance, bestDistance, secondBestDistance;
-    bestDistance = camCompareKeypoints(points->keypoint[0], point);
-    secondBestDistance = camCompareKeypoints(points->keypoint[1], point);
+    bestDistance = camKeypointsDistance(points->keypoint[0], point);
+    secondBestDistance = camKeypointsDistance(points->keypoint[1], point);
     if (secondBestDistance < bestDistance) {
 	i = bestDistance;
 	bestDistance = secondBestDistance;
@@ -199,8 +199,8 @@ CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist
 	best = 1;
     }
     for (i = 2; i < points->nbPoints; i++) {
-	distance = camCompareKeypoints(points->keypoint[i], point);
-	if (distance <= bestDistance) {
+	distance = camKeypointsDistance(points->keypoint[i], point);
+	if (distance < bestDistance) {
 	    secondBestDistance = bestDistance;
 	    bestDistance = distance;
 	    best = i;
@@ -247,7 +247,7 @@ int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, C
 
 	for (model = 0; model < nbM; model++) {
 	    for (i = 0; i < models[model]->nbPoints; i++) {
-		distance = camCompareKeypoints(models[model]->keypoint[i], point);
+		distance = camKeypointsDistance(models[model]->keypoint[i], point);
 		if (bestDistance == -1 || distance <= bestDistance) {
 		    bestMatch = models[model]->keypoint[i];
 		    secondBestDistance = bestDistance;
@@ -277,7 +277,7 @@ int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, C
 	    for (model = 0; model < nbM; model++) {
 		if (models[model]->id == models[bestModel]->id) continue; // Skip the best model
 		for (i = 0; i < models[model]->nbPoints; i++) {
-		    distance = camCompareKeypoints(models[model]->keypoint[i], point);
+		    distance = camKeypointsDistance(models[model]->keypoint[i], point);
 		    if (secondBestDistance == -1 || distance <= secondBestDistance) {
 			secondBestDistance = distance; 
 			secondBestModel = model;
@@ -771,7 +771,7 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 	else node = node->right;
     }
     best = (CamKeypoint*)node->right;
-    firstDistance = camCompareKeypoints(best, point);
+    firstDistance = camKeypointsDistance(best, point);
 
     // OK. Now we can start again from the root
     descriptor_heap_size = point->size * MAX_NB_BRANCHES * 10;
@@ -792,7 +792,7 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 	    // Is this a leaf ?
 	    if (br->node->i == -1) {
 		// Yes. Let's see whether it is better or not...
-		distance = camCompareKeypoints((CamKeypoint*)br->node->right, point);
+		distance = camKeypointsDistance((CamKeypoint*)br->node->right, point);
 		if (bestDistance == -1 || distance <= bestDistance) {
 		    secondBestDistance = bestDistance;
 		    bestDistance = distance;

@@ -196,7 +196,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
     // For bi-linear interpolated descriptor :
     int coeff, idx, dxt[16], dyt[16], abs_dxt[16], abs_dyt[16];
-    signed short val_h, val_v, val2_h, val2_v, *imptr_h, *imptr_v, *tmpimptr_h, *tmpimptr_v; 
+    CAM_INT16 val_h, val_v, val2_h, val2_v, *imptr_h, *imptr_v, *tmpimptr_h, *tmpimptr_v; 
 
     const int xp[4] = {-1, 1, 1, -1};
     const int yp[4] = {-1, -1, 1, 1};
@@ -261,31 +261,44 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    roi.width = 5;
 	    roi.height = 5;
 
-	    i = 0;
-	    for (y = 0; y < 4; y++) {
-		for (x = 0; x < 4; x++) {
-		    roi.xOffset = x * 5;
-		    roi.yOffset = y * 5;
-		    dx = camSumOfPixels(&filtered_v);
-		    dy = camSumOfPixels(&filtered_h);
-		    abs_dx = camAbs(&filtered_v, &filtered_v);
-		    abs_dy = camAbs(&filtered_h, &filtered_h); 
-		    point->descriptor[i] = dx;
-		    point->descriptor[32 + i] = abs_dx; 
-		    i++;
-		    point->descriptor[i] = dy;
-		    point->descriptor[32 + i] = abs_dy;
-		    i++;
+	    if (channel == 0) {
+		i = 0;
+		for (y = 0; y < 4; y++) {
+		    for (x = 0; x < 4; x++) {
+			roi.xOffset = x * 5;
+			roi.yOffset = y * 5;
+			dx = camSumOfPixels(&filtered_v);
+			dy = camSumOfPixels(&filtered_h);
+			abs_dx = camAbs(&filtered_v, &filtered_v);
+			abs_dy = camAbs(&filtered_h, &filtered_h); 
+			point->descriptor[i] = dx;
+			point->descriptor[32 + i] = abs_dx; 
+			i++;
+			point->descriptor[i] = dy;
+			point->descriptor[32 + i] = abs_dy;
+			i++;
+		    }
+		}
+		point->size = 64;
+	    } else {
+		for (y = 0; y < 4; y++) {
+		    for (x = 0; x < 4; x++) {
+			roi.xOffset = x * 5;
+			roi.yOffset = y * 5;
+			dx = camSumOfPixels(&filtered_v);
+			dy = camSumOfPixels(&filtered_h);
+			point->descriptor[point->size++] = dx;
+			point->descriptor[point->size++] = dy;
+		    }
 		}
 	    }
-	    point->size = 64;
 	} else {
 	    for (i = 0; i < 16; i++) {
 		dxt[i] = 0; dyt[i] = 0; abs_dxt[i] = 0; abs_dyt[i] = 0;
 	    }
 
-	    tmpimptr_h = (signed short*)filtered_h.imageData;
-	    tmpimptr_v = (signed short*)filtered_v.imageData;
+	    tmpimptr_h = (CAM_INT16*)filtered_h.imageData;
+	    tmpimptr_v = (CAM_INT16*)filtered_v.imageData;
 	    for (y = 0, i = 0; y < 20; y++) {
 		imptr_h = tmpimptr_h;
 		imptr_v = tmpimptr_v;
@@ -305,8 +318,8 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 			}
 		    }
 		}
-		tmpimptr_h = (signed short*)(((char*)tmpimptr_h) + filtered_h.widthStep);
-		tmpimptr_v = (signed short*)(((char*)tmpimptr_v) + filtered_v.widthStep);
+		tmpimptr_h = (CAM_INT16*)(((char*)tmpimptr_h) + filtered_h.widthStep);
+		tmpimptr_v = (CAM_INT16*)(((char*)tmpimptr_v) + filtered_v.widthStep);
 	    }
 
 	    if (channel == 0) {

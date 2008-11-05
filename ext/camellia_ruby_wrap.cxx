@@ -16992,18 +16992,15 @@ SWIGINTERN VALUE
 _wrap_camKeypointsSetParameters(int argc, VALUE *argv, VALUE self) {
   int arg1 ;
   int arg2 ;
-  int arg3 ;
   int val1 ;
   int ecode1 = 0 ;
   int val2 ;
   int ecode2 = 0 ;
-  int val3 ;
-  int ecode3 = 0 ;
   int result;
   VALUE vresult = Qnil;
   
-  if ((argc < 3) || (argc > 3)) {
-    rb_raise(rb_eArgError, "wrong # of arguments(%d for 3)",argc); SWIG_fail;
+  if ((argc < 2) || (argc > 2)) {
+    rb_raise(rb_eArgError, "wrong # of arguments(%d for 2)",argc); SWIG_fail;
   }
   ecode1 = SWIG_AsVal_int(argv[0], &val1);
   if (!SWIG_IsOK(ecode1)) {
@@ -17015,12 +17012,7 @@ _wrap_camKeypointsSetParameters(int argc, VALUE *argv, VALUE self) {
     SWIG_exception_fail(SWIG_ArgError(ecode2), Ruby_Format_TypeError( "", "int","camKeypointsSetParameters", 2, argv[1] ));
   } 
   arg2 = static_cast< int >(val2);
-  ecode3 = SWIG_AsVal_int(argv[2], &val3);
-  if (!SWIG_IsOK(ecode3)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode3), Ruby_Format_TypeError( "", "int","camKeypointsSetParameters", 3, argv[2] ));
-  } 
-  arg3 = static_cast< int >(val3);
-  result = (int)camKeypointsSetParameters(arg1,arg2,arg3);
+  result = (int)camKeypointsSetParameters(arg1,arg2);
   vresult = SWIG_From_int(static_cast< int >(result));
   return vresult;
 fail:
@@ -20669,7 +20661,7 @@ SWIGEXPORT void Init_camellia(void) {
   }
   
   SWIG_RubyInitializeTrackings();
-  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.8.0 alpha 2 : Beaubourg ($Rev: 348 $)"));
+  rb_define_const(mCamellia, "CAM_VERSION", SWIG_FromCharPtr("2.8.0 alpha 2 : Beaubourg ($Rev: 352 $)"));
   rb_define_const(mCamellia, "CAM_MAX_SCANLINE", SWIG_From_int(static_cast< int >(1280)));
   rb_define_const(mCamellia, "CAM_MAX_FRAME_HEIGHT", SWIG_From_int(static_cast< int >(1024)));
   rb_define_const(mCamellia, "CAM_DEPTH_SIGN", SWIG_From_int(static_cast< int >(0x80000000)));
@@ -21196,6 +21188,8 @@ SWIGEXPORT void Init_camellia(void) {
   rb_define_const(mCamellia, "CAM_UPRIGHT", SWIG_From_int(static_cast< int >(1)));
   rb_define_const(mCamellia, "CAM_APPROX_HESSIAN", SWIG_From_int(static_cast< int >(2)));
   rb_define_const(mCamellia, "CAM_NO_INTERPOLATION", SWIG_From_int(static_cast< int >(4)));
+  rb_define_const(mCamellia, "CAM_DESC_SURF_LIKE", SWIG_From_int(static_cast< int >(8)));
+  rb_define_const(mCamellia, "CAM_DESC_SEP_NORM", SWIG_From_int(static_cast< int >(16)));
   rb_define_module_function(mCamellia, "camKeypointsSetParameters", VALUEFUNC(_wrap_camKeypointsSetParameters), -1);
   
   cCamKeypointsKdTree.klass = rb_define_class_under(mCamellia, "CamKeypointsKdTree", rb_cObject);

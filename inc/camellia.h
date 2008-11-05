@@ -2223,6 +2223,9 @@ int camKeypointsDescriptor(CamKeypoints *points, CamImage *source, int options);
 /// Find a keypoint in a set of keypoints
 CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist1, int *dist2);
 
+/// Compare keypoints...
+int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2);
+
 /// Allocate keypoints matches
 int camAllocateKeypointsMatches(CamKeypointsMatches *matches, int nbpairs);
 
