@@ -8,6 +8,7 @@ libCamellia_la_SOURCES = \
 		cam_draw.c \
 		cam_keypoints.c \
 		cam_keypoints_alt.c \
+		cam_keypoints_descriptor.c \
 		cam_keypoints_matching.c \
 		cam_harris.c \
 		cam_histogram.c \

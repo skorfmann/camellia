@@ -142,8 +142,6 @@ extern int camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 int camSortKeypointsShort(const void *p1x, const void *p2x);
 int camBuildGaussianFilter(CamImage *image, double sigma);
-void camKeypointsInternalsPrepareDescriptor();
-int camKeypointsDescriptor(CamImage *source, CamKeypoint *point, CamImage *filter, int option);
 
 typedef struct _CamKeypointSeed {
     CamKeypointLocation seed;
@@ -353,21 +351,13 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     points->nbPoints = pnb_keypoints;
     free(keypoints);
 
-    camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
-    camBuildGaussianFilter(&filter, camSigmaParam);
-    
-    camKeypointsInternalsPrepareDescriptor();
-    // Get the signature from the selected feature points
-    for (i = 0; i < points->nbPoints; i++) {
-	camKeypointsDescriptor(source, points->keypoint[i], &filter, options);
-    }
+    camKeypointsDescriptor(points, source, options);
 
     // Finally, set the points' set 
     for (i = 0; i < points->nbPoints; i++) {
 	points->keypoint[i]->set = points;
     }
-
-    camDeallocateImage(&filter);
+    
     camInternalROIPolicyExit(&iROI);
     return 1;
 }

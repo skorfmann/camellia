@@ -2169,8 +2169,10 @@ typedef struct _CamKeypoints {
 #define CAM_UPRIGHT		1
 #define CAM_APPROX_HESSIAN	2
 #define CAM_NO_INTERPOLATION	4
+#define CAM_DESC_SURF_LIKE	8
+#define CAM_DESC_SEP_NORM	16
 
-int camKeypointsSetParameters(int patchSize, int sigma, int threshGradient);
+int camKeypointsSetParameters(int patchSize, int sigma);
 
 #ifndef SWIG
 
@@ -2214,6 +2216,9 @@ int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, i
 
 /// Fast Hessian Detection (for all scales)
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+
+/// Compute the descriptors for the given set of keypoints
+int camKeypointsDescriptor(CamKeypoints *points, CamImage *source, int options);
 
 /// Find a keypoint in a set of keypoints
 CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist1, int *dist2);
