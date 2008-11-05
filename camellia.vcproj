@@ -513,6 +513,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\cam_keypoints_descriptor.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\cam_keypoints_hessian_code.c"
 				>
 				<FileConfiguration

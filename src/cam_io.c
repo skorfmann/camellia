@@ -107,7 +107,6 @@ int camLoadPGM(CamImage *im, char *fn)
     int i, j, k, n, m, bi, b, g, r;
     unsigned char ucval;
     int val;
-    long here;
     char buf1[256];
     FILE *f;
     

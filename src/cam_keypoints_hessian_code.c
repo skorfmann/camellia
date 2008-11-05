@@ -56,7 +56,7 @@ int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, i
 int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int scale)
 #endif
 {
-    int i, c, x, y;
+    int x, y, i, c;
     int width, height;
     unsigned long *srcptr, *tmpsrcptr;
     unsigned short *dstptr, *tmpdstptr;

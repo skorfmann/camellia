@@ -167,6 +167,14 @@ SOURCE=.\src\cam_keypoints.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\cam_keypoints_alt.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\cam_keypoints_descriptor.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\cam_keypoints_matching.c
 # End Source File
 # Begin Source File

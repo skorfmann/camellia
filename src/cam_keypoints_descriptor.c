@@ -63,6 +63,8 @@
 extern int camPatchSizeParam;
 extern int camSigmaParam;
 
+int camBuildGaussianFilter(CamImage *image, double sigma);
+
 static int camKPNbAttPoints[20 * 20] = {-1}, camKPAttPoint[20 * 20 * 4], camKPCoeff[20 * 20 * 4];
 
 void camKeypointsInternalsPrepareDescriptor()
@@ -226,8 +228,6 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     camWarping(source, &rotated, &params);
     
 #if 0
-    char filename[256];
-    static int nb = 0;
     sprintf(filename, "output/rotated%d.pgm", nb++);
     camSavePGM(&rotated, filename);
 #endif
