@@ -62,8 +62,8 @@
 
 #define POST_SCALING
 
-int camPatchSizeParam = 8*3;
-int camSigmaParam = 5;
+int camPatchSizeParam = 9*3;
+int camSigmaParam = 6;
 
 int camKeypointsSetParameters(int patchSize, int sigma)
 {
@@ -139,7 +139,7 @@ int camBuildGaussianFilter(CamImage *image, double sigma)
 {
     int x,y;
     int width,height;
-    signed short *imptr,*tmpptr;
+    int16_t *imptr,*tmpptr;
     CamInternalROIPolicyStruct iROI;
     DECLARE_MASK_MANAGEMENT;
     double cx, cy;
@@ -150,7 +150,7 @@ int camBuildGaussianFilter(CamImage *image, double sigma)
     // ROI (Region Of Interest) management
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
-    imptr = (signed short*)iROI.srcptr;
+    imptr = (int16_t*)iROI.srcptr;
     cx = iROI.srcroi.xOffset + (iROI.srcroi.width / 2.0) - 0.5;
     cy = iROI.srcroi.yOffset + (iROI.srcroi.height / 2.0) - 0.5;
 
@@ -160,7 +160,7 @@ int camBuildGaussianFilter(CamImage *image, double sigma)
 	tmpptr = imptr; 
         BEGIN_MASK_MANAGEMENT(imptr = tmpptr + startx * iROI.srcinc;)
             for (x = startx; x < endx; x++, imptr += iROI.srcinc) {
-                *imptr = (signed short)(32767 * exp(-((x-cx) * (x-cx) + (y-cy) * (y-cy)) / (2 * sigma * sigma)));
+                *imptr = (int16_t)(32767 * exp(-((x-cx) * (x-cx) + (y-cy) * (y-cy)) / (2 * sigma * sigma)));
             }
         END_MASK_MANAGEMENT;
         imptr = tmpptr + iROI.srclinc;
@@ -293,8 +293,8 @@ int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *
 	vx[i] = 0; vy[i] = 0;
 	c = 0;
 	while (CamKeypointSectors[i][c] != -1) {
-	    vx[i] += *(((signed short*)filtered_v.imageData) + CamKeypointSectors[i][c]);
-	    vy[i] -= *(((signed short*)filtered_h.imageData) + CamKeypointSectors[i][c]);
+	    vx[i] += *(((int16_t*)filtered_v.imageData) + CamKeypointSectors[i][c]);
+	    vy[i] -= *(((int16_t*)filtered_h.imageData) + CamKeypointSectors[i][c]);
 	    c++;
 	}
     }
@@ -419,7 +419,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
     CamKeypointShort **first2scan[5];
 
     int x1, x3, y1, y2, y3, p, num, den;
-    unsigned short *ptr;
+    uint16_t *ptr;
     CamImage filter;
 
     int multiplier, shift, coeff[CAM_MAX_SCALES];
@@ -635,14 +635,14 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
 		x3 = CamScale[keypoints[i].scale + 1] - CamScale[keypoints[i].scale];
 
 		scale = keypoints[i].scale - 1;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
+		ptr = (uint16_t*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y1 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
 		y1 = ((y1 * coeff[scale]) >> 6);
 #endif
 		scale = keypoints[i].scale;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
+		ptr = (uint16_t*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y2 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
@@ -650,7 +650,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
 #endif
 
 		scale = keypoints[i].scale + 1;
-		ptr = (unsigned short*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
+		ptr = (uint16_t*)(results[scale].imageData + results[scale].widthStep * (keypoints[i].y >> CamSampling[scale])) + (keypoints[i].x >> CamSampling[scale]);
 		y3 = *ptr;
 		// Scale the point
 #ifdef POST_SCALING
