@@ -62,6 +62,8 @@
 
 extern int camPatchSizeParam;
 extern int camSigmaParam;
+int camAbsCoeff = 8;
+int camColorCoeff = 8;
 
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
@@ -324,18 +326,18 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
 	    if (channel == 0) {
 		for (j = 0, i = 0; j < 16; j++) {
-		    point->descriptor[i] = dxt[j];
-		    point->descriptor[32 + i] = abs_dxt[j]; 
+		    point->descriptor[i] = dxt[j] << 3;
+		    point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
 		    i++;
-		    point->descriptor[i] = dyt[j];
-		    point->descriptor[32 + i] = abs_dyt[j];
+		    point->descriptor[i] = dyt[j] << 3;
+		    point->descriptor[32 + i] = abs_dyt[j] * camAbsCoeff;
 		    i++;
 		}
 		point->size = 64;
 	    } else {
 		for (j = 0; j < 16; j++) {
-		    point->descriptor[point->size++] = dxt[j];
-		    point->descriptor[point->size++] = dyt[j];
+		    point->descriptor[point->size++] = dxt[j] * camColorCoeff;
+		    point->descriptor[point->size++] = dyt[j] * camColorCoeff;
 		}
 	    }
 	}
