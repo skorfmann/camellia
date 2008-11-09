@@ -218,12 +218,12 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     // Rotate the image
     params.perspective=1;
     params.interpolation=1;
-    scale = (point->scale * camPatchSizeParam) >> 5;
+    scale = point->scale * camPatchSizeParam;
     for (i = 0; i < 4; i++) {
 	params.p[i].x = costheta * xp[i] - sintheta * yp[i];
 	params.p[i].y = sintheta * xp[i] + costheta * yp[i];
-	params.p[i].x *= scale;
-	params.p[i].y *= scale;
+	params.p[i].x = (params.p[i].x * scale) >> 5;
+	params.p[i].y = (params.p[i].y * scale) >> 5;
 	params.p[i].x += (point->x << 16) + 32768;
 	params.p[i].y += (point->y << 16) + 32768;
     }
