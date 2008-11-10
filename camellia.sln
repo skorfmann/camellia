@@ -25,6 +25,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cam_myobjects", "cam_myobje
 		{36348D01-E637-477A-85DF-D17DE464F8E5} = {36348D01-E637-477A-85DF-D17DE464F8E5}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bench", "..\papers\benchmark\bench.vcproj", "{BBADBAA5-303A-4410-A04E-C735F027416E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{36348D01-E637-477A-85DF-D17DE464F8E5} = {36348D01-E637-477A-85DF-D17DE464F8E5}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -55,6 +60,10 @@ Global
 		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Debug|Win32.Build.0 = Debug|Win32
 		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Release|Win32.ActiveCfg = Release|Win32
 		{DF19C304-197E-48E1-BA30-7F9793FAE0B8}.Release|Win32.Build.0 = Release|Win32
+		{BBADBAA5-303A-4410-A04E-C735F027416E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BBADBAA5-303A-4410-A04E-C735F027416E}.Debug|Win32.Build.0 = Debug|Win32
+		{BBADBAA5-303A-4410-A04E-C735F027416E}.Release|Win32.ActiveCfg = Release|Win32
+		{BBADBAA5-303A-4410-A04E-C735F027416E}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

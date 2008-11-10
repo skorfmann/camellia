@@ -215,7 +215,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
    
     if (source->depth == 32) {
 	// This is an integral image
-	w = point->scale * camPatchSizeParam * 2;
+	w = (point->scale * camPatchSizeParam) >> 4;
 	sx = (w * camHaarFilterSizeParam) / 100; 
 	for (i = 0; i < 20; i++) {
 	    ptry[i] = (CAM_INT32*)(source->imageData + (point->y + w * ((i - 10) * 2 + 1) / 40) * source->widthStep);
@@ -408,6 +408,18 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		}
 	    }
 	}
+#if 0
+	// Save the signature
+	sprintf(filename, "output/signature%d.txt", nb++);
+	handle = fopen(filename, "wt");
+	for (i = 0; i < point->size; i++) {
+	    fprintf(handle, "%d\n", point->descriptor[i]);
+	}
+	fclose(handle);
+#endif
+	camDeallocateImage(&rotated);
+	camDeallocateImage(&filtered_h);
+	camDeallocateImage(&filtered_v);
     }
   
     // Normalization
@@ -436,21 +448,6 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    point->descriptor[i] = (point->descriptor[i] * sum) >> 6;
 	}
     }	
-
-#if 0
-    // Save the signature
-    sprintf(filename, "output/signature%d.txt", nb++);
-    handle = fopen(filename, "wt");
-    for (i = 0; i < point->size; i++) {
-	fprintf(handle, "%d\n", point->descriptor[i]);
-    }
-    fclose(handle);
-#endif
-
-    camDeallocateImage(&rotated);
-    camDeallocateImage(&filtered_h);
-    camDeallocateImage(&filtered_v);
-
     return 1;
 }
 
