@@ -338,6 +338,8 @@ void camInternalROIPolicyExit(CamInternalROIPolicyStruct *s)
 
 /* Image allocation utility routine
  */
+int camAllocateYUVImageEX(CamImage *image, int width, int height, int depth);
+
 int camAllocateImageEx(CamImage *image, int width, int height, int depth, int channelseq)
 {
     switch (channelseq) {
@@ -359,8 +361,8 @@ int camAllocateImageEx(CamImage *image, int width, int height, int depth, int ch
     case 3:
     case CAM_CHANNELSEQ_YUV:
         if (depth!=CAM_DEPTH_8U) {
-            image->imageData=NULL; image->roi=NULL; image->imageSize=0; image->mask=NULL; image->imageDataOrigin=NULL; image->depth=CAM_DEPTH_8U; image->nChannels=1; 
-        } else return camAllocateYUVImage(image, width, height);
+	    return camAllocateYUVImageEx(image, width, height, depth);
+	} else return camAllocateYUVImage(image, width, height);
         break;
     case 4:
     case CAM_CHANNELSEQ_BGR:
@@ -509,6 +511,59 @@ int camAllocateYUVImage(CamImage *image, int width, int height)
 	image->borderConst[i]=0;
     }    
     psize=8;
+    image->widthStep=(((image->width+image->align-1)*psize/8/image->align)*image->align);
+    image->imageSize=image->widthStep*3*image->height*psize/8;
+    if (width & CAM_HEADER_ONLY) {
+        image->imageDataOrigin = NULL;
+        image->imageData = NULL;
+    } else {
+        image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
+        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        if (image->imageData == NULL) {
+            camSetErrorStr("Memory allocation failed");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int camAllocateYUVImageEx(CamImage *image, int width, int height, int depth)
+{
+    int i,psize;
+    image->nSize=sizeof(CamImage);
+    image->channelSeq[0]='Y';
+    image->channelSeq[1]='U';
+    image->channelSeq[2]='V';
+    image->channelSeq[3]=0;
+    image->colorModel[0]='Y';
+    image->colorModel[1]='U';
+    image->colorModel[2]='V';
+    image->colorModel[3]=0;
+    image->nChannels=3;
+    image->alphaChannel=0;
+    image->depth = depth;
+    // Align 16-bits deep images to 16 bytes boundaries instead of 8 bytes (default)
+    if ((depth&CAM_DEPTH_MASK)>8) {
+        image->align=CAM_ALIGN_16BYTES; // Aligned on 16 bytes boundaries
+    } else {
+        image->align=CAM_ALIGN_QWORD;   // Aligned on 8 bytes boundaries
+    }
+    image->dataOrder=CAM_DATA_ORDER_PLANE;
+    image->origin=CAM_ORIGIN_TL;
+    image->align=CAM_ALIGN_QWORD; // Aligned on 8 bytes boundaries
+    image->width=width & ~CAM_HEADER_ONLY;
+    image->height=height;
+    image->roi=NULL;
+    image->mask=NULL;
+    image->imageId=NULL;
+    image->misc=NULL;
+    image->imageData=NULL;
+    for (i=0;i<4;i++) {
+	image->borderMode[i]=CAM_BORDER_REPLICATE;
+	image->borderConst[i]=0;
+    }    
+    psize=depth&CAM_DEPTH_MASK; // Pixel size in bits (1, 8, 16, 32 bits)
+    if ((psize>8)&&(psize<16)) psize=16; // For 10 or 12 bits images
     image->widthStep=(((image->width+image->align-1)*psize/8/image->align)*image->align);
     image->imageSize=image->widthStep*3*image->height*psize/8;
     if (width & CAM_HEADER_ONLY) {

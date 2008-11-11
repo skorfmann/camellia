@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795 
 #endif
@@ -61,7 +62,7 @@
 #endif
 
 extern int camPatchSizeParam;
-extern int camSigmaParam;
+extern double camSigmaParam;
 int camAbsCoeff = 8;
 int camColorCoeff = 8;
 int camHaarFilterSizeParam = 5;
@@ -199,13 +200,14 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
     // For bi-linear interpolated descriptor :
     int coeff, idx, dxt[16], dyt[16], abs_dxt[16], abs_dyt[16];
-    CAM_INT16 val_h, val_v, val2_h, val2_v, *imptr_h, *imptr_v, *tmpimptr_h, *tmpimptr_v; 
+    CAM_INT16 *imptr_h, *imptr_v, *tmpimptr_h, *tmpimptr_v; 
+    int val_h, val_v, val2_h, val2_v;
 
     const int xpp[4] = {-1, 1, 1, -1};
     const int ypp[4] = {-1, -1, 1, 1};
 
     int dx[20][20], dy[20][20];
-    int w, sx, sy, xp, yp, xs, ys;
+    int w, sx, sy, xp, yp, xs, ys, l1;
     CAM_INT32 *ptry[20], incx[20], *ptr;
 #if 0
     static int nb = 0;
@@ -215,64 +217,132 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
    
     if (source->depth == 32) {
 	// This is an integral image
-	w = (point->scale * camPatchSizeParam) >> 4;
-	sx = (w * camHaarFilterSizeParam) / 100; 
-	for (i = 0; i < 20; i++) {
-	    ptry[i] = (CAM_INT32*)(source->imageData + (point->y + w * ((i - 10) * 2 + 1) / 40) * source->widthStep);
-	    incx[i] = point->x + w * ((i - 10) * 2 + 1) / 40;
+	w = point->scale * camPatchSizeParam;
+	sx = ((w * camHaarFilterSizeParam) / 100) >> 4; 
+	// Check boundaries
+	if (point->x - (((19 * w) / 40) >> 4) - sx <= 0 || point->y - (((19 * w) / 40) >> 4) - sx <= 0 ||
+	    point->x + (((19 * w) / 40) >> 4) + sx >= source->width ||
+	    point->y + (((19 * w) / 40) >> 4) + sx >= source->height) {
+	    printf("Out of boundaries\n");
+	    point->size = 0;
+	    return 0;
 	}
-	sy = sx * (source->widthStep >> 2);
+	l1 = source->widthStep >> 2;
+	sy = sx * l1;
 
-	// Compute the gradients
-	for (y = 0; y < 20; y++) {
-	    for (x = 0; x < 20; x++) {
-		ptr = ptry[y] + incx[x];
-		dx[x][y] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy) + *(ptr - sy) -
-		    (*(ptr + sy) - *(ptr - sx + sy) - *(ptr - sy) + *(ptr - sx - sy));
-		dy[x][y] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy) + *(ptr - sx) -
-		    (*(ptr + sx) - *(ptr - sx) - *(ptr + sx - sy) + *(ptr - sx - sy));
-		// Filtrage gaussien
+	for (channel = 0; channel < source->nChannels; channel++) {
+
+	    for (i = 0; i < 20; i++) {
+		ptry[i] = (CAM_INT32*)(source->imageData + (channel * source->height + point->y + ((w * ((i - 10) * 2 + 1) / 40) >> 4)) * source->widthStep);
+		incx[i] = point->x + ((w * ((i - 10) * 2 + 1) / 40) >> 4);
 	    }
-	}	    
 
-	// Build the descriptor
-	if (options & CAM_DESC_SURF_LIKE) {
-	    /*if (channel == 0)*/ {
-		i = 0;
-		for (y = 0, ys = 0; y < 4; y++, ys += 5) {
-		    for (x = 0, xs = 0; x < 4; x++, xs += 5) {
-			sdx = 0; sdy = 0; sabs_dx = 0; sabs_dy = 0;	
-			for (yp = 0; yp < 5; yp++) {
-			    for (xp = 0; xp < 5; xp++) {
-				j = dx[xs + xp][ys + yp];
-				sdx += j;
-				sabs_dx += abs(j);
-				j = dy[xs + xp][ys + yp];
-				sdy += j;
-				sabs_dy += abs(j);
+	    // Compute the gradients
+	    for (y = 0; y < 20; y++) {
+		imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
+		for (x = 0; x < 20; x++) {
+		    ptr = ptry[y] + incx[x];
+		    dx[x][y] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy) + *(ptr - sy) -
+			(*(ptr + sy - 1) - *(ptr - sx + sy - 1) - *(ptr - sy - 1) + *(ptr - sx - sy - 1));
+		    dy[x][y] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy) + *(ptr - sx) -
+			(*(ptr + sx - l1) - *(ptr - sx - l1) - *(ptr + sx - sy - l1) + *(ptr - sx - sy - l1));
+
+		    // Filtrage gaussien
+		    dx[x][y] *= ((*imptr_h) >> 3);
+		    assert(abs(dx[x][y]) < (1 << 30));
+		    dx[x][y] >>= 10;	
+		    dy[x][y] *= ((*imptr_h) >> 3);
+		    assert(abs(dy[x][y]) < (1 << 30));
+		    dy[x][y] >>= 10;	
+		    imptr_h++;
+		}
+	    }	    
+
+	    // Build the descriptor
+	    if (options & CAM_DESC_SURF_LIKE) {
+		if (channel == 0) {
+		    i = 0;
+		    for (y = 0, ys = 0; y < 4; y++, ys += 5) {
+			for (x = 0, xs = 0; x < 4; x++, xs += 5) {
+			    sdx = 0; sdy = 0; sabs_dx = 0; sabs_dy = 0;	
+			    for (yp = 0; yp < 5; yp++) {
+				for (xp = 0; xp < 5; xp++) {
+				    j = dx[xs + xp][ys + yp];
+				    sdx += j;
+				    sabs_dx += abs(j);
+				    j = dy[xs + xp][ys + yp];
+				    sdy += j;
+				    sabs_dy += abs(j);
+				}
+			    }
+			    point->descriptor[i] = sdx;
+			    point->descriptor[32 + i] = sabs_dx; 
+			    i++;
+			    point->descriptor[i] = sdy;
+			    point->descriptor[32 + i] = sabs_dy;
+			    i++;
+			}
+		    }
+		    point->size = 64;
+		} else {
+		    for (y = 0, ys = 0; y < 4; y++, ys += 5) {
+			for (x = 0, xs = 0; x < 4; x++, xs += 5) {
+			    sdx = 0; sdy = 0;	
+			    for (yp = 0; yp < 5; yp++) {
+				for (xp = 0; xp < 5; xp++) {
+				    j = dx[xs + xp][ys + yp];
+				    sdx += j;
+				    j = dy[xs + xp][ys + yp];
+				    sdy += j;
+				}
+			    }
+			    point->descriptor[point->size++] = sdx;
+			    point->descriptor[point->size++] = sdy;
+			}
+		    }
+		}
+	    } else{
+		// Descriptor with bilinear interpolation
+		for (i = 0; i < 16; i++) {
+		    dxt[i] = 0; dyt[i] = 0; abs_dxt[i] = 0; abs_dyt[i] = 0;
+		}
+
+		for (y = 0, i = 0; y < 20; y++) {
+		    for (x = 0; x < 20; x++, i++) {
+			val_h = dx[x][y];
+			val_v = dy[x][y];
+			for (j = 0; j < camKPNbAttPoints[i]; j++) {
+			    idx = camKPAttPoint[i * 4 + j];
+			    coeff = camKPCoeff[i * 4 + j];
+			    val2_h = coeff * val_h;
+			    val2_v = coeff * val_v;
+			    dxt[idx] += val2_v;
+			    dyt[idx] += val2_h;
+			    if (channel == 0) {
+				abs_dxt[idx] += abs(val2_v);
+				abs_dyt[idx] += abs(val2_h);
 			    }
 			}
-			point->descriptor[i] = sdx;
-			point->descriptor[32 + i] = sabs_dx; 
-			i++;
-			point->descriptor[i] = sdy;
-			point->descriptor[32 + i] = sabs_dy;
-			i++;
 		    }
 		}
-		point->size = 64;
-	    } /* else {
-		for (y = 0; y < 4; y++) {
-		    for (x = 0; x < 4; x++) {
-			roi.xOffset = x * 5;
-			roi.yOffset = y * 5;
-			dx = camSumOfPixels(&filtered_v);
-			dy = camSumOfPixels(&filtered_h);
-			point->descriptor[point->size++] = dx;
-			point->descriptor[point->size++] = dy;
+
+		if (channel == 0) {
+		    for (j = 0, i = 0; j < 16; j++) {
+			point->descriptor[i] = dxt[j] << 3;
+			point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
+			i++;
+			point->descriptor[i] = dyt[j] << 3;
+			point->descriptor[32 + i] = abs_dyt[j] * camAbsCoeff;
+			i++;
+		    }
+		    point->size = 64;
+		} else {
+		    for (j = 0; j < 16; j++) {
+			point->descriptor[point->size++] = dxt[j] * camColorCoeff;
+			point->descriptor[point->size++] = dyt[j] * camColorCoeff;
 		    }
 		}
-	    }*/
+	    }
 	}
     } else {	
 	if (source->nChannels == 3) {
@@ -423,6 +493,44 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     }
   
     // Normalization
+#define CHECK_CODE
+#ifdef CHECK_CODE
+    if (options & CAM_DESC_SEP_NORM) {
+	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
+	    start = j * 64;
+	    end = start + 64;
+	    sum = 0;
+	    for (i = start; i < end; i++) {
+		sum += abs(point->descriptor[i]);
+	    }
+	    if (sum == 0) {
+		for (i = start; i < end; i++) {
+		    point->descriptor[i] = 0;
+		}
+	    } else {
+		for (i = start; i < end; i++) {
+		    point->descriptor[i] = ((double)point->descriptor[i] * (double)10000.0) / (double)sum;
+		}	
+	    }
+	}
+    } else {
+	start = 0;
+	end = point->size;
+	sum = 0;
+	for (i = start; i < end; i++) {
+	    sum += abs(point->descriptor[i]);
+	}
+	if (sum == 0) {
+	    for (i = start; i < end; i++) {
+		point->descriptor[i] = 0;
+	    }
+	} else {
+	    for (i = start; i < end; i++) {
+		point->descriptor[i] = ((double)point->descriptor[i] * (double)10000.0) / (double)sum;
+	    }
+	}
+    }
+#else
     if (options & CAM_DESC_SEP_NORM) {
 	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
 	    start = j * 64;
@@ -447,7 +555,8 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	for (i = start; i < end; i++) {
 	    point->descriptor[i] = (point->descriptor[i] * sum) >> 6;
 	}
-    }	
+    }
+#endif    
     return 1;
 }
 

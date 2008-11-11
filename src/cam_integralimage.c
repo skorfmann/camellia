@@ -55,11 +55,11 @@
 #include "camellia_internals.h"
 
 #ifdef CAM_VECTORIZE
-typedef unsigned long v4si __attribute__ ((vector_size(16)));
+typedef CAM_UINT32 v4si __attribute__ ((vector_size(16)));
 union i4vector 
 {
   v4si v;
-  unsigned long i[4];
+  CAM_UINT32 i[4];
 };
 #endif
 
@@ -96,26 +96,21 @@ int camIntegralImage(CamImage *src, CamImage *dest)
 
 int camIntegralImage(CamImage *src, CamImage *dest)
 {
-    int x, y;
+    int x, y, i;
     int width, height;
     CAM_PIXEL *srcptr, *srctmpptr;
-    unsigned long *dstptr, *dsttmpptr;
+    CAM_UINT32 *dstptr, *dsttmpptr;
     CamInternalROIPolicyStruct iROI;
-    unsigned long val;
-#ifdef CAM_VECTORIZE
-    int i;
-    union i4vector v1, v2;
-#endif
+    CAM_UINT32 val;
 
     CAM_CHECK_ARGS2(camIntegralImage, src->imageData != NULL, "source image is not allocated");
     if (dest->imageData==NULL) {
         // Automatic allocation
 	CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, NULL, &iROI, 0));
-        camAllocateImage(dest, iROI.srcroi.width, iROI.srcroi.height, CAM_DEPTH_32U);
+        camAllocateImageEx(dest, iROI.srcroi.width, iROI.srcroi.height, CAM_DEPTH_32U, (iROI.nChannels == 1)?CAM_CHANNELSEQ_GREY:CAM_CHANNELSEQ_YUV);
 	CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, dest, &iROI, 0));
     }
     CAM_CHECK(camIntegralImage, camInternalROIPolicy(src, dest, &iROI, 0));
-    CAM_CHECK_ARGS(camIntegralImage, iROI.nChannels == 1);
     CAM_CHECK_ARGS(camIntegralImage, (src->depth & CAM_DEPTH_MASK) >= 8);
     CAM_CHECK_ARGS(camIntegralImage, (src->depth & CAM_DEPTH_MASK) <= (sizeof(CAM_PIXEL) * 8));
     CAM_CHECK_ARGS(camIntegralImage, (dest->depth & CAM_DEPTH_MASK) == 32);
@@ -126,7 +121,7 @@ int camIntegralImage(CamImage *src, CamImage *dest)
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
     srcptr = (CAM_PIXEL*)iROI.srcptr;
-    dstptr = (unsigned long*)iROI.dstptr;
+    dstptr = (CAM_UINT32*)iROI.dstptr;
     srctmpptr = srcptr;
     dsttmpptr = dstptr;
     val = 0;	
@@ -135,73 +130,50 @@ int camIntegralImage(CamImage *src, CamImage *dest)
 	*dstptr = val; 
     }
     srcptr = (CAM_PIXEL*)(((char*)srctmpptr) + src->widthStep);
-    dstptr = (unsigned long*)(((char*)dsttmpptr) + dest->widthStep);
+    dstptr = (CAM_UINT32*)(((char*)dsttmpptr) + dest->widthStep);
     for (y = 1; y < height; y++) {
 	srctmpptr = srcptr;
 	dsttmpptr = dstptr;
 	val = 0;	
 	for (x = 0; x < width; x++, srcptr += iROI.srcinc, dstptr++) {
 	    val += *srcptr;
-	    *dstptr = val + *(unsigned long*)(((char*)dstptr) - dest->widthStep); 
+	    *dstptr = val + *(CAM_UINT32*)(((char*)dstptr) - dest->widthStep); 
 	}
 	srcptr = (CAM_PIXEL*)(((char*)srctmpptr) + src->widthStep);
-	dstptr = (unsigned long*)(((char*)dsttmpptr) + dest->widthStep);
+	dstptr = (CAM_UINT32*)(((char*)dsttmpptr) + dest->widthStep);
     }
 */
 
-    // Two passes algorithm
-    // First pass 
-    width = iROI.srcroi.width;
-    height = iROI.srcroi.height;
-    srcptr = (CAM_PIXEL*)iROI.srcptr;
-    dstptr = (unsigned long*)iROI.dstptr;
-    for (y = 0; y < height; y++) {
-	srctmpptr = srcptr;
-	dsttmpptr = dstptr;
-	val = 0;	
-	for (x = 0; x < width; x++, srcptr += iROI.srcinc, dstptr++) {
-	    val += *srcptr;
-	    *dstptr = val; 
-	}
-	srcptr = (CAM_PIXEL*)(((char*)srctmpptr) + src->widthStep);
-	dstptr = (unsigned long*)(((char*)dsttmpptr) + dest->widthStep);
-    }
-
-#ifndef CAM_VECTORIZE
-    // Second pass 
-    dstptr = (unsigned long*)iROI.dstptr;
-    dstptr = (unsigned long*)(((char*)dstptr) + dest->widthStep);
-    for (y = 1; y < height; y++) {
-	dsttmpptr = dstptr;
-	for (x = 0; x < width; x++, dstptr++) {
-	    *dstptr += *(unsigned long*)(((char*)dstptr) - dest->widthStep); 
-	}
-	dstptr = (unsigned long*)(((char*)dsttmpptr) + dest->widthStep);
-    }
-#else
-    // Second pass / SSE2 vectorized
-    dstptr = (unsigned long*)iROI.dstptr;
-    dstptr = (unsigned long*)(((char*)dstptr) + dest->widthStep);
-    for (y = 1; y < height; y++) {
-	dsttmpptr = dstptr;
-	for (x = 0; x < width; x+=4) {
-	    // Add 4 pixels at once
-	    for (i = 0; i != 4; i++, dstptr++) {
-		v1.i[i] = *dstptr;
-	        v2.i[i] = *(unsigned long*)(((char*)dstptr) - dest->widthStep);	
+    for (i = 0; i < iROI.nChannels; i++) {
+	// Two passes algorithm
+	// First pass 
+	width = iROI.srcroi.width;
+	height = iROI.srcroi.height;
+	srcptr = ((CAM_PIXEL*)iROI.srcptr) + i * iROI.srcpinc;
+	dstptr = ((CAM_UINT32*)iROI.dstptr) + i * iROI.dstpinc;
+	for (y = 0; y < height; y++) {
+	    srctmpptr = srcptr;
+	    dsttmpptr = dstptr;
+	    val = 0;	
+	    for (x = 0; x < width; x++, srcptr += iROI.srcinc, dstptr++) {
+		val += *srcptr;
+		*dstptr = val; 
 	    }
-	    v1.v = v1.v + v2.v;
-	    dstptr -= (iROI.dstinc<<2);
-	    for (i = 0; i != 4; i++, dstptr++) *dstptr = v1.i[i];
+	    srcptr = (CAM_PIXEL*)(((char*)srctmpptr) + src->widthStep);
+	    dstptr = (CAM_UINT32*)(((char*)dsttmpptr) + dest->widthStep);
+	}
 
+	// Second pass 
+	dstptr = ((CAM_UINT32*)iROI.dstptr) + i * iROI.dstpinc;
+	dstptr = (CAM_UINT32*)(((char*)dstptr) + dest->widthStep);
+	for (y = 1; y < height; y++) {
+	    dsttmpptr = dstptr;
+	    for (x = 0; x < width; x++, dstptr++) {
+		*dstptr += *(CAM_UINT32*)(((char*)dstptr) - dest->widthStep); 
+	    }
+	    dstptr = (CAM_UINT32*)(((char*)dsttmpptr) + dest->widthStep);
 	}
-	for (; x < width; x++, dstptr += iROI.dstinc) {
-	    *dstptr += *(unsigned long*)(((char*)dstptr) - dest->widthStep); 
-	}
-	dstptr = (unsigned long*)(((char*)dsttmpptr) + dest->widthStep);
     }
-#endif
-
     camInternalROIPolicyExit(&iROI);
     return 1;    
 }

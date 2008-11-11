@@ -63,7 +63,7 @@
 #define POST_SCALING
 
 int camPatchSizeParam = 8*3;
-int camSigmaParam = 6;
+double camSigmaParam = 6;
 
 int camKeypointsSetParameters(int patchSize, int sigma)
 {

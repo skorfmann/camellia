@@ -142,12 +142,6 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
     _mm_store_si128((__m128i*)out_sse, sum);
     return out_sse[0] + out_sse[1] + out_sse[2] + out_sse[3];
 }
-
-int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
-{
-    return camCompareDescriptors(point1->descriptor, point2->descriptor, point1->size);
-}
-
 #else
 int camCompareDescriptors(int *d1, int *d2, int s)
 {
@@ -157,12 +151,13 @@ int camCompareDescriptors(int *d1, int *d2, int s)
     }
     return distance;
 }
+#endif
 
 int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {
+    if (point1->size != point2->size) return (1 << 30);
     return camCompareDescriptors(point1->descriptor, point2->descriptor, point1->size);
 }
-#endif
 #endif
 
 int camAllocateKeypointsMatches(CamKeypointsMatches *matches, int nbpairs)
