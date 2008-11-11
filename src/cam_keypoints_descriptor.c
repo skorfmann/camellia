@@ -61,16 +61,18 @@
 #include <emmintrin.h>
 #endif
 
-extern int camPatchSizeParam;
-extern double camSigmaParam;
-int camAbsCoeff = 8;
-int camColorCoeff = 8;
+int camPatchSizeParam = 32; ///8*3;
+double camSigmaParam = 6.6;
+int camAbsCoeff = 5;
+int camColorCoeff = 20;
 int camHaarFilterSizeParam = 5;
+int camHaarFilterSpaceParam = 0;
 
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
 static int camKPNbAttPoints[20 * 20] = {-1}, camKPAttPoint[20 * 20 * 4], camKPCoeff[20 * 20 * 4];
 
+/*
 void camKeypointsInternalsPrepareDescriptor()
 {
     int x, y, i;
@@ -174,9 +176,57 @@ void camKeypointsInternalsPrepareDescriptor()
 			camKPCoeff[i * 4] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
 			camKPCoeff[i * 4 + 1] = (5 - ((y - 2) % 5)) * ((x - 2) % 5);
 			camKPCoeff[i * 4 + 2] = ((y - 2) % 5) * (5 - ((x - 2) % 5));
-			camKPCoeff[i * 4 + 3] = (5 - ((y - 2) % 5)) * (5 - ((x - 2) % 5));
+			camKPCoeff[i * 4 + 3] = ((y - 2) % 5) * ((x - 2) % 5);
 		    }
 		}
+	    }
+	}
+    }
+}
+*/
+
+void camKeypointsInternalsPrepareDescriptor()
+{
+    int x, y, i, j;
+
+    // Test whether this initialization has already been done before
+    if (camKPNbAttPoints[0] == -1) {
+
+	for (i = 0; i < 20 * 20 * 4; i++) {
+	    camKPAttPoint[i] = 0;
+	    camKPCoeff[i] = 0;
+	}
+	// For all the camKPAttPoints, find the attraction camKPAttPoints
+	// and compute the bilinear interpolation camKPCoefficients
+	for (y = 0, i = 0; y < 20; y++) {
+	    for (x = 0; x < 20; x++, i++) {
+		j = 0;
+		if (x >= 2 && y >= 2) {
+		    camKPAttPoint[i * 4 + j] = ((y + 3) / 5 - 1) * 4 + (x + 3) / 5 - 1;
+		    camKPCoeff[i * 4 + j] = (5 - ((y + 3) % 5)) * (5 - ((x + 3) % 5));
+		    if (camKPCoeff[i * 4 + j]) j++;
+		}
+		if (x < 17 && y >= 2) {
+		    camKPAttPoint[i * 4 + j] = ((y + 3) / 5 - 1) * 4 + (x + 3) / 5;
+		    camKPCoeff[i * 4 + j] = (5 - ((y + 3) % 5)) * ((x + 3) % 5);
+		    if (camKPCoeff[i * 4 + j]) j++;
+		}
+		if (x >= 2 && y < 17) {
+		    camKPAttPoint[i * 4 + j] = ((y + 3) / 5) * 4 + (x + 3) / 5 - 1;
+		    camKPCoeff[i * 4 + j] = ((y + 3) % 5) * (5 - ((x + 3) % 5));
+		    if (camKPCoeff[i * 4 + j]) j++;
+		}
+		if (x < 17 && y < 17) {
+		    camKPAttPoint[i * 4 + j] = ((y + 3) / 5) * 4 + (x + 3) / 5;
+		    camKPCoeff[i * 4 + j] = ((y + 3) % 5) * ((x + 3) % 5);
+		    if (camKPCoeff[i * 4 + j]) j++;
+		}
+		camKPNbAttPoints[i] = j;
+		/*
+		 * for (k = 0; k < j; k++) {
+		    printf("(%d -> %d)", camKPAttPoint[i * 4 + k], camKPCoeff[i * 4 + k]);
+		}
+		printf("\n"); */
 	    }
 	}
     }
@@ -207,7 +257,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     const int ypp[4] = {-1, -1, 1, 1};
 
     int dx[20][20], dy[20][20];
-    int w, sx, sy, xp, yp, xs, ys, l1;
+    int w, sx, sy, xp, yp, xs, ys, l1, fsx, fsy;
     CAM_INT32 *ptry[20], incx[20], *ptr;
 #if 0
     static int nb = 0;
@@ -218,17 +268,19 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     if (source->depth == 32) {
 	// This is an integral image
 	w = point->scale * camPatchSizeParam;
-	sx = ((w * camHaarFilterSizeParam) / 100) >> 4; 
+	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
+        fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
 	// Check boundaries
-	if (point->x - (((19 * w) / 40) >> 4) - sx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx <= 1 ||
-	    point->x + (((19 * w) / 40) >> 4) + sx >= source->width ||
-	    point->y + (((19 * w) / 40) >> 4) + sx >= source->height) {
-	    printf("Out of boundaries\n");
+	if (point->x - (((19 * w) / 40) >> 4) - sx - fsx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx - fsx <= 1 ||
+	    point->x + (((19 * w) / 40) >> 4) + sx + fsx >= source->width ||
+	    point->y + (((19 * w) / 40) >> 4) + sx + fsx >= source->height) {
+	    printf("Out of boundaries : %d, %d, %d\n", point->x, point->y, point->scale);
 	    point->size = 0;
 	    return 0;
 	}
 	l1 = source->widthStep >> 2;
 	sy = sx * l1;
+	fsy = fsx * l1;
 
 	for (channel = 0; channel < source->nChannels; channel++) {
 
@@ -238,16 +290,33 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    }
 
 	    // Compute the gradients
+	    if (camHaarFilterSpaceParam > 0) {
+		for (y = 0; y < 20; y++) {
+		    imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
+		    for (x = 0; x < 20; x++) {
+			ptr = ptry[y] + incx[x];
+			dx[x][y] = *(ptr + sx + sy + fsx) - *(ptr + sy + fsx) - *(ptr + sx - sy + fsx) + *(ptr - sy + fsx) -
+			    (*(ptr + sy - 1 - fsx) - *(ptr - sx + sy - 1 - fsx) - *(ptr - sy - 1 - fsx) + *(ptr - sx - sy - 1 - fsx));
+			dy[x][y] = *(ptr + sx + sy + fsy) - *(ptr + sx + fsy) - *(ptr - sx + sy + fsy) + *(ptr - sx + fsy) -
+			    (*(ptr + sx - l1 - fsy) - *(ptr - sx - l1 - fsy) - *(ptr + sx - sy - l1 - fsy) + *(ptr - sx - sy - l1 - fsy));
+		    }
+		}	    
+	    } else {
+		for (y = 0; y < 20; y++) {
+		    imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
+		    for (x = 0; x < 20; x++) {
+			ptr = ptry[y] + incx[x];
+			dx[x][y] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy) + *(ptr - sy) -
+			    (*(ptr + sy - 1) - *(ptr - sx + sy - 1) - *(ptr - sy - 1) + *(ptr - sx - sy - 1));
+			dy[x][y] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy) + *(ptr - sx) -
+			    (*(ptr + sx - l1) - *(ptr - sx - l1) - *(ptr + sx - sy - l1) + *(ptr - sx - sy - l1));
+		    }
+		}	    
+	    }		
+	    // Filtrage gaussien
 	    for (y = 0; y < 20; y++) {
 		imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
 		for (x = 0; x < 20; x++) {
-		    ptr = ptry[y] + incx[x];
-		    dx[x][y] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy) + *(ptr - sy) -
-			(*(ptr + sy - 1) - *(ptr - sx + sy - 1) - *(ptr - sy - 1) + *(ptr - sx - sy - 1));
-		    dy[x][y] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy) + *(ptr - sx) -
-			(*(ptr + sx - l1) - *(ptr - sx - l1) - *(ptr + sx - sy - l1) + *(ptr - sx - sy - l1));
-
-		    // Filtrage gaussien
 		    dx[x][y] *= ((*imptr_h) >> 3);
 		    assert(abs(dx[x][y]) < (1 << 30));
 		    dx[x][y] >>= 10;	
@@ -259,7 +328,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    }	    
 
 	    // Build the descriptor
-	    if (options & CAM_DESC_SURF_LIKE) {
+	    if (options & CAM_SIMPLE_SUM) {
 		if (channel == 0) {
 		    i = 0;
 		    for (y = 0, ys = 0; y < 4; y++, ys += 5) {
@@ -327,13 +396,20 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		}
 
 		if (channel == 0) {
-		    for (j = 0, i = 0; j < 16; j++) {
-			point->descriptor[i] = dxt[j] << 3;
-			point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
-			i++;
-			point->descriptor[i] = dyt[j] << 3;
-			point->descriptor[32 + i] = abs_dyt[j] * camAbsCoeff;
-			i++;
+		    if (options & CAM_DESC_SEP_TEXTURE) {
+			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			    point->descriptor[i] = dxt[j] << 3;
+			    point->descriptor[i + 1] = dyt[j] << 3;
+			    point->descriptor[32 + i] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
+			    point->descriptor[33 + i] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
+			}
+		    } else {
+			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			    point->descriptor[i] = dxt[j] << 3;
+			    point->descriptor[i + 1] = dyt[j] << 3;
+			    point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
+			    point->descriptor[33 + i] = abs_dyt[j] * camAbsCoeff;
+			}
 		    }
 		    point->size = 64;
 		} else {
@@ -393,7 +469,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	       camSavePGM(&filtered_v, "output/filtered_v.pgm");
 	       */
 
-	    if (options & CAM_DESC_SURF_LIKE) {
+	    if (options & CAM_SIMPLE_SUM) {
 		filtered_h.roi = &roi;
 		filtered_v.roi = &roi;
 		roi.width = 5;
@@ -461,13 +537,20 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		}
 
 		if (channel == 0) {
-		    for (j = 0, i = 0; j < 16; j++) {
-			point->descriptor[i] = dxt[j] << 3;
-			point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
-			i++;
-			point->descriptor[i] = dyt[j] << 3;
-			point->descriptor[32 + i] = abs_dyt[j] * camAbsCoeff;
-			i++;
+		    if (options & CAM_DESC_SEP_TEXTURE) {
+			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			    point->descriptor[i] = dxt[j] << 3;
+			    point->descriptor[i + 1] = dyt[j] << 3;
+			    point->descriptor[32 + i] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
+			    point->descriptor[33 + i] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
+			}
+		    } else {
+			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			    point->descriptor[i] = dxt[j] << 3;
+			    point->descriptor[i + 1] = dyt[j] << 3;
+			    point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
+			    point->descriptor[33 + i] = abs_dyt[j] * camAbsCoeff;
+			}
 		    }
 		    point->size = 64;
 		} else {
@@ -493,7 +576,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     }
   
     // Normalization
-#define CHECK_CODE
+//#define CHECK_CODE
 #ifdef CHECK_CODE
     if (options & CAM_DESC_SEP_NORM) {
 	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {

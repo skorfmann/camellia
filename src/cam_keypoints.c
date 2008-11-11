@@ -62,10 +62,10 @@
 
 #define POST_SCALING
 
-int camPatchSizeParam = 8*3;
-double camSigmaParam = 6;
+extern int camPatchSizeParam;
+extern double camSigmaParam;
 
-int camKeypointsSetParameters(int patchSize, int sigma)
+int camKeypointsSetParameters(int patchSize, double sigma)
 {
     camPatchSizeParam = patchSize;
     camSigmaParam = sigma;
@@ -88,13 +88,15 @@ int camAllocateKeypoints(CamKeypoints *fpoints, int nbPoints)
 {
     CAM_CHECK_ARGS(camAllocateKeypoints, fpoints != NULL);
     fpoints->nbPoints = 0;
-    fpoints->keypoint = (CamKeypoint**)malloc(sizeof(CamKeypoint*) * nbPoints);
+    if (nbPoints) {
+	fpoints->keypoint = (CamKeypoint**)malloc(sizeof(CamKeypoint*) * nbPoints);
+	if (fpoints->keypoint == NULL) {
+	    fpoints->allocated = 0;
+	    camError("camAllocateKeypoints", "Memory allocation error");
+	    return 0;
+	}
+    } else fpoints->keypoint = NULL;
     fpoints->bag = NULL;
-    if (fpoints->keypoint == NULL) {
-	fpoints->allocated = 0;
-	camError("camAllocateKeypoints", "Memory allocation error");
-	return 0;
-    }
     fpoints->allocated = nbPoints;
     return 1;
 }

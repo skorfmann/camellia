@@ -2169,10 +2169,11 @@ typedef struct _CamKeypoints {
 #define CAM_UPRIGHT		1
 #define CAM_APPROX_HESSIAN	2
 #define CAM_NO_INTERPOLATION	4
-#define CAM_DESC_SURF_LIKE	8
+#define CAM_DESC_SEP_TEXTURE	8
 #define CAM_DESC_SEP_NORM	16
+#define CAM_SIMPLE_SUM		32
 
-int camKeypointsSetParameters(int patchSize, int sigma);
+int camKeypointsSetParameters(int patchSize, double sigma);
 
 #ifndef SWIG
 
