@@ -220,7 +220,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	w = point->scale * camPatchSizeParam;
 	sx = ((w * camHaarFilterSizeParam) / 100) >> 4; 
 	// Check boundaries
-	if (point->x - (((19 * w) / 40) >> 4) - sx <= 0 || point->y - (((19 * w) / 40) >> 4) - sx <= 0 ||
+	if (point->x - (((19 * w) / 40) >> 4) - sx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx <= 1 ||
 	    point->x + (((19 * w) / 40) >> 4) + sx >= source->width ||
 	    point->y + (((19 * w) / 40) >> 4) + sx >= source->height) {
 	    printf("Out of boundaries\n");
