@@ -68,6 +68,7 @@ int camColorCoeff = 20;
 int camHaarFilterSizeParam = 5;
 int camHaarFilterSpaceParam = 0;
 int camGradientSaturationParam = 100;
+double camSigma2Param = 1;
 
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
@@ -262,7 +263,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     CAM_INT32 *ptry[20], incx[20], *ptr;
 #define CHECK_CODE
 #ifdef CHECK_CODE
-    double sumd;
+    double sumd, cx, cy;
 #endif
     
     static int nb = 0;
@@ -395,6 +396,25 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		    dxt[i] = 0; dyt[i] = 0; abs_dxt[i] = 0; abs_dyt[i] = 0;
 		}
 
+#if 1
+		for (i = 0; i < 16; i++) {
+		    cx = 2 + (i % 4) * 5;
+		    cy = 2 + (i / 4) * 5;
+		    for (y = 0; y < 20; y++) {
+			for (x = 0; x < 20; x++) {
+			    j = (255 * exp(-((x-cx) * (x-cx) + (y-cy) * (y-cy)) / (2 * camSigma2Param * camSigma2Param)));
+			    val_v = j * dx[y][x];
+			    val_h = j * dy[y][x];
+			    dxt[i] += val_v;
+			    dyt[i] += val_h;
+			    if (channel == 0) {
+				abs_dxt[i] += abs(val_v);
+				abs_dyt[i] += abs(val_h);
+			    }
+			}
+		    }
+		}
+#else
 		for (y = 0, i = 0; y < 20; y++) {
 		    for (x = 0; x < 20; x++, i++) {
 			val_v = dx[y][x];
@@ -413,6 +433,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 			}
 		    }
 		}
+#endif
 
 		if (channel == 0) {
 		    if (options & CAM_DESC_SEP_TEXTURE) {

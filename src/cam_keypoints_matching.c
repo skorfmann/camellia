@@ -97,8 +97,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
     sum = _mm_setzero_si128();
     for (i = 0; i != s >> 4; i++) {
 	// 32-bits SAD for 4 integers in parallel
-	d1 = _mm_load_si128(p1++);
-	d2 = _mm_load_si128(p2++);
+	d1 = _mm_loadu_si128(p1++);
+	d2 = _mm_loadu_si128(p2++);
 	d = _mm_sub_epi32(d1, d2);
 	md = _mm_sub_epi32(d2, d1);
 	cmp = _mm_cmplt_epi32(d, _mm_setzero_si128());
@@ -108,8 +108,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	sum = _mm_add_epi32(sum, d);   
 	
 	// 32-bits SAD for 4 integers in parallel
-	d1 = _mm_load_si128(p1++);
-	d2 = _mm_load_si128(p2++);
+	d1 = _mm_loadu_si128(p1++);
+	d2 = _mm_loadu_si128(p2++);
 	d = _mm_sub_epi32(d1, d2);
 	md = _mm_sub_epi32(d2, d1);
 	cmp = _mm_cmplt_epi32(d, _mm_setzero_si128());
@@ -119,8 +119,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	sum = _mm_add_epi32(sum, d);   
 	
 	// 32-bits SAD for 4 integers in parallel
-	d1 = _mm_load_si128(p1++);
-	d2 = _mm_load_si128(p2++);
+	d1 = _mm_loadu_si128(p1++);
+	d2 = _mm_loadu_si128(p2++);
 	d = _mm_sub_epi32(d1, d2);
 	md = _mm_sub_epi32(d2, d1);
 	cmp = _mm_cmplt_epi32(d, _mm_setzero_si128());
@@ -130,8 +130,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	sum = _mm_add_epi32(sum, d);   
 	
 	// 32-bits SAD for 4 integers in parallel
-	d1 = _mm_load_si128(p1++);
-	d2 = _mm_load_si128(p2++);
+	d1 = _mm_loadu_si128(p1++);
+	d2 = _mm_loadu_si128(p2++);
 	d = _mm_sub_epi32(d1, d2);
 	md = _mm_sub_epi32(d2, d1);
 	cmp = _mm_cmplt_epi32(d, _mm_setzero_si128());
