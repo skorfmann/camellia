@@ -54,6 +54,7 @@
 #include <math.h>
 #include <assert.h>
 
+//#define CAM_EUCLIDIAN_DISTANCE
 #ifdef CAM_EUCLIDIAN_DISTANCE
 int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {

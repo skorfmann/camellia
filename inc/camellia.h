@@ -2171,7 +2171,8 @@ typedef struct _CamKeypoints {
 #define CAM_NO_INTERPOLATION	4
 #define CAM_DESC_SEP_TEXTURE	8
 #define CAM_DESC_SEP_NORM	16
-#define CAM_SIMPLE_SUM		32
+#define CAM_DESC_DEBUG		32
+#define CAM_SIMPLE_SUM		64
 
 int camKeypointsSetParameters(int patchSize, double sigma);
 

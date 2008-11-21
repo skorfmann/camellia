@@ -1107,7 +1107,7 @@ void example_keypoints()
     for (c = 0; c < 10; c++)
     {
 	printf("%d ", c);
-	camFastHessianDetector(&image, &points, 30, CAM_APPROX_HESSIAN);
+	camFastHessianDetector(&image, &points, 100, CAM_APPROX_HESSIAN);
     }	
     t2=camGetTimeMs();
     printf("Fast hessian computation = %d us\n",(t2-t1)*100);
@@ -1137,14 +1137,14 @@ void example_keypoints2()
     Y1.imageData = NULL;
     camRGB2Y(&image, &Y1);
     //    camSavePGM(&Y1, "output/clooney.pgm");
-    camAllocateKeypoints(&points1, 100000);
-    camAllocateKeypoints(&points2, 100000);
+    camAllocateKeypoints(&points1, 1000);
+    camAllocateKeypoints(&points2, 1000);
     camAllocateImage(&Y2, (((int)(Y1.width*ratio))/8)*8, (((int)(Y1.height*ratio))/8)*8, CAM_DEPTH_8U);
     camScale(&Y1, &Y2);
     camSavePGM(&Y2, "output/clooney2.pgm");
 
-    camFastHessianDetector(&Y1, &points1, 500, 0);
-    camFastHessianDetector(&Y2, &points2, 500, 0);
+    camFastHessianDetector(&Y1, &points1, 100, 0);
+    camFastHessianDetector(&Y2, &points2, 100, 0);
 	
     nbMatches = 0;
     
@@ -1286,7 +1286,7 @@ int main()
     camInitBenchmark();
 
     // Legacy examples
-/*    example_filters();
+    example_filters();
     example_warping();
     example_binary();
     example_morpho();
@@ -1303,13 +1303,11 @@ int main()
     example_sobel();
     example_high_pass();
     example_histogram();
-    example_harris();
+    //example_harris();
     example_integralimage();
-*/
     example_keypoints();
-    test_camKeypointsAlt();
-/*
- * example_keypoints2();
+    //test_camKeypointsAlt();
+    example_keypoints2();
     example_keypoints3();
     example_capture();
     example_bmp();
@@ -1327,7 +1325,6 @@ int main()
     cpp_example_alpha_composite();
     cpp_example_watershed();
     cpp_example_draw();
-   */
 
     return 0;
 }

@@ -676,7 +676,7 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
 		if (den == 0)
 		    keypoints[i].value = -1; // Destroy
 		else {
-		    p = (num << 1) / den;	    
+		    p = (num << 1) / den; // shift only by 1, because den is shifted by 2	    
 		    keypoints[i].scale = p + (CamScale[keypoints[i].scale] << 2);
 		}
 	    }

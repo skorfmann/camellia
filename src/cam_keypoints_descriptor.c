@@ -61,12 +61,13 @@
 #include <emmintrin.h>
 #endif
 
-int camPatchSizeParam = 32; ///8*3;
-double camSigmaParam = 6.6;
-int camAbsCoeff = 5;
+int camPatchSizeParam = 38; ///8*3;
+double camSigmaParam = 7;
+int camAbsCoeff = 4;
 int camColorCoeff = 20;
 int camHaarFilterSizeParam = 5;
 int camHaarFilterSpaceParam = 0;
+int camGradientSaturationParam = 100;
 
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
@@ -259,17 +260,21 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     int dx[20][20], dy[20][20];
     int w, sx, sy, xp, yp, xs, ys, l1, fsx, fsy;
     CAM_INT32 *ptry[20], incx[20], *ptr;
-#if 0
+#define CHECK_CODE
+#ifdef CHECK_CODE
+    double sumd;
+#endif
+    
     static int nb = 0;
     char filename[256];
     FILE *handle;
-#endif
    
     if (source->depth == 32) {
 	// This is an integral image
 	w = point->scale * camPatchSizeParam;
 	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
-        fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
+        if (sx <= 1) sx = 2;
+	fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
 	// Check boundaries
 	if (point->x - (((19 * w) / 40) >> 4) - sx - fsx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx - fsx <= 1 ||
 	    point->x + (((19 * w) / 40) >> 4) + sx + fsx >= source->width ||
@@ -292,76 +297,90 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    // Compute the gradients
 	    if (camHaarFilterSpaceParam > 0) {
 		for (y = 0; y < 20; y++) {
-		    imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
 		    for (x = 0; x < 20; x++) {
 			ptr = ptry[y] + incx[x];
-			dx[x][y] = *(ptr + sx + sy + fsx) - *(ptr + sy + fsx) - *(ptr + sx - sy + fsx) + *(ptr - sy + fsx) -
+			dx[y][x] = *(ptr + sx + sy + fsx) - *(ptr + sy + fsx) - *(ptr + sx - sy + fsx) + *(ptr - sy + fsx) -
 			    (*(ptr + sy - 1 - fsx) - *(ptr - sx + sy - 1 - fsx) - *(ptr - sy - 1 - fsx) + *(ptr - sx - sy - 1 - fsx));
-			dy[x][y] = *(ptr + sx + sy + fsy) - *(ptr + sx + fsy) - *(ptr - sx + sy + fsy) + *(ptr - sx + fsy) -
+			dy[y][x] = *(ptr + sx + sy + fsy) - *(ptr + sx + fsy) - *(ptr - sx + sy + fsy) + *(ptr - sx + fsy) -
 			    (*(ptr + sx - l1 - fsy) - *(ptr - sx - l1 - fsy) - *(ptr + sx - sy - l1 - fsy) + *(ptr - sx - sy - l1 - fsy));
 		    }
 		}	    
 	    } else {
 		for (y = 0; y < 20; y++) {
-		    imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
 		    for (x = 0; x < 20; x++) {
 			ptr = ptry[y] + incx[x];
-			dx[x][y] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy) + *(ptr - sy) -
-			    (*(ptr + sy - 1) - *(ptr - sx + sy - 1) - *(ptr - sy - 1) + *(ptr - sx - sy - 1));
-			dy[x][y] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy) + *(ptr - sx) -
-			    (*(ptr + sx - l1) - *(ptr - sx - l1) - *(ptr + sx - sy - l1) + *(ptr - sx - sy - l1));
+			dx[y][x] = *(ptr + sx + sy) - *(ptr + sy) - *(ptr + sx - sy - l1) + *(ptr - sy - l1) -
+			    (*(ptr + sy - 1) - *(ptr - sx + sy - 1) - *(ptr - sy - 1 - l1) + *(ptr - sx - sy - 1 - l1));
+			dy[y][x] = *(ptr + sx + sy) - *(ptr + sx) - *(ptr - sx + sy - 1) + *(ptr - sx - 1) -
+			    (*(ptr + sx - l1) - *(ptr - sx - l1 - 1) - *(ptr + sx - sy - l1) + *(ptr - sx - sy - l1 - 1));
 		    }
 		}	    
 	    }		
-	    // Filtrage gaussien
+
+	    // Gaussian filtering
 	    for (y = 0; y < 20; y++) {
 		imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
 		for (x = 0; x < 20; x++) {
-		    dx[x][y] *= ((*imptr_h) >> 3);
-		    assert(abs(dx[x][y]) < (1 << 30));
-		    dx[x][y] >>= 10;	
-		    dy[x][y] *= ((*imptr_h) >> 3);
-		    assert(abs(dy[x][y]) < (1 << 30));
-		    dy[x][y] >>= 10;	
+		    assert(abs(dx[y][x]) < (1 << 20));
+		    dx[y][x] *= ((*imptr_h) >> 6);
+		    assert(abs(dx[y][x]) < (1 << 30));
+		    dx[y][x] >>= 10;	
+		    assert(abs(dy[y][x]) < (1 << 20));
+		    dy[y][x] *= ((*imptr_h) >> 6);
+		    assert(abs(dy[y][x]) < (1 << 30));
+		    dy[y][x] >>= 10;	
 		    imptr_h++;
 		}
 	    }	    
 
-	    // Build the descriptor
+	    // Reduce effect of overweighted gradients
+	    sum = 0;
+	    for (y = 0; y < 20; y++) {
+		for (x = 0; x < 20; x++) {
+		    sum += abs(dx[y][x]) + abs(dy[y][x]);     
+		}
+	    }
+	    i = (sum >> 10) * camGradientSaturationParam;
+	    for (y = 0; y < 20; y++) {
+		for (x = 0; x < 20; x++) {
+		    if (dx[y][x] > i) dx[y][x] = i;
+		    else if (dx[y][x] < -i) dx[y][x] = -i;
+		    if (dy[y][x] > i) dy[y][x] = i;
+		    else if (dy[y][x] < -i) dy[y][x] = -i;
+		}
+	    } 
+	    
 	    if (options & CAM_SIMPLE_SUM) {
 		if (channel == 0) {
-		    i = 0;
+		    point->size = 0;
 		    for (y = 0, ys = 0; y < 4; y++, ys += 5) {
 			for (x = 0, xs = 0; x < 4; x++, xs += 5) {
 			    sdx = 0; sdy = 0; sabs_dx = 0; sabs_dy = 0;	
 			    for (yp = 0; yp < 5; yp++) {
 				for (xp = 0; xp < 5; xp++) {
-				    j = dx[xs + xp][ys + yp];
+				    j = dx[ys + yp][xs + xp];
 				    sdx += j;
 				    sabs_dx += abs(j);
-				    j = dy[xs + xp][ys + yp];
+				    j = dy[ys + yp][xs + xp];
 				    sdy += j;
 				    sabs_dy += abs(j);
 				}
 			    }
-			    point->descriptor[i] = sdx;
-			    point->descriptor[32 + i] = sabs_dx; 
-			    i++;
-			    point->descriptor[i] = sdy;
-			    point->descriptor[32 + i] = sabs_dy;
-			    i++;
+			    point->descriptor[point->size++] = sdx;
+			    point->descriptor[point->size++] = sdy;
+			    point->descriptor[point->size++] = sabs_dx; 
+			    point->descriptor[point->size++] = sabs_dy;
 			}
 		    }
-		    point->size = 64;
 		} else {
 		    for (y = 0, ys = 0; y < 4; y++, ys += 5) {
 			for (x = 0, xs = 0; x < 4; x++, xs += 5) {
 			    sdx = 0; sdy = 0;	
 			    for (yp = 0; yp < 5; yp++) {
 				for (xp = 0; xp < 5; xp++) {
-				    j = dx[xs + xp][ys + yp];
+				    j = dx[ys + yp][xs + xp];
 				    sdx += j;
-				    j = dy[xs + xp][ys + yp];
+				    j = dy[ys + yp][xs + xp];
 				    sdy += j;
 				}
 			    }
@@ -370,7 +389,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 			}
 		    }
 		}
-	    } else{
+	    } else {
 		// Descriptor with bilinear interpolation
 		for (i = 0; i < 16; i++) {
 		    dxt[i] = 0; dyt[i] = 0; abs_dxt[i] = 0; abs_dyt[i] = 0;
@@ -397,18 +416,18 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
 		if (channel == 0) {
 		    if (options & CAM_DESC_SEP_TEXTURE) {
-			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			for (j = 0, i = 0; j < 16; j++, i += 4) {
 			    point->descriptor[i] = dxt[j] << 3;
 			    point->descriptor[i + 1] = dyt[j] << 3;
-			    point->descriptor[32 + i] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
-			    point->descriptor[33 + i] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
+			    point->descriptor[i + 2] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
+			    point->descriptor[i + 3] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
 			}
 		    } else {
-			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			for (j = 0, i = 0; j < 16; j++, i += 4) {
 			    point->descriptor[i] = dxt[j] << 3;
 			    point->descriptor[i + 1] = dyt[j] << 3;
-			    point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
-			    point->descriptor[33 + i] = abs_dyt[j] * camAbsCoeff;
+			    point->descriptor[i + 2] = abs_dxt[j] * camAbsCoeff; 
+			    point->descriptor[i + 3] = abs_dyt[j] * camAbsCoeff;
 			}
 		    }
 		    point->size = 64;
@@ -441,10 +460,10 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	}
 	camWarping(source, &rotated, &params);
 
-#if 0
-	sprintf(filename, "output/rotated%d.pgm", nb++);
-	camSavePGM(&rotated, filename);
-#endif
+	if ((options & CAM_DESC_DEBUG) && nb < 20) {
+	    sprintf(filename, "output/rotated%d.pgm", nb++);
+	    camSavePGM(&rotated, filename);
+	}
 
 	// We now have the rotated image
 	// Let's filter it...
@@ -486,11 +505,10 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 			    sabs_dx = camAbs(&filtered_v, &filtered_v);
 			    sabs_dy = camAbs(&filtered_h, &filtered_h); 
 			    point->descriptor[i] = sdx;
-			    point->descriptor[32 + i] = sabs_dx; 
-			    i++;
-			    point->descriptor[i] = sdy;
-			    point->descriptor[32 + i] = sabs_dy;
-			    i++;
+			    point->descriptor[i + 1] = sdy;
+			    point->descriptor[i + 2] = sabs_dy;
+			    point->descriptor[i + 3] = sabs_dx; 
+			    i += 4;
 			}
 		    }
 		    point->size = 64;
@@ -538,18 +556,18 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
 		if (channel == 0) {
 		    if (options & CAM_DESC_SEP_TEXTURE) {
-			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			for (j = 0, i = 0; j < 16; j++, i += 4) {
 			    point->descriptor[i] = dxt[j] << 3;
 			    point->descriptor[i + 1] = dyt[j] << 3;
-			    point->descriptor[32 + i] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
-			    point->descriptor[33 + i] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
+			    point->descriptor[i + 2] = (abs_dxt[j] - abs(dxt[j])) * camAbsCoeff; 
+			    point->descriptor[i + 3] = (abs_dyt[j] - abs(dyt[j])) * camAbsCoeff;
 			}
 		    } else {
-			for (j = 0, i = 0; j < 16; j++, i += 2) {
+			for (j = 0, i = 0; j < 16; j++, i += 4) {
 			    point->descriptor[i] = dxt[j] << 3;
 			    point->descriptor[i + 1] = dyt[j] << 3;
-			    point->descriptor[32 + i] = abs_dxt[j] * camAbsCoeff; 
-			    point->descriptor[33 + i] = abs_dyt[j] * camAbsCoeff;
+			    point->descriptor[i + 2] = abs_dxt[j] * camAbsCoeff; 
+			    point->descriptor[i + 3] = abs_dyt[j] * camAbsCoeff;
 			}
 		    }
 		    point->size = 64;
@@ -574,11 +592,73 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	camDeallocateImage(&filtered_h);
 	camDeallocateImage(&filtered_v);
     }
-  
+ 
     // Normalization
-//#define CHECK_CODE
+    // "à la OpenCV"
+#if 0
+    start = 0;
+    end = point->size;
+    for (i = start; i < end; i += 4) {
+	sumd = 0;
+	for (j = 0; j < 4; j++) {
+	    sumd += (double)point->descriptor[i + j] * point->descriptor[i + j];
+	}
+	if (sumd == 0) {
+	    for (j = 0; j < 4; j++) {
+		point->descriptor[i + j] = 0;
+	    }
+	} else {
+	    sumd = 1./sqrt(sumd);
+	    for (j = 0; j < 4; j++) {
+		point->descriptor[i + j] = point->descriptor[i + j] * sumd * 100000.;
+	    }
+	}
+    }
+#endif
+
+#if 1 
 #ifdef CHECK_CODE
-    if (options & CAM_DESC_SEP_NORM) {
+//#define CHECK_L2_NORM
+#ifdef CHECK_L2_NORM 
+     if (options & CAM_DESC_SEP_NORM) {
+	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
+	    start = j * 64;
+	    end = start + 64;
+	    sumd = 0;
+	    for (i = start; i < end; i++) {
+		sumd += (double)point->descriptor[i] * point->descriptor[i];
+	    }
+	    if (sumd == 0) {
+		for (i = start; i < end; i++) {
+		    point->descriptor[i] = 0;
+		}
+	    } else {
+		sumd = 1./sqrt(sumd);
+		for (i = start; i < end; i++) {
+		    point->descriptor[i] = point->descriptor[i] * sumd * 100000.;
+		}	
+	    }
+	}
+    } else {
+	start = 0;
+	end = point->size;
+	sumd = 0;
+	for (i = start; i < end; i++) {
+	    sumd += (double)point->descriptor[i] * point->descriptor[i];
+	}
+	if (sumd == 0) {
+	    for (i = start; i < end; i++) {
+		point->descriptor[i] = 0;
+	    }
+	} else {
+	    sumd = 1./sqrt(sumd);
+	    for (i = start; i < end; i++) {
+		point->descriptor[i] = point->descriptor[i] * sumd * 100000.;
+	    }
+	}
+    }
+#else
+     if (options & CAM_DESC_SEP_NORM) {
 	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
 	    start = j * 64;
 	    end = start + 64;
@@ -592,7 +672,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		}
 	    } else {
 		for (i = start; i < end; i++) {
-		    point->descriptor[i] = ((double)point->descriptor[i] * (double)10000.0) / (double)sum;
+		    point->descriptor[i] = ((double)point->descriptor[i] * (double)100000.0) / (double)sum;
 		}	
 	    }
 	}
@@ -609,10 +689,11 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    }
 	} else {
 	    for (i = start; i < end; i++) {
-		point->descriptor[i] = ((double)point->descriptor[i] * (double)10000.0) / (double)sum;
+		point->descriptor[i] = ((double)point->descriptor[i] * (double)100000.0) / (double)sum;
 	    }
 	}
     }
+#endif // CHECK_L2_NORM
 #else
     if (options & CAM_DESC_SEP_NORM) {
 	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
@@ -640,6 +721,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	}
     }
 #endif    
+#endif
     return 1;
 }
 
