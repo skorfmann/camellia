@@ -61,9 +61,9 @@
 #include <emmintrin.h>
 #endif
 
-int camPatchSizeParam = 38; ///8*3;
+int camPatchSizeParam = 32; //38; ///8*3;
 double camSigmaParam = 7;
-int camAbsCoeff = 4;
+int camAbsCoeff = 5;
 int camColorCoeff = 20;
 int camHaarFilterSizeParam = 5;
 int camHaarFilterSpaceParam = 0;
@@ -397,8 +397,8 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 
 		for (y = 0, i = 0; y < 20; y++) {
 		    for (x = 0; x < 20; x++, i++) {
-			val_h = dx[x][y];
-			val_v = dy[x][y];
+			val_v = dx[y][x];
+			val_h = dy[y][x];
 			for (j = 0; j < camKPNbAttPoints[i]; j++) {
 			    idx = camKPAttPoint[i * 4 + j];
 			    coeff = camKPCoeff[i * 4 + j];
