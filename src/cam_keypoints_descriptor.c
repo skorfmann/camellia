@@ -68,7 +68,7 @@ int camColorCoeff = 20;
 int camHaarFilterSizeParam = 5;
 int camHaarFilterSpaceParam = 0;
 int camGradientSaturationParam = 100;
-double camSigma2Param = 1;
+double camSigma2Param = 0.18; //2.2;
 
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
@@ -258,10 +258,10 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
     const int xpp[4] = {-1, 1, 1, -1};
     const int ypp[4] = {-1, -1, 1, 1};
 
-    int dx[20][20], dy[20][20];
-    int w, sx, sy, xp, yp, xs, ys, l1, fsx, fsy;
+    int dx[22][22], dy[22][22];
+    int w, sx, sy, xp, yp, xs, ys, l1, fsx, fsy, shift;
     CAM_INT32 *ptry[20], incx[20], *ptr;
-#define CHECK_CODE
+//#define CHECK_CODE
 #ifdef CHECK_CODE
     double sumd, cx, cy;
 #endif
@@ -272,7 +272,6 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
    
     if (source->depth == 32) {
 	// This is an integral image
-	w = point->scale * camPatchSizeParam;
 	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
         if (sx <= 1) sx = 2;
 	fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
@@ -287,6 +286,11 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	l1 = source->widthStep >> 2;
 	sy = sx * l1;
 	fsy = fsx * l1;
+	// Estimate shift : shift = log2(sx)
+	shift = 0; i = sx;
+	do { shift++; i >>= 1; } while (i != 0);
+	shift *= 2;
+	shift -= 8; if (shift < 0) shift = 0;
 
 	for (channel = 0; channel < source->nChannels; channel++) {
 
@@ -317,7 +321,12 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		    }
 		}	    
 	    }		
-
+	    for (y = 0; y < 20; y++) {
+		for (x = 0; x < 20; x++) {
+		    dx[y][x] >>= shift;
+		    dy[y][x] >>= shift;
+		}
+	    }
 	    // Gaussian filtering
 	    for (y = 0; y < 20; y++) {
 		imptr_h = (CAM_INT16*)(filter->imageData + y * filter->widthStep);
@@ -396,13 +405,15 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 		    dxt[i] = 0; dyt[i] = 0; abs_dxt[i] = 0; abs_dyt[i] = 0;
 		}
 
-#if 1
+#if 0
 		for (i = 0; i < 16; i++) {
 		    cx = 2 + (i % 4) * 5;
 		    cy = 2 + (i / 4) * 5;
 		    for (y = 0; y < 20; y++) {
 			for (x = 0; x < 20; x++) {
-			    j = (255 * exp(-((x-cx) * (x-cx) + (y-cy) * (y-cy)) / (2 * camSigma2Param * camSigma2Param)));
+			    j = 255 * (1.0 - camSigma2Param * sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy)));
+			    if (j < 0) j = 0;
+			    //j = (255 * exp(-((x-cx) * (x-cx) + (y-cy) * (y-cy)) / (2 * camSigma2Param * camSigma2Param)));
 			    val_v = j * dx[y][x];
 			    val_h = j * dy[y][x];
 			    dxt[i] += val_v;
@@ -452,6 +463,31 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 			}
 		    }
 		    point->size = 64;
+		    
+		    // Test average on regions
+/*
+		    if (source->nChannels == 1) {
+			for (y = 0; y < 20; y++) {
+			    for (x = 0; x < 20; x++) {
+				ptr = ptry[y] + incx[x];
+				dx[y][x] = *(ptr + sx + sy) - *(ptr + sx - sy - l1) - *(ptr - sx - 1 + sy) + *(ptr - sx - 1 - sy - l1);
+			    }
+			}
+			for (i = 0; i < 16; i++) dxt[i] = 0;
+			for (y = 0, i = 0; y < 20; y++) {
+			    for (x = 0; x < 20; x++, i++) {
+				for (j = 0; j < camKPNbAttPoints[i]; j++) {
+				    idx = camKPAttPoint[i * 4 + j];
+				    coeff = camKPCoeff[i * 4 + j];
+				    dxt[idx] += coeff * dx[y][x];
+				}
+			    }
+			}
+			// Add these averages to the descriptor, with a given weight...
+
+		    }	
+*/
+
 		} else {
 		    for (j = 0; j < 16; j++) {
 			point->descriptor[point->size++] = dxt[j] * camColorCoeff;
@@ -736,6 +772,8 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	for (i = start; i < end; i++) {
 	    sum += abs(point->descriptor[i]);
 	}
+	//sum *= camColorCoeff;
+	//sum >>= 3;
 	if (sum != 0) sum = (1 << 30) / sum; // Division
 	for (i = start; i < end; i++) {
 	    point->descriptor[i] = (point->descriptor[i] * sum) >> 6;
