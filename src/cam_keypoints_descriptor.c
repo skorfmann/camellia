@@ -272,6 +272,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
    
     if (source->depth == 32) {
 	// This is an integral image
+	w = point->scale * camPatchSizeParam;
 	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
         if (sx <= 1) sx = 2;
 	fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
