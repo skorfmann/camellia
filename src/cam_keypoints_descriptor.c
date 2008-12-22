@@ -752,7 +752,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	}
     }
 #endif // CHECK_L2_NORM
-#else
+#else // CHECK_CODE
     if (options & CAM_DESC_SEP_NORM) {
 	for (j = 0; j < ((source->nChannels == 1)?1:2); j++) {
 	    start = j * 64;
@@ -780,7 +780,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	    point->descriptor[i] = (point->descriptor[i] * sum) >> 6;
 	}
     }
-#endif    
+#endif // CHECK_CODE  
 #endif
     return 1;
 }

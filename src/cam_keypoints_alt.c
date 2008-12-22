@@ -19,7 +19,6 @@
 #define CAM_ORIENTATION_STAMP_SIZE 30
 
 typedef struct {
-    CamImage *integral;
     int count;
     int min_distance_to_border[CAM_MAX_SCALE];
     int offset[CAM_MAX_SCALE][8 * 4];
@@ -34,7 +33,6 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
     double v;
     int scale;
 
-    data->integral = integral;
     data->count = 0;
     linc = integral->widthStep / 4;
 
@@ -93,7 +91,7 @@ void camHessianEstimateDataBuild(CamHessianEstimateData *data, CamImage *integra
 	// The multiplier should be augmented accordingly
 	data->coeff[scale] = (int)floor(pow(2, 12) / pow(sizep, 4) * pow(2, data->preshift[scale] * 2) + 0.5);
 	// All data->coeff[scale] should be in the range from 1 to 2^6 = 64, turning a 26 bits max determinant into a 32 bits max determinant
-	printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
+	//printf("scale = %d sizep = %d widthp = %d preshift = %d coeff = %d\n", scale, sizep, widthp, data->preshift[scale], data->coeff[scale]); 
     }
 }
 
@@ -105,10 +103,10 @@ typedef struct {
     int c[3];   
 } CamKeypointLocation;
 
-// This code involves (exscluding boundaries checking) 8 * 4 = 32 memory accesses to the integral image
+// This code involves 8 * 4 = 32 memory accesses to the integral image
 // 4 right shifts (1 with constant), and 5 32-bits multiplications (not overflowing - no need for 64 bits result)
 // (and approximately 8 * (4 + 3) + 2 * 3 + 3 + 1 = 66 additions) 
-int camHessianEstimate(CamHessianEstimateData *data, CamKeypointLocation *keypoint)
+int camHessianEstimate(CamHessianEstimateData *data, CamImage *integral, CamKeypointLocation *keypoint, int *trace)
 {
     int det, Dxx, Dyy, Dxy, tmp;
     int x = keypoint->c[0], y = keypoint->c[1], scale = keypoint->c[2];
@@ -116,7 +114,7 @@ int camHessianEstimate(CamHessianEstimateData *data, CamKeypointLocation *keypoi
     unsigned long *imptr;
 
     data->count++;
-    imptr = ((unsigned long*)(data->integral->imageData + y * data->integral->widthStep)) + x;
+    imptr = ((unsigned long*)(integral->imageData + y * integral->widthStep)) + x;
 
 #define CAM_INTEGRAL(i) \
     ( *(imptr + offset_ptr[i * 4]) - *(imptr + offset_ptr[i * 4 + 1]) - *(imptr + offset_ptr[i * 4 + 2]) + *(imptr + offset_ptr[i * 4 + 3]) )
@@ -135,6 +133,7 @@ int camHessianEstimate(CamHessianEstimateData *data, CamKeypointLocation *keypoi
     // det certainly stands within 26 bits 
     det *= data->coeff[scale];
     // it should stay within 32 bits range
+    if (trace) *trace = Dxx + Dyy;
     return det;
 }
 
@@ -210,7 +209,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
     if ((neighbour.c[2] < 1) || (neighbour.c[2] >= CAM_MAX_SCALE)) break; \
     tmp = data.min_distance_to_border[neighbour.c[2]]; \
     if ((neighbour.c[0] < tmp) || (neighbour.c[0] > integral.width - tmp) || (neighbour.c[1] < tmp) || (neighbour.c[1] > integral.height - tmp)) break; \
-    neighbour_value = camHessianEstimate(&data, &neighbour); \
+    neighbour_value = camHessianEstimate(&data, &integral, &neighbour, NULL); \
     nb_tests++; \
     if (neighbour_value > best_keypoint_value) { \
 	found_better = 1; counter_not_found = 0; best_keypoint = neighbour; best_keypoint_value = neighbour_value; stat_good++; \
@@ -221,7 +220,7 @@ int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keyp
 #define MAX_NOT_FOUND 10 
 #define INV_GAIN_MOVE 2
 	current_keypoint = seeds[c].seed;
-        current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &current_keypoint);
+        current_keypoint_value = best_keypoint_value = camHessianEstimate(&data, &integral, &current_keypoint, NULL);
 	nb_tests = 1;
 	best_keypoint = current_keypoint;
 	counter_not_found = 0;
@@ -437,9 +436,9 @@ void test_camKeypointsAlt()
     camIntegralImage(&image, &integral);
     camHessianEstimateDataBuild(&data, &integral);
     key.c[0] = 50; key.c[1] = 50; key.c[2] = 6;
-    printf("Value = %d\n", camHessianEstimate(&data, &key));
+    printf("Value = %d\n", camHessianEstimate(&data, &integral, &key, NULL));
     key.c[0] = 193; key.c[1] = 193; key.c[2] = 10;
-    printf("Value = %d\n", camHessianEstimate(&data, &key));
+    printf("Value = %d\n", camHessianEstimate(&data, &integral, &key, NULL));
     camDeallocateImage(&integral);
     */
     
