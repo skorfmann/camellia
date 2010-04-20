@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ fonction rgb2hls(double r, double g, double b)
 #include "cam_hls_sqrt_code.c"
 
 /* The parameter is put back into [0;360[ */
-static unsigned short phasearg(long ip, long rp, long md)
+static unsigned short phasearg(int ip, int rp, int md)
 {
     if (md == 0)
 	return 0;
@@ -106,10 +106,10 @@ static unsigned short phasearg(long ip, long rp, long md)
 	    return 180 + phasearg_tab[-ip][-rp];
 }
 
-static unsigned short hypotw(long re, long im)
+static unsigned short hypotw(int re, int im)
 {
-    long abs_re = abs(re);
-    long abs_im = abs(im);
+    int abs_re = abs(re);
+    int abs_im = abs(im);
 
     if (abs_re > 255)
     {
@@ -126,7 +126,7 @@ static unsigned short hypotw(long re, long im)
     return hypot_tab[abs_re][abs_im];
 }
 
-static unsigned short cam_sqrt(long carre)
+static unsigned short cam_sqrt(int carre)
 {
     if (carre < 0)
     {

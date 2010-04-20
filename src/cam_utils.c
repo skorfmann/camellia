@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -472,7 +472,7 @@ int camAllocateImage(CamImage *image, int width, int height, int depth)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
 	    camSetErrorStr("Memory allocation failed");
 	    return 0;
@@ -518,7 +518,7 @@ int camAllocateYUVImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -571,7 +571,7 @@ int camAllocateYUVImageEx(CamImage *image, int width, int height, int depth)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -617,7 +617,7 @@ int camAllocateHLSImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -662,7 +662,7 @@ int camAllocateRGBImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -707,7 +707,7 @@ int camAllocateRGBAImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -752,7 +752,7 @@ int camAllocateBGRImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -797,7 +797,7 @@ int camAllocateBGRAImage(CamImage *image, int width, int height)
         image->imageData = NULL;
     } else {
         image->imageDataOrigin=(unsigned char*)malloc(image->imageSize+image->align);
-        image->imageData=(unsigned char*)(((int)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
+        image->imageData=(unsigned char*)(((CAM_INT64)(image->imageDataOrigin-1)/image->align)*image->align+image->align);
         if (image->imageData == NULL) {
             camSetErrorStr("Memory allocation failed");
             return 0;
@@ -828,7 +828,7 @@ int camClone(CamImage *source, CamImage *dest)
     CAM_CHECK_ARGS2(camClone,source->imageData!=NULL,"source image is not initialized");
     *dest=*source;
     dest->imageDataOrigin=(unsigned char*)malloc(dest->imageSize+dest->align);
-    dest->imageData=(unsigned char*)(((int)(dest->imageDataOrigin-1)/dest->align)*dest->align+dest->align);
+    dest->imageData=(unsigned char*)(((CAM_INT64)(dest->imageDataOrigin-1)/dest->align)*dest->align+dest->align);
     if (dest->imageData==NULL) {
         camError("camClone","Out of memory");
         return 0;

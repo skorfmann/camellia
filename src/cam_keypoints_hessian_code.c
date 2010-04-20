@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in integral and binary forms, with or without
@@ -58,7 +58,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 {
     int x, y, i, c;
     int width, height;
-    unsigned long *srcptr, *tmpsrcptr;
+    unsigned int *srcptr, *tmpsrcptr;
     unsigned short *dstptr, *tmpdstptr;
     CamInternalROIPolicyStruct iROI;
     int acc = 0, inc, det;
@@ -105,7 +105,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
     CAM_CHECK_ARGS2(camFastHessianDetectorFixedScale, (width & 7) == 0 && (height & 7) == 0, "ROI width and height must be multiple of 8");
-    srcptr = (unsigned long *)iROI.srcptr;
+    srcptr = (unsigned int *)iROI.srcptr;
     dstptr = (unsigned short *)iROI.dstptr;
 
     INIT_MASK_MANAGEMENT;
@@ -284,7 +284,7 @@ int camFastHessianDetectorFixedScale(CamImage *integral, CamImage *dest, int sca
 		for (; x < endx ; x += (inc), srcptr += inc, dstptr++ ) *dstptr = 0;
 	    }
         END_MASK_MANAGEMENT;
-	srcptr = (unsigned long*)(((char*)tmpsrcptr) + integral->widthStep);
+	srcptr = (unsigned int*)(((char*)tmpsrcptr) + integral->widthStep);
 	if ((y & sampling_mask) == CamSamplingOffset[scale])
 	    dstptr = (unsigned short*)(((char*)tmpdstptr) + dest->widthStep);
     }

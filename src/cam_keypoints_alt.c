@@ -111,10 +111,10 @@ int camHessianEstimate(CamHessianEstimateData *data, CamImage *integral, CamKeyp
     int det, Dxx, Dyy, Dxy, tmp;
     int x = keypoint->c[0], y = keypoint->c[1], scale = keypoint->c[2];
     int *offset_ptr = data->offset[scale];
-    unsigned long *imptr;
+    unsigned int *imptr;
 
     data->count++;
-    imptr = ((unsigned long*)(integral->imageData + y * integral->widthStep)) + x;
+    imptr = ((unsigned int*)(integral->imageData + y * integral->widthStep)) + x;
 
 #define CAM_INTEGRAL(i) \
     ( *(imptr + offset_ptr[i * 4]) - *(imptr + offset_ptr[i * 4 + 1]) - *(imptr + offset_ptr[i * 4 + 2]) + *(imptr + offset_ptr[i * 4 + 3]) )

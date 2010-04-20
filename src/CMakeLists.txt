@@ -1,8 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 INCLUDE_DIRECTORIES(. ../inc)
 
-ADD_DEFINITIONS(-DCABLES_IS_BUILDING)
-
 SET(files 
     camellia.cpp 
     cam_3d.c 

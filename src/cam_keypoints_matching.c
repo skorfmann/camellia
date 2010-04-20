@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in integral and binary forms, with or without
@@ -59,7 +59,7 @@
 int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2)
 {
     int i;
-    long long distance = 0, x;
+    int64_t distance = 0, x;
     for (i = 0; i < point1->size; i++) {
 	x = point1->descriptor[i] - point2->descriptor[i];
 	x *= x;

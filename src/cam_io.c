@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -257,7 +257,7 @@ int camSavePGM(CamImage *image, char *filename)
     } else if ((image->depth&CAM_DEPTH_MASK)==32) {
 	for (i=0; i<iROI.srcroi.height; i++) {
 	    for (j=0; j<iROI.srcroi.width; j++) {
-		pixel=(int)*((unsigned long*)(image->imageData+iROI.srcchoffset+(iROI.srcroi.yOffset+i)*image->widthStep)+(iROI.srcroi.xOffset+j)*iROI.srcinc);
+		pixel=(int)*((unsigned int*)(image->imageData+iROI.srcchoffset+(iROI.srcroi.yOffset+i)*image->widthStep)+(iROI.srcroi.xOffset+j)*iROI.srcinc);
 		fprintf(f, "%d ", pixel);
 		k++;
 		if (k > perline) {
@@ -307,7 +307,7 @@ int camSaveRawPGM(CamImage *image, char *filename)
     return 1;
 }
 
-static void put32(unsigned long value, FILE* outf)
+static void put32(unsigned int value, FILE* outf)
 {
     fputc(value & 0xff,outf);
     fputc((value >>  8) & 0xff,outf);
@@ -324,7 +324,7 @@ static void put16(unsigned int value, FILE* outf)
 // Contribution by Winfried Gerhke (Philips Hamburg)
 int camSaveBMP(CamImage *image, char *filename)
 {
-    long  width,height;
+    int  width,height;
     int   h,w,r,g,b;
     FILE *outfile;
     char buf1[64];
@@ -444,9 +444,9 @@ int camSaveBMP(CamImage *image, char *filename)
     return 1;
 }
 
-static unsigned long get32(FILE* inf)
+static unsigned int get32(FILE* inf)
 {
-    unsigned long c1,c2,c3,c4;
+    unsigned int c1,c2,c3,c4;
     
     c1 = fgetc(inf);
     c2 = fgetc(inf);
@@ -455,16 +455,16 @@ static unsigned long get32(FILE* inf)
     return(c1+(c2<<8)+(c3<<16)+(c4<<24));
 }
 
-static unsigned long get16(FILE* inf)
+static unsigned int get16(FILE* inf)
 {
-    unsigned long c1,c2;
+    unsigned int c1,c2;
     
     c1 = fgetc(inf);
     c2 = fgetc(inf);
     return(c1+(c2<<8));
 }
 
-static unsigned long get8(FILE* inf)
+static unsigned int get8(FILE* inf)
 {
     
     return(fgetc(inf));
@@ -472,7 +472,7 @@ static unsigned long get8(FILE* inf)
 
 int camLoadBMP(CamImage *im, char *fn)
 {
-    long  width,height,bpp,bitmap_start,comp;
+    int  width,height,bpp,bitmap_start,comp;
     char buf1[256], str[256];
     int h,w;
     int r,g,b;
@@ -561,7 +561,7 @@ static void camJPEGInitSource(j_decompress_ptr dcinfo);
 static boolean camJPEGFillInputBuffer (j_decompress_ptr dcinfo);
 // Skip data --- used to skip over a potentially large amount of
 // uninteresting data (such as an APPn marker).
-static void camJPEGSkipInputData (j_decompress_ptr dcinfo, long num_bytes);
+static void camJPEGSkipInputData (j_decompress_ptr dcinfo, int num_bytes);
 // Terminate source --- called by jpeg_finish_decompress
 // after all data has been read.  Often a no-op.
 static void camJPEGTermSource (j_decompress_ptr dcinfo);
@@ -594,13 +594,13 @@ boolean camJPEGFillInputBuffer (j_decompress_ptr dcinfo)
     return TRUE;
 }
 
-void camJPEGSkipInputData(j_decompress_ptr dcinfo, long num_bytes)
+void camJPEGSkipInputData(j_decompress_ptr dcinfo, int num_bytes)
 {
     CamJPEGMySourceMgr *src = (CamJPEGMySourceMgr*) dcinfo->src;
 
     if (num_bytes > 0) {
-	while (num_bytes > (long) src->pub.bytes_in_buffer) {
-	    num_bytes -= (long) src->pub.bytes_in_buffer;
+	while (num_bytes > (int) src->pub.bytes_in_buffer) {
+	    num_bytes -= (int) src->pub.bytes_in_buffer;
 	    (void) camJPEGFillInputBuffer(dcinfo);
 	}
 	src->pub.next_input_byte += (size_t) num_bytes;
@@ -696,7 +696,7 @@ int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
 
     while (_dcinfo.output_scanline < _dcinfo.output_height) {
 	// jpeg_read_scanlines expects an array of pointers to scanlines.
-	// Here the array is only one element long.
+	// Here the array is only one element int.
 	bufferUncompLine = (JSAMPLE*)(dest->imageData + _dcinfo.output_scanline * dest->widthStep);
 	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
     }
@@ -758,7 +758,7 @@ int camLoadJPEG(CamImage* image, char *filename)
 
     while (_dcinfo.output_scanline < _dcinfo.output_height) {
 	// jpeg_read_scanlines expects an array of pointers to scanlines.
-	// Here the array is only one element long.
+	// Here the array is only one element int.
 	bufferUncompLine = (JSAMPLE*)(image->imageData + _dcinfo.output_scanline * image->widthStep);
 	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
     }
@@ -823,7 +823,7 @@ int camDecompressJPEG2YUV(char *jpeg, CamImage *dest, int jpeg_size)
 
     while (_dcinfo.output_scanline < _dcinfo.output_height) {
 	// jpeg_read_scanlines expects an array of pointers to scanlines.
-	// Here the array is only one element long.
+	// Here the array is only one element int.
 	bufferUncompLine = (JSAMPLE*)(dest->imageData + _dcinfo.output_scanline * dest->widthStep);
 	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
     }
@@ -894,7 +894,7 @@ int camLoadJPEG2YUV(CamImage* image, char *filename)
 
     while (_dcinfo.output_scanline < _dcinfo.output_height) {
 	// jpeg_read_scanlines expects an array of pointers to scanlines.
-	// Here the array is only one element long.
+	// Here the array is only one element int.
 	bufferUncompLine = (JSAMPLE*)(image->imageData + _dcinfo.output_scanline * image->widthStep);
 	jpeg_read_scanlines(&_dcinfo, &bufferUncompLine, 1);
     }

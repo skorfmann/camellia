@@ -51,11 +51,11 @@
 
 // Fast yuv2rgb conversion
 
-static long int LUTYUV2RGB[256]={-1};
-static long int BU[256];
-static long int GU[256];
-static long int GV[256];
-static long int to76309[256];
+static int LUTYUV2RGB[256]={-1};
+static int BU[256];
+static int GU[256];
+static int GV[256];
+static int to76309[256];
 static unsigned char clip[1024]; // For clipping in CCIR601
 
 static void camInitLUTYUV2RGB();
@@ -155,7 +155,7 @@ int camYUV2RGB(CamImage* source, CamImage *dest)
 
 void camInitLUTYUV2RGB()
 {
-    long int crv,cbu,cgu,cgv;
+    int crv,cbu,cgu,cgv;
     int i,ind;   
     
     crv = 104597; cbu = 132201;

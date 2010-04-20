@@ -18,7 +18,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -79,8 +79,8 @@
 #ifdef _WIN32
 #define CAM_INT64 __int64
 #define CAM_UINT64 unsigned __int64
-#define CAM_UINT32 unsigned long
-#define CAM_INT32 signed long
+#define CAM_UINT32 unsigned int
+#define CAM_INT32 signed int
 #define CAM_UINT16 unsigned short
 #define CAM_INT16 signed short
 #define CAM_TYPES_OK
@@ -105,8 +105,8 @@
 // Assume this is a 32 bits target
 #define CAM_INT64 long long
 #define CAM_UINT64 unsigned long long
-#define CAM_UINT32 unsigned long
-#define CAM_INT32 signed long
+#define CAM_UINT32 unsigned int
+#define CAM_INT32 signed int
 #define CAM_UINT16 unsigned short
 #define CAM_INT16 signed short
 #endif // HAVE_TYPES_OK
