@@ -1,0 +1,44 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+INCLUDE_DIRECTORIES(. ../inc)
+
+ADD_DEFINITIONS(-DCABLES_IS_BUILDING)
+
+SET(files 
+    camellia.cpp 
+    cam_3d.c 
+    cam_arithmetics.c 
+    cam_capture.cpp 
+    cam_draw.c 
+    cam_keypoints.c 
+    cam_keypoints_alt.c 
+    cam_keypoints_descriptor.c 
+    cam_keypoints_matching.c 
+    cam_harris.c 
+    cam_histogram.c 
+    cam_hls.c 
+    cam_hough.c 
+    cam_hvsumming.c 
+    cam_integralimage.c 
+    cam_io.c 
+    cam_linear_filtering.c 
+    cam_LUT.c 
+    cam_ME.c 
+    cam_measures.c 
+    cam_median_filtering.c 
+    cam_morphomaths.c 
+    cam_RLE_labelling.c 
+    cam_RLE_morpho.c 
+    cam_RLE_utils.c 
+    cam_SAD.c 
+    cam_utils.c 
+    cam_warping.c 
+    cam_watershed.c 
+    cam_yuv.c 
+    cam_error.c
+)
+
+ADD_LIBRARY(camellia SHARED ${files})
+
+INSTALL(TARGETS camellia ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+INSTALL(FILES ../inc/camellia.h DESTINATION include)
