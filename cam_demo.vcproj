@@ -1,233 +1,342 @@
-<?xml version="1.0" encoding="Windows-1252"?>
+<?xml version="1.0" encoding = "Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9.00"
 	Name="cam_demo"
-	ProjectGUID="{ECC1CF56-DA60-43DD-98F8-C48FD6F10C94}"
-	>
+	ProjectGUID="{AB39C584-9CA4-4DF3-817C-6E558E45818F}"
+	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
-			Name="Win32"
-		/>
+			Name="Win32"/>
 	</Platforms>
-	<ToolFiles>
-	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\cam_demo___Win32_Debug"
-			IntermediateDirectory=".\cam_demo___Win32_Debug"
+			OutputDirectory="Debug"
+			IntermediateDirectory="cam_demo.dir\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="0"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName=".\cam_demo___Win32_Debug/cam_demo.tlb"
-				HeaderFileName=""
-			/>
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
-				Optimization="0"
-				AdditionalIncludeDirectories="inc"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
-				MinimalRebuild="true"
+				AdditionalOptions=" /Zm1000"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\cam_demo___Win32_Debug/cam_demo.pch"
-				AssemblerListingLocation=".\cam_demo___Win32_Debug/"
-				ObjectFile=".\cam_demo___Win32_Debug/"
-				ProgramDataBaseFileName=".\cam_demo___Win32_Debug/"
+				CompileAs="2"
+				DebugInformationFormat="3"
+				ExceptionHandling="1"
+				InlineFunctionExpansion="0"
+				Optimization="0"
+				RuntimeLibrary="3"
+				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
-			/>
+				PreprocessorDefinitions="WIN32,_WINDOWS,_DEBUG,CMAKE_INTDIR=\&quot;Debug\&quot;"
+				AssemblerListingLocation="Debug"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/Debug/cam_demo.pdb"
+/>
 			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
+				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
-				Culture="1036"
-			/>
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				PreprocessorDefinitions="WIN32,_WINDOWS,_DEBUG,CMAKE_INTDIR=\&quot;Debug\&quot;"/>
 			<Tool
-				Name="VCPreLinkEventTool"
-			/>
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="WIN32,_WINDOWS,_DEBUG,CMAKE_INTDIR=\&quot;Debug\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib lib/strmbase.lib strmiids.lib "
-				OutputFile=".\cam_demo___Win32_Debug/cam_demo.exe"
+				LinkLibraryDependencies="false"
+				AdditionalOptions=" /STACK:10000000 /machine:I386 /debug"
+				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\Debug\camellia.lib "
+				OutputFile="C:\home\steux\CamelliaLib-2.8.0\Debug\cam_demo.exe"
+				Version="0.0"
 				LinkIncremental="2"
-				SuppressStartupBanner="true"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\cam_demo___Win32_Debug/cam_demo.pdb"
+				AdditionalLibraryDirectories=""
+				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/Debug/cam_demo.pdb"
+				GenerateDebugInformation="TRUE"
 				SubSystem="1"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-				SuppressStartupBanner="true"
-				OutputFile=".\cam_demo___Win32_Debug/cam_demo.bsc"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
+				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\Debug\cam_demo.lib"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\cam_demo___Win32_Release"
-			IntermediateDirectory=".\cam_demo___Win32_Release"
+			OutputDirectory="Release"
+			IntermediateDirectory="cam_demo.dir\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="0"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-				TypeLibraryName=".\cam_demo___Win32_Release/cam_demo.tlb"
-				HeaderFileName=""
-			/>
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
+				AdditionalOptions=" /Zm1000"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				CompileAs="2"
+				ExceptionHandling="1"
+				InlineFunctionExpansion="2"
 				Optimization="2"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="inc"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				StringPooling="true"
 				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\cam_demo___Win32_Release/cam_demo.pch"
-				AssemblerListingLocation=".\cam_demo___Win32_Release/"
-				ObjectFile=".\cam_demo___Win32_Release/"
-				ProgramDataBaseFileName=".\cam_demo___Win32_Release/"
+				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
-				SuppressStartupBanner="true"
-			/>
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;Release\&quot;"
+				AssemblerListingLocation="Release"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/Release/cam_demo.pdb"
+/>
 			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
+				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1036"
-			/>
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;Release\&quot;"/>
 			<Tool
-				Name="VCPreLinkEventTool"
-			/>
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;Release\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib lib/strmbase.lib strmiids.lib "
-				OutputFile=".\cam_demo___Win32_Release/cam_demo.exe"
+				LinkLibraryDependencies="false"
+				AdditionalOptions=" /STACK:10000000 /machine:I386"
+				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\Release\camellia.lib "
+				OutputFile="C:\home\steux\CamelliaLib-2.8.0\Release\cam_demo.exe"
+				Version="0.0"
 				LinkIncremental="1"
-				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\cam_demo___Win32_Release/cam_demo.pdb"
+				AdditionalLibraryDirectories=""
+				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/Release/cam_demo.pdb"
 				SubSystem="1"
-				TargetMachine="1"
-			/>
+				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\Release\cam_demo.lib"/>
+		</Configuration>
+		<Configuration
+			Name="MinSizeRel|Win32"
+			OutputDirectory="MinSizeRel"
+			IntermediateDirectory="cam_demo.dir\MinSizeRel"
+			ConfigurationType="1"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
 			<Tool
-				Name="VCALinkTool"
-			/>
+				Name="VCCLCompilerTool"
+				AdditionalOptions=" /Zm1000"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				CompileAs="2"
+				ExceptionHandling="1"
+				InlineFunctionExpansion="1"
+				Optimization="1"
+				RuntimeLibrary="2"
+				RuntimeTypeInfo="TRUE"
+				WarningLevel="3"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"
+				AssemblerListingLocation="MinSizeRel"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/MinSizeRel/cam_demo.pdb"
+/>
 			<Tool
-				Name="VCManifestTool"
-			/>
+				Name="VCCustomBuildTool"/>
 			<Tool
-				Name="VCXDCMakeTool"
-			/>
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"/>
 			<Tool
-				Name="VCBscMakeTool"
-				SuppressStartupBanner="true"
-				OutputFile=".\cam_demo___Win32_Release/cam_demo.bsc"
-			/>
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
 			<Tool
-				Name="VCFxCopTool"
-			/>
+				Name="VCPreBuildEventTool"/>
 			<Tool
-				Name="VCAppVerifierTool"
-			/>
+				Name="VCPreLinkEventTool"/>
 			<Tool
-				Name="VCWebDeploymentTool"
-			/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-			/>
+				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
+				AdditionalOptions=" /STACK:10000000 /machine:I386"
+				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\MinSizeRel\camellia.lib "
+				OutputFile="C:\home\steux\CamelliaLib-2.8.0\MinSizeRel\cam_demo.exe"
+				Version="0.0"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=""
+				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/MinSizeRel/cam_demo.pdb"
+				SubSystem="1"
+				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\MinSizeRel\cam_demo.lib"/>
+		</Configuration>
+		<Configuration
+			Name="RelWithDebInfo|Win32"
+			OutputDirectory="RelWithDebInfo"
+			IntermediateDirectory="cam_demo.dir\RelWithDebInfo"
+			ConfigurationType="1"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			CharacterSet="2">
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions=" /Zm1000"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				CompileAs="2"
+				DebugInformationFormat="3"
+				ExceptionHandling="1"
+				InlineFunctionExpansion="1"
+				Optimization="2"
+				RuntimeLibrary="2"
+				RuntimeTypeInfo="TRUE"
+				WarningLevel="3"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"
+				AssemblerListingLocation="RelWithDebInfo"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/RelWithDebInfo/cam_demo.pdb"
+/>
+			<Tool
+				Name="VCCustomBuildTool"/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"
+				MkTypLibCompatible="FALSE"
+				TargetEnvironment="1"
+				GenerateStublessProxies="TRUE"
+				TypeLibraryName="$(InputName).tlb"
+				OutputDirectory="$(IntDir)"
+				HeaderFileName="$(InputName).h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="$(InputName)_i.c"
+				ProxyFileName="$(InputName)_p.c"/>
+			<Tool
+				Name="VCPreBuildEventTool"/>
+			<Tool
+				Name="VCPreLinkEventTool"/>
+			<Tool
+				Name="VCPostBuildEventTool"/>
+			<Tool
+				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
+				AdditionalOptions=" /STACK:10000000 /machine:I386 /debug"
+				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\RelWithDebInfo\camellia.lib "
+				OutputFile="C:\home\steux\CamelliaLib-2.8.0\RelWithDebInfo\cam_demo.exe"
+				Version="0.0"
+				LinkIncremental="2"
+				AdditionalLibraryDirectories=""
+				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/RelWithDebInfo/cam_demo.pdb"
+				GenerateDebugInformation="TRUE"
+				SubSystem="1"
+				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\RelWithDebInfo\cam_demo.lib"/>
 		</Configuration>
 	</Configurations>
-	<References>
-	</References>
 	<Files>
+			<File
+				RelativePath="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Outputs="CMakeFiles\generate.stamp"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Outputs="CMakeFiles\generate.stamp"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="MinSizeRel|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Outputs="CMakeFiles\generate.stamp"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="RelWithDebInfo|Win32">
+					<Tool
+					Name="VCCustomBuildTool"
+					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Outputs="CMakeFiles\generate.stamp"/>
+				</FileConfiguration>
+			</File>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
-			>
+			Filter="">
 			<File
-				RelativePath=".\cam_demo.c"
-				>
+				RelativePath="C:\home\steux\CamelliaLib-2.8.0\cam_demo.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+					Name="VCCLCompilerTool"
+					CompileAs="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="MinSizeRel|Win32">
+					<Tool
+					Name="VCCLCompilerTool"
+					CompileAs="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="RelWithDebInfo|Win32">
+					<Tool
+					Name="VCCLCompilerTool"
+					CompileAs="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+					Name="VCCLCompilerTool"
+					CompileAs="1"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\cam_demo_cpp.cpp"
-				>
+				RelativePath="C:\home\steux\CamelliaLib-2.8.0\cam_demo_cpp.cpp">
 			</File>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl"
-			>
-			<File
-				RelativePath="inc\camellia.h"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-			>
 		</Filter>
 	</Files>
 	<Globals>
