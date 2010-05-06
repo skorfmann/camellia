@@ -276,7 +276,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                     // Let's check whether it is a local maximum or not
                     {
                         // If the current value is strictly greater than all the other values, then this is a local maximum and
-                        // the other pixels are marked as NOT begin local maxima
+                        // the other pixels are marked as NOT being local maxima
                         // If the current value is greater or equal to all neighbours, then this ia marked to be a local maximum
                         // but the other pixels are kept as local maxima
                         // If the current value is greater than any neighbour, this neighbour is marked as not being a local maximum
@@ -285,24 +285,20 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             // Compare to the left and upper-left pixel
                             if (abs_current_value_line[x - 1] > abs_current_value)
                                 local_maximum = 0;
-                            else if (abs_current_value_line[x - 1] < abs_current_value)
-                                current_lmax_line[x - 1] = 0;
+                            else current_lmax_line[x - 1] = 0;
                             if (abs_previous_value_line[x - 1] > abs_current_value)
                                 local_maximum = 0;
-                            else if (abs_previous_value_line[x - 1] < abs_current_value)
-                                previous_lmax_line[x - 1] = 0;
+                            else previous_lmax_line[x - 1] = 0;
                         }   
                         // Compare to pixel above
                         if (abs_previous_value_line[x] > abs_current_value)
                             local_maximum = 0;
-                        else if (abs_previous_value_line[x] < abs_current_value)
-                            previous_lmax_line[x] = 0;
+                        else previous_lmax_line[x] = 0;
                         if (x < width - 1) {
                             // Compare to the upper right pixel
                             if (abs_previous_value_line[x + 1] > abs_current_value)
                                 local_maximum = 0;
-                            else if (abs_previous_value_line[x + 1] < abs_current_value)
-                                previous_lmax_line[x + 1] = 0;
+                            else previous_lmax_line[x + 1] = 0;
                         }
                         if (local_maximum && abs_current_value > 0) {
                             current_lmax[current_nblmax++] = x;
@@ -503,7 +499,7 @@ void test_camRecursiveKeypoints()
 #endif
     dest.imageData = NULL; 
     
-    camKeypointsRecursiveDetector(&image, &points, 2, 0);
+    camKeypointsRecursiveDetector(&image, &points, 10, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
