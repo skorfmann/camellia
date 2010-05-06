@@ -1,4 +1,4 @@
-/* CamKeypoints alternative implementation using gradient search
+/* CamKeypoints alternative implementation using recursive search 
  * C code */
 
 #include <stdlib.h>
@@ -13,7 +13,6 @@
 #include <emmintrin.h>
 #endif
 
-#define CAM_MAX_SCALE 100
 #define CAM_MAX_KEYPOINTS 100000
 #define CAM_ORIENTATION_STAMP_SIZE 30
 
@@ -330,9 +329,9 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                     abs_current_value_line[x] = abs_current_value;
                     current_scale_line[x] = current_scale;
 
-                    if (y == 100) {
-                        printf("x=%d value=%d abs=%d scale=%d\n", x, current_value, abs_current_value, current_scale);
-                    }
+                    //if (y == 100) {
+                        printf("y=%d x=%d value=%d abs=%d scale=%d\n", y, x, current_value, abs_current_value, current_scale);
+                    //}
                 }
             }
 
@@ -518,7 +517,7 @@ void test_camRecursiveKeypoints()
 #endif
     dest.imageData = NULL; 
     
-    camKeypointsRecursiveDetector(&image, &points, 100, 0);
+    camKeypointsRecursiveDetector(&image, &points, 2, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }

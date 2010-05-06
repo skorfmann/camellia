@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in integral and binary forms, with or without
@@ -389,8 +389,8 @@ int camSortKeypointsShort(const void *p1x, const void *p2x)
 {
     CamKeypointShort *p1 = (CamKeypointShort*)p1x;
     CamKeypointShort *p2 = (CamKeypointShort*)p2x;
-    if (p1->value < p2->value) return 1;
-    if (p1->value == p2->value) return 0;
+    if (abs(p1->value) < abs(p2->value)) return 1;
+    if (abs(p1->value) == abs(p2->value)) return 0;
     return -1;
 }
 
