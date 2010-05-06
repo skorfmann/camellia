@@ -451,22 +451,18 @@ void test_camRecursiveKeypoints()
     camAllocateKeypoints(&points, 100);
 
     camSet(&image, 0);
-/*
-    camDrawRectangle(&image, 102, 120, 156, 152, 255);
-    camFillColor(&image, 103, 121, 255, -1);
-*/
+    camDrawRectangle(&image, 102, 120, 156, 152, 128);
+    camFillColor(&image, 103, 121, 128, -1);
     camDrawRectangle(&image, 100, 35, 150, 67, 255);
     camFillColor(&image, 123, 36, 255, -1);
 
-/*  
-    camDrawCircle(&image, 50, 50, 10, 255);
-    camFillColor(&image, 50, 50, 255, -1);
-    camDrawCircle(&image, 80, 50, 5, 255);
-    camFillColor(&image, 80, 50, 255, -1);
-    camDrawCircle(&image, 100, 50, 3, 255);
-    camFillColor(&image, 100, 50, 255, -1);
-*/
-#if 0
+    camDrawCircle(&image, 50, 50, 10, 128);
+    camFillColor(&image, 50, 50, 128, -1);
+    camDrawCircle(&image, 80, 50, 5, 128);
+    camFillColor(&image, 80, 50, 128, -1);
+    camDrawCircle(&image, 100, 50, 3, 128);
+    camFillColor(&image, 100, 50, 128, -1);
+#if 1
     angle = 20;
     costheta = cos(angle * 2 * M_PI / 360);
     sintheta = sin(angle * 2 * M_PI / 360);
@@ -477,9 +473,9 @@ void test_camRecursiveKeypoints()
 	params.p[i].y += 192;
     }
     for (i = 0; i < 4; i++) {
-	camDrawLine(&image, params.p[i].x, params.p[i].y, params.p[(i+1)%4].x, params.p[(i+1)%4].y, 255);
+	camDrawLine(&image, params.p[i].x, params.p[i].y, params.p[(i+1)%4].x, params.p[(i+1)%4].y, 128);
     }
-    camFillColor(&image, 192, 192, 255, -1);
+    camFillColor(&image, 192, 192, 128, -1);
  
     angle = 30;
     costheta = cos(angle * 2 * M_PI / 360);
@@ -492,18 +488,18 @@ void test_camRecursiveKeypoints()
     }
 
     for (i = 0; i < 4; i++) {
-	camDrawLine(&image, params.p[i].x, params.p[i].y, params.p[(i+1)%4].x, params.p[(i+1)%4].y, 255);
+	camDrawLine(&image, params.p[i].x, params.p[i].y, params.p[(i+1)%4].x, params.p[(i+1)%4].y, 128);
     }
-    camFillColor(&image, 50, 192, 255, -1);
+    camFillColor(&image, 50, 192, 128, -1);
 
 #endif
     dest.imageData = NULL; 
     
-    camKeypointsRecursiveDetector(&image, &points, 10, 0);
+    camKeypointsRecursiveDetector(&image, &points, 20, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
-    camDrawKeypoints(&points, &image, 128);
+    camDrawKeypoints(&points, &image, 192);
     camSavePGM(&image, "output/features_reference.pgm");
     
     camDeallocateImage(&image);
