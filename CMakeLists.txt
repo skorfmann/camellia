@@ -3,7 +3,11 @@ PROJECT(Camellia)
 
 SUBDIRS(src)
 
+IF(CMAKE_HOST_WIN32)
+    SET(libs winmm)    
+ENDIF(CMAKE_HOST_WIN32)
+
 INCLUDE_DIRECTORIES(inc)
 ADD_EXECUTABLE(cam_demo cam_demo.c cam_demo_cpp.cpp)
-TARGET_LINK_LIBRARIES(cam_demo camellia)
+TARGET_LINK_LIBRARIES(cam_demo camellia ${libs})
 

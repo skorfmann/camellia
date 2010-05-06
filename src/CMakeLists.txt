@@ -36,7 +36,8 @@ SET(files
     cam_error.c
 )
 
-ADD_LIBRARY(camellia SHARED ${files})
+ADD_LIBRARY(camellia ${files})
+#ADD_LIBRARY(camellia SHARED ${files})
 
 INSTALL(TARGETS camellia ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin LIBRARY DESTINATION lib)

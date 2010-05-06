@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1285,6 +1285,9 @@ int main()
 {
     camInitBenchmark();
 
+    test_camRecursiveKeypoints();
+    //test_camKeypointsAlt();
+    /*
     // Legacy examples
     example_filters();
     example_warping();
@@ -1306,7 +1309,6 @@ int main()
     //example_harris();
     example_integralimage();
     example_keypoints();
-    //test_camKeypointsAlt();
     example_keypoints2();
     example_keypoints3();
     example_capture();
@@ -1325,7 +1327,7 @@ int main()
     cpp_example_alpha_composite();
     cpp_example_watershed();
     cpp_example_draw();
-
+*/
     return 0;
 }
 
