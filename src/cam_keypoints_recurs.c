@@ -159,21 +159,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             value = valout - (valin << 2); \
                             value = (value << 4) / (scale * scale); \
                         }
-                        /*CAM_RECURSIVE_PATTERN;*/
-                        { 
-                            unsigned int *ptrAi = ptr - (yoffset + scale); 
-                            unsigned int *ptrDi = ptr + (yoffset + scale); 
-                            unsigned int *ptrBi = ptr - (yoffset - scale); 
-                            unsigned int *ptrCi = ptr + (yoffset - scale); 
-                            unsigned int valin = *ptrDi - *ptrBi - *ptrCi + *ptrAi; 
-                            unsigned int *ptrAo = ptr - ((yoffset + scale) << 1); 
-                            unsigned int *ptrDo = ptr + ((yoffset + scale) << 1); 
-                            unsigned int *ptrBo = ptr - ((yoffset - scale) << 1); 
-                            unsigned int *ptrCo = ptr + ((yoffset - scale) << 1); 
-                            unsigned int valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo; 
-                            value = valout - (valin << 2); 
-                            value = (value << 4) / (scale * scale); 
-                        }
+                        CAM_RECURSIVE_PATTERN;
                         current_scale = scale;
                         current_value = value;
                         abs_current_value = abs(value);
@@ -330,7 +316,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                     current_scale_line[x] = current_scale;
 
                     //if (y == 100) {
-                        printf("y=%d x=%d value=%d abs=%d scale=%d\n", y, x, current_value, abs_current_value, current_scale);
+                    //    printf("y=%d x=%d value=%d abs=%d scale=%d\n", y, x, current_value, abs_current_value, current_scale);
                     //}
                 }
             }
