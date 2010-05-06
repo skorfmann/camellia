@@ -312,7 +312,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                     current_scale_line[x] = current_scale;
 
                     //if (y == 100) {
-                    //    printf("y=%d x=%d value=%d abs=%d scale=%d\n", y, x, current_value, abs_current_value, current_scale);
+                    // printf("y=%d x=%d value=%d abs=%d scale=%d\n", y, x, current_value, abs_current_value, current_scale);
                     //}
                 }
             }
@@ -500,7 +500,7 @@ void test_camRecursiveKeypoints()
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
     camDrawKeypoints(&points, &image, 192);
-    camSavePGM(&image, "output/features_reference.pgm");
+    camSavePGM(&image, "output/keypoints_recursive.pgm");
     
     camDeallocateImage(&image);
     camDeallocateImage(&dest);
