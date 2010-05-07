@@ -51,9 +51,9 @@
 
 typedef struct
 {
-  int x;	// dx reseach size
-  int y;	// dy reseach size
-  int s;	// scale reseach size
+  int width;	// width reseach size
+  int height;	// height reseach size
+  int scale;	// scale reseach size
   int ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally
 } researchVolume;
 
@@ -92,6 +92,9 @@ CamKeypointsMatch	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *imag
 {
   unsigned int		*seedsIndexes;
   CamKeypointsMatch	*matches;
+  int			i;
+  CamKeypoints		seedMatch;
+  CamROI		roi;
 
    // initialisation of the tracker
   if (!(tc->previousFeatures.bag))
@@ -104,7 +107,17 @@ CamKeypointsMatch	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *imag
   else
     {
       seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);
-      
+      image->roi = &roi;
+      for (i = 0 ; i < tc->nbSeeds ; ++i)
+	{
+	  roi.coi = 0;
+	  roi.xOffset = tc->previousFeatures.keypoint[seedsIndexes[i]]->x;
+	  roi.yOffset = tc->previousFeatures.keypoint[seedsIndexes[i]]->y;
+	  roi.width = tc->rv.width;
+	  roi.height = tc->rv.height;
+	  camAllocateKeypoints(&seedMatch, 1);
+	  (*detector)(image, &seedMatch, 1, 0);
+	}
       free (seedsIndexes);
     }
 }
@@ -123,7 +136,7 @@ void			test_cam_keypoints_tracking()
   camLoadBMP(&modelImage, "resources/photos/scene1.bmp");
   camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &firstImage);
-  camLoadBMP(&modelImage, "resources/photos/scene4.bmp");
+  camLoadBMP(&modelImage, "resources/photos/scene1.bmp");
   camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &secondImage);
   /* end images building */
@@ -132,9 +145,9 @@ void			test_cam_keypoints_tracking()
   tc.nbFeatures = 100;
   tc.nbFrames = 3;
   tc.nbSeeds = 10;
-  tc.rv.x = 3;
-  tc.rv.y = 3;
-  tc.rv.s = 3;
+  tc.rv.width = 3;
+  tc.rv.height = 3;
+  tc.rv.scale = 3;
   tc.rv.ds = 0;
   camAllocateKeypoints(&tc.previousFeatures, 100);
   /* end tracking context */
