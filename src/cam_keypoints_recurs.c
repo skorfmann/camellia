@@ -15,6 +15,7 @@
 
 #define CAM_MAX_KEYPOINTS 100000
 #define CAM_ORIENTATION_STAMP_SIZE 30
+#define CAM_MIN_SCALE 3
 
 extern int camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
@@ -320,13 +321,16 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
             // Check the local maxima on the previous line, and record the keypoints IF they are local maxima
             for (i = 0; i != previous_nblmax; i++) {
                 if (previous_lmax_line[previous_lmax[i]]) {
-                    // Yes, we have definitely a local maximum
-                    // Record the keypoint
-                    keypoints[nb_keypoints].x = previous_lmax[i];
-                    keypoints[nb_keypoints].y = y - 1;
-                    keypoints[nb_keypoints].scale = previous_scale_line[previous_lmax[i]] << 2;
-                    keypoints[nb_keypoints].value = previous_value_line[previous_lmax[i]];
-                    nb_keypoints++;
+                    int scale = previous_scale_line[previous_lmax[i]];
+                    if (scale >= CAM_MIN_SCALE) {
+                        // Yes, we have definitely a local maximum
+                        // Record the keypoint
+                        keypoints[nb_keypoints].x = previous_lmax[i];
+                        keypoints[nb_keypoints].y = y - 1;
+                        keypoints[nb_keypoints].scale = scale << 2;
+                        keypoints[nb_keypoints].value = previous_value_line[previous_lmax[i]];
+                        nb_keypoints++;
+                    }
                 }
             }
 
@@ -506,60 +510,4 @@ void test_camRecursiveKeypoints()
     camDeallocateImage(&dest);
     camFreeKeypoints(&points);
 }
-
-void example_recursive_keypoints()
-{
-    CamImage image, Y1, Y2;
-    CamKeypoints points1, points2;
-    int i, nbMatches;
-    int dist1, dist2, color;
-    CamKeypoint *best;
-    float ratio = 2.0f/3;
-    int t1, t2;
-
-    printf("Keypoint detection on Clooney :\n");
-    image.imageData = NULL;
-    camLoadBMP(&image, "resources/clooney.bmp");
-    Y1.imageData = NULL;
-    camRGB2Y(&image, &Y1);
-    //    camSavePGM(&Y1, "output/clooney.pgm");
-    camAllocateKeypoints(&points1, 1000);
-    camAllocateKeypoints(&points2, 1000);
-    camAllocateImage(&Y2, (((int)(Y1.width*ratio))/8)*8, (((int)(Y1.height*ratio))/8)*8, CAM_DEPTH_8U);
-    camScale(&Y1, &Y2);
-    camSavePGM(&Y2, "output/clooney2.pgm");
-
-    t1=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
-    t2=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
-	
-    nbMatches = 0;
-    
-    for (i = 0; i < points1.nbPoints; i++) {
-        best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
-	if (dist1 < 0.7 * dist2) {
-	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255); 
-	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255); 
-	    else {
-		color = CAM_RGB(0, 255, 0);
-		nbMatches++;
-	    }
-	} else color = CAM_RGB(255, 0, 0);
-	camDrawKeypoint(points1.keypoint[i], &image, color);
-	printf("x=%d y=%d mark=%d scale=%d meaning=%lf\n", points1.keypoint[i]->x, points1.keypoint[i]->y, points1.keypoint[i]->value, points1.keypoint[i]->scale, ((double)dist1) / dist2);
-    }
-    printf("# points found on 1st image: %d\n", points1.nbPoints);
-    printf("# points found on 2nd image: %d\n", points2.nbPoints);
-    printf("# points matched: %d\n", nbMatches);
-    printf("Recursive keypoints computation = %d ms\n",t2-t1);
-    
-    camSaveBMP(&image, "output/clooney.bmp");
-    camDeallocateImage(&image);
-    camDeallocateImage(&Y1);
-    camDeallocateImage(&Y2);
-    camFreeKeypoints(&points1);
-    camFreeKeypoints(&points2);
-}
-
 

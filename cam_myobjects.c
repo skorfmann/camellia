@@ -52,6 +52,12 @@
 #include <time.h>
 #include "camellia.h"
 
+#define CAM_TEST_RECURSIVE
+#ifdef CAM_TEST_RECURSIVE
+int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+#define camFastHessianDetector camKeypointsRecursiveDetector
+#endif
+
 int main()
 {
     CamImage imodel[3], image, color_image;
@@ -74,7 +80,7 @@ int main()
     CamImage dimage;
     CamROI roi;
 
-    const int nb_keypoints = 1000; 
+    const int nb_keypoints = 100; 
 
     for (i = 0; i < 3; i++) {
 	sprintf(filename, "resources/photos/%s.bmp", model_images[i]);
@@ -127,6 +133,7 @@ int main()
 	dimage.roi = &roi;
 	camCopy(&color_image, &dimage);
 	dimage.roi = NULL;
+        camDrawKeypoints(&points[DISPLAYED_MODEL], &dimage, 128);
 
 	for (j = 0; j < 3; j++) {
 	    camKeypointsMatching2(&points[j], &points2, &matches);

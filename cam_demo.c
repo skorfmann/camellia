@@ -1130,6 +1130,7 @@ void example_keypoints2()
     int dist1, dist2, color;
     CamKeypoint *best;
     float ratio = 2.0f/3;
+    int t1, t2;
 
     printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
@@ -1143,7 +1144,9 @@ void example_keypoints2()
     camScale(&Y1, &Y2);
     camSavePGM(&Y2, "output/clooney2.pgm");
 
+    t1=camGetTimeMs();
     camFastHessianDetector(&Y1, &points1, 100, 0);
+    t2=camGetTimeMs();
     camFastHessianDetector(&Y2, &points2, 100, 0);
 	
     nbMatches = 0;
@@ -1164,6 +1167,7 @@ void example_keypoints2()
     printf("# points found on 1st image: %d\n", points1.nbPoints);
     printf("# points found on 2nd image: %d\n", points2.nbPoints);
     printf("# points matched: %d\n", nbMatches);
+    printf("CamKeypoints computation = %d ms\n",t2-t1);
     
     camSaveBMP(&image, "output/clooney.bmp");
     camDeallocateImage(&image);
@@ -1267,6 +1271,64 @@ void example_jpeg()
     free(jpeg);
 }
 
+void test_recursive_keypoints()
+{
+    CamImage image, Y1, Y2;
+    CamKeypoints points1, points2;
+    int i, nbMatches;
+    int dist1, dist2, color;
+    CamKeypoint *best;
+    float ratio = 2.0f/3;
+    int t1, t2;
+
+    printf("Keypoint detection on Clooney :\n");
+    image.imageData = NULL;
+    //camLoadBMP(&image, "resources/clooney.bmp");
+    camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
+    Y1.imageData = NULL;
+    camRGB2Y(&image, &Y1);
+    //    camSavePGM(&Y1, "output/clooney.pgm");
+    camAllocateKeypoints(&points1, 1000);
+    camAllocateKeypoints(&points2, 1000);
+    camAllocateImage(&Y2, (((int)(Y1.width*ratio))/8)*8, (((int)(Y1.height*ratio))/8)*8, CAM_DEPTH_8U);
+    camScale(&Y1, &Y2);
+    camSavePGM(&Y2, "output/clooney2.pgm");
+
+    t1=camGetTimeMs();
+    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
+    t2=camGetTimeMs();
+    //camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
+	
+    nbMatches = 0;
+    
+    for (i = 0; i < points1.nbPoints; i++) {
+/*        best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
+	if (dist1 < 0.7 * dist2) {
+	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255); 
+	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255); 
+	    else {
+		color = CAM_RGB(0, 255, 0);
+		nbMatches++;
+	    }
+	} else */
+        color = CAM_RGB(255, 0, 0);
+	camDrawKeypoint(points1.keypoint[i], &image, color);
+	printf("x=%d y=%d mark=%d scale=%d meaning=%lf\n", points1.keypoint[i]->x, points1.keypoint[i]->y, points1.keypoint[i]->value, points1.keypoint[i]->scale, ((double)dist1) / dist2);
+    }
+    printf("# points found on 1st image: %d\n", points1.nbPoints);
+    printf("# points found on 2nd image: %d\n", points2.nbPoints);
+    printf("# points matched: %d\n", nbMatches);
+    printf("Recursive keypoints computation = %d ms\n",t2-t1);
+    
+    camSaveBMP(&image, "output/clooney.bmp");
+    camDeallocateImage(&image);
+    camDeallocateImage(&Y1);
+    camDeallocateImage(&Y2);
+    camFreeKeypoints(&points1);
+    camFreeKeypoints(&points2);
+}
+
+
 void cpp_example_erosion();
 void cpp_example_mask();
 void cpp_example_labeling();
@@ -1291,7 +1353,6 @@ int main()
     /*
     test_camRecursiveKeypoints();
     example_recursive_keypoints();
-
     // Legacy examples
     example_filters();
     example_warping();
@@ -1313,7 +1374,6 @@ int main()
     //example_harris();
     example_integralimage();
     example_keypoints();
-    example_keypoints2();
     example_keypoints3();
     example_capture();
     example_bmp();
