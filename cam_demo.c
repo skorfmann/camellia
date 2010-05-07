@@ -1286,8 +1286,7 @@ int main()
     camInitBenchmark();
 
     test_camRecursiveKeypoints();
-    test_camKeypointsAlt();
-    example_keypoints();
+    example_recursive_keypoints();
     /*
     // Legacy examples
     example_filters();
