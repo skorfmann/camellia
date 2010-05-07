@@ -1285,9 +1285,13 @@ int main()
 {
     camInitBenchmark();
 
+    // Tracking examples
+    test_cam_keypoints_tracking();
+
+    /*
     test_camRecursiveKeypoints();
     example_recursive_keypoints();
-    /*
+
     // Legacy examples
     example_filters();
     example_warping();
