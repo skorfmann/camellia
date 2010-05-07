@@ -529,10 +529,10 @@ void example_recursive_keypoints()
     camScale(&Y1, &Y2);
     camSavePGM(&Y2, "output/clooney2.pgm");
 
-    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
     t1=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
     t2=camGetTimeMs();
+    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
 	
     nbMatches = 0;
     
