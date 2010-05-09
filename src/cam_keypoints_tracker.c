@@ -47,13 +47,14 @@
 */
 
 #include <stdlib.h>
+#include <string.h> // memcpy
 #include "camellia.h"
 
 typedef struct
 {
-  int width;	// width reseach size
-  int height;	// height reseach size
-  int scale;	// scale reseach size
+  int width;	// half width reseach size
+  int height;	// half height reseach size
+  int scale;	// half scale reseach size
   int ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally
 } researchVolume;
 
@@ -65,6 +66,43 @@ typedef struct
   int			nbSeeds;
   researchVolume	rv;		
 } CamTrackingContext;
+
+#define max(a, b) (a > b ? a : b)
+#define min(a, b) (a > b ? b : a)
+
+inline int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamKeypointShort *keypoint)
+{
+  unsigned int	*ptr;
+  unsigned int	*ptrAi;
+  unsigned int	*ptrDi;
+  unsigned int	*ptrBi;
+  unsigned int	*ptrCi;
+  unsigned int	valin;
+  unsigned int	*ptrAo;
+  unsigned int	*ptrDo;
+  unsigned int	*ptrBo;
+  unsigned int	*ptrCo;
+  unsigned int	valout;
+  int		res;
+  int		yoffset;
+  int		widthStep;
+
+  ptr = (unsigned int*)(integralImage->imageData + (keypoint->y * integralImage->widthStep) + keypoint->x);
+  widthStep = integralImage->widthStep / 4;
+  yoffset = keypoint->scale * widthStep;
+  ptrAi = ptr - (yoffset + keypoint->scale);
+  ptrDi = ptr + (yoffset + keypoint->scale);
+  ptrBi = ptr - (yoffset - keypoint->scale);
+  ptrCi = ptr + (yoffset - keypoint->scale);
+  valin = *ptrDi - *ptrBi - *ptrCi + *ptrAi;
+  ptrAo = ptr - ((yoffset + keypoint->scale) << 1);
+  ptrDo = ptr + ((yoffset + keypoint->scale) << 1);
+  ptrBo = ptr - ((yoffset - keypoint->scale) << 1);
+  ptrCo = ptr + ((yoffset - keypoint->scale) << 1);
+  valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo;
+  res = valout - (valin << 2);
+  return (res);
+}
 
 inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
 {
@@ -88,41 +126,73 @@ inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc
   return (seedsIndexes);
 }
 
-CamKeypointsMatch	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*detector)(CamImage*, CamKeypoints*, int, int))
+CamKeypointsMatch	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*))
 {
   unsigned int		*seedsIndexes;
   CamKeypointsMatch	*matches;
   int			i;
+  int			j;
+  int			k;
+  int			seedX;
+  int			seedY;
+  int			seedScale;
+  int			fullScale;
   CamKeypoints		seedMatch;
   CamROI		roi;
+  CamImage		integralImage;
+  CamKeypointShort	*maxOnEachScale;
+  CamKeypointShort	currentPoint;
 
    // initialisation of the tracker
   if (!(tc->previousFeatures.bag))
     {
       srandom(time(NULL)); // used to extract seeds
-      (*detector)(image, &tc->previousFeatures, tc->nbFeatures, 0);
+      (*roiDetector)(image, &tc->previousFeatures, tc->nbFeatures, 0);
       return (NULL);
     }
   // initialisation already done
   else
     {
       seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);
-      image->roi = &roi;
+
+      /* begin integral image computing */
+      integralImage.imageData = NULL;
+      camIntegralImage(image, &integralImage);
+      /* end integral image computing */
+
+      // in the specified research volume, finds the more coherent point corresponding to the current seed <=> highest detector value
+      fullScale = (tc->rv.scale << 1) + 1;
       for (i = 0 ; i < tc->nbSeeds ; ++i)
 	{
-	  roi.coi = 0;
-	  roi.xOffset = tc->previousFeatures.keypoint[seedsIndexes[i]]->x;
-	  roi.yOffset = tc->previousFeatures.keypoint[seedsIndexes[i]]->y;
-	  roi.width = tc->rv.width;
-	  roi.height = tc->rv.height;
-	  camAllocateKeypoints(&seedMatch, 1);
-	  (*detector)(image, &seedMatch, 1, 0);
+	  seedX = tc->previousFeatures.keypoint[seedsIndexes[i]]->x;
+	  seedY = tc->previousFeatures.keypoint[seedsIndexes[i]]->y;
+	  seedScale = tc->previousFeatures.keypoint[seedsIndexes[i]]->scale;
+	  maxOnEachScale = (CamKeypointShort*)calloc(fullScale, sizeof(CamKeypointShort));
+	  // on each scale, get the highest detector's value
+	  for (currentPoint.scale = max(seedScale - tc->rv.scale,1), j = 0 ; currentPoint.scale <= seedScale + tc->rv.scale ; ++currentPoint.scale, ++j)
+	    {
+	      for (currentPoint.y = max(seedY - tc->rv.height, 0) ; currentPoint.y <= min(seedY + tc->rv.height, integralImage.height - 1) ; ++currentPoint.y)
+		{
+		  for (currentPoint.x = max(seedX - tc->rv.width, 0) ; currentPoint.x <= min(seedX + tc->rv.width, integralImage.width - 1) ; ++currentPoint.x)
+		    {
+		      currentPoint.value = abs(((*detectorValue)(&integralImage, &currentPoint)));
+		      if (currentPoint.value > maxOnEachScale[j].value)
+			memcpy(&maxOnEachScale[j], &currentPoint, sizeof(CamKeypointShort));
+		    }
+		}
+	    }
+	  for (k = 0 ; k < j ; ++k)
+	    {
+	      maxOnEachScale[k].value = (maxOnEachScale[k].value << 4) / (maxOnEachScale[k].scale * maxOnEachScale[k].scale);
+	    }
+	  free (maxOnEachScale);
 	}
       free (seedsIndexes);
     }
 }
 
 int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
 
 void			test_cam_keypoints_tracking()
 {
@@ -145,13 +215,13 @@ void			test_cam_keypoints_tracking()
   tc.nbFeatures = 100;
   tc.nbFrames = 3;
   tc.nbSeeds = 10;
-  tc.rv.width = 3;
-  tc.rv.height = 3;
-  tc.rv.scale = 3;
+  tc.rv.width = 1;
+  tc.rv.height = 1;
+  tc.rv.scale = 1;
   tc.rv.ds = 0;
   camAllocateKeypoints(&tc.previousFeatures, 100);
   /* end tracking context */
 
-  cam_keypoints_tracking(&tc, &firstImage, camKeypointsDetector);
-  cam_keypoints_tracking(&tc, &secondImage, camKeypointsDetector);
+  cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector);
+  cam_keypoints_tracking(&tc, &secondImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector);
 }
