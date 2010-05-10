@@ -1283,8 +1283,8 @@ void example_recursive_keypoints()
 
     printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
-    //camLoadBMP(&image, "resources/clooney.bmp");
-    camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
+    camLoadBMP(&image, "resources/clooney.bmp");
+    //camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
     Y1.imageData = NULL;
     camRGB2Y(&image, &Y1);
     //    camSavePGM(&Y1, "output/clooney.pgm");
@@ -1292,17 +1292,17 @@ void example_recursive_keypoints()
     camAllocateKeypoints(&points2, 1000);
     camAllocateImage(&Y2, (((int)(Y1.width*ratio))/8)*8, (((int)(Y1.height*ratio))/8)*8, CAM_DEPTH_8U);
     camScale(&Y1, &Y2);
-    camSavePGM(&Y2, "output/clooney2.pgm");
+    //camSavePGM(&Y2, "output/clooney2.pgm");
 
     t1=camGetTimeMs();
     camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
     t2=camGetTimeMs();
-    //camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
 	
     nbMatches = 0;
     
     for (i = 0; i < points1.nbPoints; i++) {
-/*        best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
+        best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
 	if (dist1 < 0.7 * dist2) {
 	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255); 
 	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255); 
@@ -1310,7 +1310,7 @@ void example_recursive_keypoints()
 		color = CAM_RGB(0, 255, 0);
 		nbMatches++;
 	    }
-	} else */
+	} else
         color = CAM_RGB(255, 0, 0);
 	camDrawKeypoint(points1.keypoint[i], &image, color);
 	printf("x=%d y=%d mark=%d scale=%d meaning=%lf\n", points1.keypoint[i]->x, points1.keypoint[i]->y, points1.keypoint[i]->value, points1.keypoint[i]->scale, ((double)dist1) / dist2);
@@ -1349,7 +1349,7 @@ int main()
 
     // Tracking examples
     //test_cam_keypoints_tracking();
-    //test_camRecursiveKeypoints();
+    test_camRecursiveKeypoints();
     example_recursive_keypoints();
 
     /*

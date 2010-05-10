@@ -478,7 +478,7 @@ void test_camRecursiveKeypoints()
     const int yp[4] = {-1, -1, 1, 1};
     CamWarpingParams params;
 
-    printf("Alternative keypoints detection :\n");
+    printf("Recursive keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
     camAllocateKeypoints(&points, 100);
 
@@ -527,7 +527,7 @@ void test_camRecursiveKeypoints()
 #endif
     dest.imageData = NULL; 
     
-    camKeypointsRecursiveDetector(&image, &points, 30, 0);
+    camKeypointsRecursiveDetector(&image, &points, 20, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
