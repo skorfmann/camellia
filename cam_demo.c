@@ -1271,7 +1271,7 @@ void example_jpeg()
     free(jpeg);
 }
 
-void test_recursive_keypoints()
+void example_recursive_keypoints()
 {
     CamImage image, Y1, Y2;
     CamKeypoints points1, points2;
@@ -1283,8 +1283,8 @@ void test_recursive_keypoints()
 
     printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
-    //camLoadBMP(&image, "resources/clooney.bmp");
-    camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
+    camLoadBMP(&image, "resources/clooney.bmp");
+    //camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
     Y1.imageData = NULL;
     camRGB2Y(&image, &Y1);
     //    camSavePGM(&Y1, "output/clooney.pgm");
@@ -1348,11 +1348,11 @@ int main()
     camInitBenchmark();
 
     // Tracking examples
-    test_cam_keypoints_tracking();
+    //test_cam_keypoints_tracking();
+    //test_camRecursiveKeypoints();
+    example_recursive_keypoints();
 
     /*
-    test_camRecursiveKeypoints();
-    example_recursive_keypoints();
     // Legacy examples
     example_filters();
     example_warping();

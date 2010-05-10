@@ -376,8 +376,34 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         free(lmax[i]);
     }
 
+    // Post-processing : remove keypoints in a given neighborhood (proportionnal to scale)
+    for (i = 1; i < nb_keypoints; i++) {
+        CamKeypointShort *keypoint = &keypoints[i];
+        int j = i - 1;
+        int neighborhood = keypoint->scale >> 4;
+        while (j >= 0 && keypoints[j].y >= keypoint->y - neighborhood) {
+            CamKeypointShort *keypoint2 = &keypoints[j];
+            if (keypoint2->x >= keypoint->x - neighborhood && keypoint2->x <= keypoint->x + neighborhood) {
+               // They are next to each other...
+               if (abs(keypoint2->value) > abs(keypoint->value))
+                  keypoint->scale = 0; // Let's get rid of this one... It has a lower value 
+               else
+                  keypoint2->scale = 0;
+            }
+            j--;
+        }
+    }
+    for (i = 0; i < nb_keypoints; i++) 
+        if (!keypoints[i].scale) keypoints[i].value = 0;
+
     // Sort the features according to value
     qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
+    for (i = 0; i < nb_keypoints; i++) 
+        if (keypoints[i].value == 0) break; 
+    nb_keypoints = i;
+    
+    if (nb_keypoints > nb_max_keypoints) nb_keypoints = nb_max_keypoints;
+
 
     // Angle
     if (options & CAM_UPRIGHT) {

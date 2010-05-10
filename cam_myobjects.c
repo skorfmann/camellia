@@ -80,7 +80,7 @@ int main()
     CamImage dimage;
     CamROI roi;
 
-    const int nb_keypoints = 100; 
+    const int nb_keypoints = 500; 
 
     for (i = 0; i < 3; i++) {
 	sprintf(filename, "resources/photos/%s.bmp", model_images[i]);
@@ -95,7 +95,7 @@ int main()
 	camRGB2YUV(&imodel[i], &image);
 	camAllocateKeypoints(&points[i], 0);
 	points[i].id = i;
-	camFastHessianDetector(&image, &points[i], nb_keypoints, CAM_UPRIGHT);
+	camFastHessianDetector(&image, &points[i], 100, CAM_UPRIGHT);
 	/*
 	camDrawKeypoints(&points[i], &image, 128);
 	sprintf(filename, "output/%s.pgm", model_images[i]);
