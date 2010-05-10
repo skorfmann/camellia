@@ -1283,8 +1283,8 @@ void example_recursive_keypoints()
 
     printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
-    camLoadBMP(&image, "resources/clooney.bmp");
-    //camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
+    //camLoadBMP(&image, "resources/clooney.bmp");
+    camLoadBMP(&image, "resources/photos/mrpotato4.bmp");
     Y1.imageData = NULL;
     camRGB2Y(&image, &Y1);
     //    camSavePGM(&Y1, "output/clooney.pgm");

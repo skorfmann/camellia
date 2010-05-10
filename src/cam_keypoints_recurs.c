@@ -158,7 +158,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             unsigned int *ptrCo = ptr + ((yoffset - scale) << 1); \
                             unsigned int valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo; \
                             value = valout - (valin << 2); \
-                            value = (value << 4) / (scale * scale); \
                         }
                         CAM_RECURSIVE_PATTERN;
                         current_scale = scale;
@@ -171,7 +170,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             scale++;
                             yoffset += widthStep;
                             CAM_RECURSIVE_PATTERN;
-                            if ((unsigned int)abs(value) > abs_current_value) {
+                            if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                 // Yes. That was a good hint
                                 current_scale = scale;
                                 current_value = value;
@@ -181,7 +180,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                                     scale++;
                                     yoffset += widthStep;
                                     CAM_RECURSIVE_PATTERN;
-                                    if ((unsigned int)abs(value) > abs_current_value) {
+                                    if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                         // Even better
                                         current_scale = scale;
                                         current_value = value;
@@ -196,7 +195,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                                 if (scale > 0 && scale <= max_scale) {
                                     yoffset -= widthStep << 1;
                                     CAM_RECURSIVE_PATTERN;
-                                    if ((unsigned int)abs(value) > abs_current_value) {
+                                    if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                         // Yes. It's better
                                         scale_up = 0; // This is the hint for next time
                                         current_scale = scale;
@@ -212,7 +211,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             if (scale > 0 && scale <= max_scale) {
                                 yoffset -= widthStep;
                                 CAM_RECURSIVE_PATTERN;
-                                if ((unsigned int)abs(value) > abs_current_value) {
+                                if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                     // Yes. That was a good hint.
                                     current_scale = scale;
                                     current_value = value;
@@ -222,7 +221,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                                     if (scale > 0 && scale <= max_scale) { 
                                         yoffset -= widthStep;
                                         CAM_RECURSIVE_PATTERN;
-                                        if ((unsigned int)abs(value) > abs_current_value) {
+                                        if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                             // Even better
                                             current_scale = scale;
                                             current_value = value;
@@ -237,7 +236,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                                     if (scale > 0 && scale <= max_scale) {
                                         yoffset += widthStep << 1;
                                         CAM_RECURSIVE_PATTERN;
-                                        if ((unsigned int)abs(value) > abs_current_value) {
+                                        if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                             // Yes. It's better
                                             scale_up = 1; // This is the hint for next time
                                             current_scale = scale;
@@ -254,7 +253,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                                 if (scale > 0 && scale <= max_scale) {
                                     yoffset += widthStep;
                                     CAM_RECURSIVE_PATTERN;
-                                    if ((unsigned int)abs(value) > abs_current_value) {
+                                    if (((int64_t)abs(value)) * current_scale * current_scale > (int64_t)abs_current_value * scale * scale) {
                                         // Yes. It's better
                                         scale_up = 1; // This is the hint for next time
                                         current_scale = scale;
@@ -272,6 +271,9 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                         current_scale = 1;
                         scale_up = 1;
                     }
+
+                    current_value = (current_value << 4) / (current_scale * current_scale);
+                    abs_current_value = abs(current_value);
 
                     // Now, we do have the current_value, current_scale and abs_current_value
                     // Let's check whether it is a local maximum or not
