@@ -61,7 +61,7 @@
 #include <emmintrin.h>
 #endif
 
-int camPatchSizeParam = 16; //32; //38; ///8*3;
+int camPatchSizeParam = 32; //38; ///8*3;
 double camSigmaParam = 7;
 int camAbsCoeff = 5;
 int camColorCoeff = 20;

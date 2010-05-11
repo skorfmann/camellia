@@ -19,6 +19,7 @@
 #define CAM_MIN_SCALE 3
 #define CAM_SCALE_MARGIN 1
 
+extern int camPatchSizeParam;
 extern double camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 int camSortKeypointsShort(const void *p1x, const void *p2x);
@@ -435,7 +436,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         if (v < max_scale) max_scale = v;
         max_scale -= CAM_SCALE_MARGIN;
 
-        if (keypoint->scale <= max_scale) {
+        if (keypoint->scale < max_scale) {
             unsigned int *ptr = ((unsigned int*)(integral.imageData + (y + iROI.srcroi.yOffset) * integral.widthStep)) + iROI.srcroi.xOffset + x;
             int scale = keypoint->scale - 1; 
             int yoffset = scale * widthStep;
@@ -447,6 +448,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
             y1 = (value << 4) / (scale * scale);
             if (y1 > y2) keypoint->scale <<= 2; // This is a problem : this is not a local maximum in scale...
             else {
+                int found = 0;
                 scale = keypoint->scale + 1;
                 do {
                     yoffset = scale * widthStep;
@@ -462,14 +464,15 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             if (y == 96) 
                                 printf("%d %d %d\n", y1, y2, y3);
                             keypoint->scale = p + ((scale - 1) << 2);
+                            found = 1;
                         }
                         break;
                     }
                     y1 = y2;
                     y2 = y3;
                     scale++;
-                } while (scale < max_scale);
-                if (scale == max_scale) keypoint->scale <<= 2;
+                } while (scale <= max_scale);
+                if (!found) keypoint->scale <<= 2;
             }
         }
         else 
@@ -526,8 +529,11 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     points->nbPoints = pnb_keypoints;
     free(keypoints);
 
-//    camKeypointsDescriptor(points, &integral, options);
-    camKeypointsDescriptor(points, source, options);
+    if (options & CAM_UPRIGHT) {
+        camPatchSizeParam = 15;
+        camKeypointsDescriptor(points, &integral, options);
+    } else 
+        camKeypointsDescriptor(points, source, options);
 
     // Finally, set the points' set 
     for (i = 0; i < points->nbPoints; i++) {
