@@ -41,6 +41,8 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     unsigned int *lmax[2], nblmax[2];
     int widthStep;
 
+    camPatchSizeParam = 16; //32 * 2 / 3; // Equivalent optimal value wrt SURF (the descriptor can partially lie outside screen)
+    
     // Parameters checking
     CAM_CHECK(camKeypointsRecursiveDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
     CAM_CHECK_ARGS(camKeypointsRecursiveDetector, (source->depth & CAM_DEPTH_MASK) >= 8);
@@ -403,6 +405,19 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     for (i = 0; i < nb_keypoints; i++) 
         if (!keypoints[i].scale) keypoints[i].value = 0;
 
+    if (options & CAM_UPRIGHT) {
+        // Remove keypoints the descriptor of which would be outside the frame boundaries
+        for (i = 0; i < nb_keypoints; i++) {
+            if (keypoints[i].scale) {
+                int scale = keypoints[i].scale; // Save the scale
+                keypoints[i].scale = (scale << 2) + 1;
+                if (!camKeypointDescriptorCheckBounds(&keypoints[i], &integral)) 
+                    keypoints[i].value = 0;
+                keypoints[i].scale = scale;
+            }
+        }
+    }
+
     // Sort the features according to value
     qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
     for (i = 0; i < nb_keypoints; i++) 
@@ -525,10 +540,8 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     free(keypoints);
 
     if (options & CAM_UPRIGHT) {
-        camPatchSizeParam = 14; // This is the max so that the computation takes place for sure inside the frame
         camKeypointsDescriptor(points, &integral, options);
     } else { 
-        camPatchSizeParam = 32 * 2 / 3; // Equivalent optimal value wrt SURF (the descriptor can partially lie outside screen)
         camKeypointsDescriptor(points, source, options);
     }
 

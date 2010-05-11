@@ -2222,6 +2222,9 @@ int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_ke
 /// Compute the descriptors for the given set of keypoints
 int camKeypointsDescriptor(CamKeypoints *points, CamImage *source, int options);
 
+/// Check the bounds of a keypoint descriptor, in order to verify that it is within frame boundaries
+int camKeypointDescriptorCheckBounds(CamKeypointShort *point, CamImage *source);
+
 /// Find a keypoint in a set of keypoints
 CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist1, int *dist2);
 

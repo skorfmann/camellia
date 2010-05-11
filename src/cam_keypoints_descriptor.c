@@ -234,6 +234,30 @@ void camKeypointsInternalsPrepareDescriptor()
     }
 }
 
+int camKeypointDescriptorCheckBounds(CamKeypointShort *point, CamImage *source)
+{
+    if (source->depth == 32) {
+        int w, sx, fsx;
+	// This is an integral image
+	// w is the width of the patch to analyze, multiplied by 16
+        w = point->scale * camPatchSizeParam;
+        // sx is the size of the Haar filter, in pixels
+	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
+        if (sx <= 1) sx = 2;
+	// fsx is the space between positive and negative parts of the Haar filter. It is most possibly 0.
+        fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
+	// Check boundaries
+	if (point->x - (((19 * w) / 40) >> 4) - sx - fsx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx - fsx <= 1 ||
+	    point->x + (((19 * w) / 40) >> 4) + sx + fsx >= source->width ||
+	    point->y + (((19 * w) / 40) >> 4) + sx + fsx >= source->height) {
+	    //printf("Out of boundaries : %d, %d, %d\n", point->x, point->y, point->scale);
+	    return 0;
+        }
+        return 1;
+    }
+    return 1;
+}
+
 int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter, int options)
 {
     CamWarpingParams params;
