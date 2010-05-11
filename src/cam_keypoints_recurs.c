@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795 
 #endif
@@ -36,6 +37,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     unsigned char *scale_lines[2];
     unsigned char *lmax_lines[2];
     unsigned int *lmax[2], nblmax[2];
+    int widthStep;
 
     // Parameters checking
     CAM_CHECK(camKeypointsRecursiveDetector, camInternalROIPolicy(source, NULL, &iROI, 1));
@@ -54,6 +56,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     camIntegralImage(source, &integral);
     integral.roi = &iROI.srcroi;
     source->roi = roi;
+    widthStep = integral.widthStep / 4;
 
     // Allocate temp memory for keypoints
     keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
@@ -78,7 +81,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         unsigned char *current_lmax_line, *previous_lmax_line;
         unsigned int *current_lmax, *previous_lmax;
         unsigned int current_nblmax, previous_nblmax;
-        int widthStep = integral.widthStep / 4;
 
         current_value_line = value_lines[0]; 
         previous_value_line = value_lines[1];
@@ -158,6 +160,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             unsigned int *ptrCo = ptr + ((yoffset - scale) << 1); \
                             unsigned int valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo; \
                             value = valout - (valin << 2); \
+                            assert(abs(value) < 256 * height * width); \
                         }
                         CAM_RECURSIVE_PATTERN;
                         current_scale = scale;
@@ -329,7 +332,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                         // Record the keypoint
                         keypoints[nb_keypoints].x = previous_lmax[i];
                         keypoints[nb_keypoints].y = y - 1;
-                        keypoints[nb_keypoints].scale = scale << 2;
+                        keypoints[nb_keypoints].scale = scale;
                         keypoints[nb_keypoints].value = previous_value_line[previous_lmax[i]];
                         nb_keypoints++;
                     }
@@ -382,7 +385,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     for (i = 1; i < nb_keypoints; i++) {
         CamKeypointShort *keypoint = &keypoints[i];
         int j = i - 1;
-        int neighborhood = keypoint->scale >> 4;
+        int neighborhood = keypoint->scale >> 2;
         while (j >= 0 && keypoints[j].y >= keypoint->y - neighborhood) {
             CamKeypointShort *keypoint2 = &keypoints[j];
             if (keypoint2->x >= keypoint->x - neighborhood && keypoint2->x <= keypoint->x + neighborhood) {
@@ -406,6 +409,59 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     
     if (nb_keypoints > nb_max_keypoints) nb_keypoints = nb_max_keypoints;
 
+    /* Interpolation :
+     * Maxima : solve([y1=a*(x1-p)^2+b,y2=a*(-p)^2+b,y3=a*(x3-p)^2+b],[a,b,p])
+     * Maxima yields the following formula for parabolic interpolation
+                                       2         2     2         2
+			             x1  y3 + (x3  - x1 ) y2 - x3  y1
+			       p = ------------------------------------
+                                   2 x1 y3 + (2 x3 - 2 x1) y2 - 2 x3 y1
+    
+     */
+    // Scale super-resolution
+    for (i = 0; i < nb_keypoints; i++) {
+        CamKeypointShort *keypoint = &keypoints[i];
+        int x = keypoint->x, y = keypoint->y;
+        int v, max_scale;    
+        
+        max_scale = (y + iROI.srcroi.yOffset) >> 1;
+        v = (source->height - 1 - (y + iROI.srcroi.yOffset)) >> 1;
+        if (v < max_scale) max_scale = v;
+        v = (x + iROI.srcroi.xOffset) >> 1;
+        if (v < max_scale) max_scale = v;
+        v = (source->width -1 - (x + iROI.srcroi.xOffset)) >> 1;
+        if (v < max_scale) max_scale = v;
+
+        if (keypoint->scale <= max_scale) {
+            unsigned int *ptr = ((unsigned int*)(integral.imageData + (y + iROI.srcroi.yOffset) * integral.widthStep)) + iROI.srcroi.xOffset + x;
+            int scale = keypoint->scale - 1; 
+            int yoffset = scale * widthStep;
+            int value, num, den, x1, x3, y1, y2, y3;
+            x1 = -1;
+            x3 = 1;
+            y2 = keypoint->value;
+            CAM_RECURSIVE_PATTERN;
+            y1 = (value << 4) / (scale * scale);
+            scale = keypoint->scale + 1;
+            yoffset += widthStep << 1;
+            CAM_RECURSIVE_PATTERN;
+            y3 = (value << 4) / (scale * scale);
+            num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
+            den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
+            if (den == 0)
+                keypoint->scale <<= 2;
+            else {
+                int p = (num << 1) / den; // shift only by 1, because den is shifted by 2	    
+                keypoint->scale = p + (keypoint->scale << 2);
+            }
+        }
+        else
+            keypoint->scale <<= 2;
+    }
+
+#ifdef CAM_KEYPOINTS_SUPER_RESOLUTION
+
+#endif
 
     // Angle
     if (options & CAM_UPRIGHT) {
@@ -425,6 +481,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     
     // Sort again the features according to value
     qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
+
     
     // Keypoints allocation
     pnb_keypoints = nb_keypoints;
