@@ -61,7 +61,7 @@
 #include <emmintrin.h>
 #endif
 
-int camPatchSizeParam = 32; //38; ///8*3;
+int camPatchSizeParam = 16; //32; //38; ///8*3;
 double camSigmaParam = 7;
 int camAbsCoeff = 5;
 int camColorCoeff = 20;
@@ -272,10 +272,13 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
    
     if (source->depth == 32) {
 	// This is an integral image
-	w = point->scale * camPatchSizeParam;
+	// w is the width of the patch to analyze, multiplied by 16
+        w = point->scale * camPatchSizeParam;
+        // sx is the size of the Haar filter, in pixels
 	sx = ((w * camHaarFilterSizeParam) / 100) >> 4;
         if (sx <= 1) sx = 2;
-	fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
+	// fsx is the space between positive and negative parts of the Haar filter. It is most possibly 0.
+        fsx = ((w * camHaarFilterSpaceParam) / 100) >> 4;	
 	// Check boundaries
 	if (point->x - (((19 * w) / 40) >> 4) - sx - fsx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx - fsx <= 1 ||
 	    point->x + (((19 * w) / 40) >> 4) + sx + fsx >= source->width ||

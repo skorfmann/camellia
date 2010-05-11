@@ -17,6 +17,7 @@
 #define CAM_MAX_KEYPOINTS 100000
 #define CAM_ORIENTATION_STAMP_SIZE 30
 #define CAM_MIN_SCALE 3
+#define CAM_SCALE_MARGIN 1
 
 extern double camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
@@ -137,6 +138,8 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                     // Check max_scale with the right side of the frame
                     v = (source->width -1 - (x + iROI.srcroi.xOffset)) >> 1;
                     if (v < max_scale) max_scale = v;
+                    // We need a scale margin in order to compute the descriptor
+                    max_scale -= CAM_SCALE_MARGIN;
 
                     // Choose the first scale to evaluate, depending on upper and left results
                     if (abs_previous_value_line[x] > abs_current_value) 
@@ -419,6 +422,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     // Scale super-resolution
     for (i = 0; i < nb_keypoints; i++) {
         CamKeypointShort *keypoint = &keypoints[i];
+#if 1
         int x = keypoint->x, y = keypoint->y;
         int v, max_scale;    
         
@@ -429,6 +433,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         if (v < max_scale) max_scale = v;
         v = (source->width -1 - (x + iROI.srcroi.xOffset)) >> 1;
         if (v < max_scale) max_scale = v;
+        max_scale -= CAM_SCALE_MARGIN;
 
         if (keypoint->scale <= max_scale) {
             unsigned int *ptr = ((unsigned int*)(integral.imageData + (y + iROI.srcroi.yOffset) * integral.widthStep)) + iROI.srcroi.xOffset + x;
@@ -440,20 +445,35 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
             y2 = keypoint->value;
             CAM_RECURSIVE_PATTERN;
             y1 = (value << 4) / (scale * scale);
-            scale = keypoint->scale + 1;
-            yoffset += widthStep << 1;
-            CAM_RECURSIVE_PATTERN;
-            y3 = (value << 4) / (scale * scale);
-            num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
-            den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
-            if (den == 0)
-                keypoint->scale <<= 2;
+            if (y1 > y2) keypoint->scale <<= 2; // This is a problem : this is not a local maximum in scale...
             else {
-                int p = (num << 1) / den; // shift only by 1, because den is shifted by 2	    
-                keypoint->scale = p + (keypoint->scale << 2);
+                scale = keypoint->scale + 1;
+                do {
+                    yoffset = scale * widthStep;
+                    CAM_RECURSIVE_PATTERN;
+                    y3 = (value << 4) / (scale * scale);
+                    if (y3 <= y2) {
+                        num = (x1 * x1 * y3 + (x3 * x3 - x1 * x1) * y2 - x3 * x3 * y1);
+                        den = x1 * y3 + (x3 - x1) * y2 - x3 * y1;
+                        if (den == 0)
+                            keypoint->scale <<= 2;
+                        else {
+                            int p = (num << 1) / den; // shift only by 1, because den is shifted by 2	    
+                            if (y == 96) 
+                                printf("%d %d %d\n", y1, y2, y3);
+                            keypoint->scale = p + ((scale - 1) << 2);
+                        }
+                        break;
+                    }
+                    y1 = y2;
+                    y2 = y3;
+                    scale++;
+                } while (scale < max_scale);
+                if (scale == max_scale) keypoint->scale <<= 2;
             }
         }
-        else
+        else 
+#endif
             keypoint->scale <<= 2;
     }
 #ifdef CAM_KEYPOINTS_SUPER_RESOLUTION
