@@ -17,7 +17,7 @@
 #define CAM_MAX_KEYPOINTS 100000
 #define CAM_ORIENTATION_STAMP_SIZE 30
 #define CAM_MIN_SCALE 3
-#define CAM_SCALE_MARGIN 1
+#define CAM_SCALE_MARGIN 0
 
 extern int camPatchSizeParam;
 extern double camSigmaParam;
@@ -461,8 +461,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             keypoint->scale <<= 2;
                         else {
                             int p = (num << 1) / den; // shift only by 1, because den is shifted by 2	    
-                            if (y == 96) 
-                                printf("%d %d %d\n", y1, y2, y3);
                             keypoint->scale = p + ((scale - 1) << 2);
                             found = 1;
                         }
@@ -479,9 +477,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
 #endif
             keypoint->scale <<= 2;
     }
-#ifdef CAM_KEYPOINTS_SUPER_RESOLUTION
-
-#endif
 
     // Angle
     if (options & CAM_UPRIGHT) {
@@ -530,10 +525,12 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     free(keypoints);
 
     if (options & CAM_UPRIGHT) {
-        camPatchSizeParam = 15;
+        camPatchSizeParam = 14; // This is the max so that the computation takes place for sure inside the frame
         camKeypointsDescriptor(points, &integral, options);
-    } else 
+    } else { 
+        camPatchSizeParam = 32 * 2 / 3; // Equivalent optimal value wrt SURF (the descriptor can partially lie outside screen)
         camKeypointsDescriptor(points, source, options);
+    }
 
     // Finally, set the points' set 
     for (i = 0; i < points->nbPoints; i++) {
