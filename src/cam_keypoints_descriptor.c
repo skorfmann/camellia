@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in integral and binary forms, with or without
@@ -280,7 +280,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	if (point->x - (((19 * w) / 40) >> 4) - sx - fsx <= 1 || point->y - (((19 * w) / 40) >> 4) - sx - fsx <= 1 ||
 	    point->x + (((19 * w) / 40) >> 4) + sx + fsx >= source->width ||
 	    point->y + (((19 * w) / 40) >> 4) + sx + fsx >= source->height) {
-	    printf("Out of boundaries : %d, %d, %d\n", point->x, point->y, point->scale);
+	    //printf("Out of boundaries : %d, %d, %d\n", point->x, point->y, point->scale);
 	    point->size = 0;
 	    return 0;
 	}
@@ -505,7 +505,7 @@ int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter
 	}
 
 	// Rotate the image
-	params.perspective=1;
+	params.perspective=0;
 	params.interpolation=1;
 	scale = point->scale * camPatchSizeParam;
 	for (i = 0; i < 4; i++) {

@@ -371,8 +371,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         }    
     }    
 
-    // Integral Image is now useless
-    camDeallocateImage(&integral);
     for (i = 0; i < 2; i++) {
         free(value_lines[i]);
         free(abs_value_lines[i]);
@@ -458,7 +456,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         else
             keypoint->scale <<= 2;
     }
-
 #ifdef CAM_KEYPOINTS_SUPER_RESOLUTION
 
 #endif
@@ -481,7 +478,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     
     // Sort again the features according to value
     qsort(keypoints, nb_keypoints, sizeof(CamKeypointShort), camSortKeypointsShort);
-
     
     // Keypoints allocation
     pnb_keypoints = nb_keypoints;
@@ -510,6 +506,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     points->nbPoints = pnb_keypoints;
     free(keypoints);
 
+//    camKeypointsDescriptor(points, &integral, options);
     camKeypointsDescriptor(points, source, options);
 
     // Finally, set the points' set 
@@ -517,6 +514,8 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
 	points->keypoint[i]->set = points;
     }
     
+    // Integral Image is now useless
+    camDeallocateImage(&integral);
     camInternalROIPolicyExit(&iROI);
     return 1;
 }
