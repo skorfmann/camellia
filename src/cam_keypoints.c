@@ -273,10 +273,12 @@ int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *
     camWarping(source, &scaled, &params);
     
 #if 0
-    static int nbx = 0;
-    char strx[256];
-    sprintf(strx, "output/keypoints_rotation_%d.pgm", nbx++);
-    camSavePGM(&scaled, strx);
+    {
+        static int nbx = 0;
+        char strx[256];
+        sprintf(strx, "output/keypoints_rotation_%d.pgm", nbx++);
+        camSavePGM(&scaled, strx);
+    }
 #endif
 
     // We now have the scaled image
@@ -287,8 +289,17 @@ int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *
     camFixedFilter(&scaled, &filtered_v, CAM_SCHARR_V);
     params2.operation = CAM_ARITHM_MUL;
     params2.c1 = 16;
+
     camDyadicArithm(&filtered_h, filter, &filtered_h, &params2);
     camDyadicArithm(&filtered_v, filter, &filtered_v, &params2);
+#if 0
+    {
+        static int nbxx = 0;
+        char strx[256];
+        sprintf(strx, "output/keypoints_filterh_%d.pgm", nbxx++);
+        camSavePGM(&filtered_h, strx);
+    }
+#endif
 
     // Great. Let's compute the sum of gradient for all sectors...
     for (i = 0; i < CAM_NB_SECTORS; i++) {

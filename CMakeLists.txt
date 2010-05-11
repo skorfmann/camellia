@@ -11,6 +11,7 @@ IF(APPLE)
 ELSE(APPLE)
     IF(CMAKE_HOST_UNIX)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+	SET(libs m)    
     ENDIF(CMAKE_HOST_UNIX)
 ENDIF(APPLE)    
 
@@ -19,5 +20,5 @@ ADD_EXECUTABLE(cam_demo cam_demo.c cam_demo_cpp.cpp)
 TARGET_LINK_LIBRARIES(cam_demo camellia ${libs})
 
 ADD_EXECUTABLE(cam_myobjects cam_myobjects.c)
-TARGET_LINK_LIBRARIES(cam_myobjects camellia ${libs} m)
+TARGET_LINK_LIBRARIES(cam_myobjects camellia ${libs})
 

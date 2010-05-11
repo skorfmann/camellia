@@ -1295,9 +1295,9 @@ void example_recursive_keypoints()
     //camSavePGM(&Y2, "output/clooney2.pgm");
 
     t1=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y1, &points1, 100, 0); //CAM_UPRIGHT);
     t2=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y2, &points2, 100, 0); //CAM_UPRIGHT);
 	
     nbMatches = 0;
     
@@ -1320,14 +1320,13 @@ void example_recursive_keypoints()
     printf("# points matched: %d\n", nbMatches);
     printf("Recursive keypoints computation = %d ms\n",t2-t1);
     
-    camSaveBMP(&image, "output/clooney.bmp");
+    camSaveBMP(&image, "output/clooney_recursive.bmp");
     camDeallocateImage(&image);
     camDeallocateImage(&Y1);
     camDeallocateImage(&Y2);
     camFreeKeypoints(&points1);
     camFreeKeypoints(&points2);
 }
-
 
 void cpp_example_erosion();
 void cpp_example_mask();
@@ -1351,7 +1350,8 @@ int main()
     //test_cam_keypoints_tracking();
     test_camRecursiveKeypoints();
     example_recursive_keypoints();
-
+    example_keypoints2();
+    
     /*
     // Legacy examples
     example_filters();

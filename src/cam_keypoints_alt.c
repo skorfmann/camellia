@@ -137,7 +137,7 @@ int camHessianEstimate(CamHessianEstimateData *data, CamImage *integral, CamKeyp
     return det;
 }
 
-extern int camSigmaParam;
+extern double camSigmaParam;
 int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 int camSortKeypointsShort(const void *p1x, const void *p2x);
 int camBuildGaussianFilter(CamImage *image, double sigma);

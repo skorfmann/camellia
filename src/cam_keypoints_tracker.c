@@ -70,7 +70,7 @@ typedef struct
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
 
-inline int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamKeypointShort *keypoint)
+int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamKeypointShort *keypoint)
 {
   unsigned int	*ptr;
   unsigned int	*ptrAi;
@@ -106,7 +106,7 @@ inline int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamK
   return (res);
 }
 
-inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
+unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
 {
   unsigned int		*seedsIndexes;
   unsigned int		currentIndex;
@@ -202,6 +202,7 @@ CamKeypointsMatch	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *imag
 	}
       free (seedsIndexes);
     }
+    return (NULL);
 }
 
 int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
@@ -216,10 +217,10 @@ void			test_cam_keypoints_tracking()
 
   /* begin images building */
   modelImage.imageData = NULL;
-  camLoadBMP(&modelImage, "../resources/photos/scene1.bmp");
+  camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
   camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &firstImage);
-  camLoadBMP(&modelImage, "../resources/photos/scene1.bmp");
+  camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
   camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &secondImage);
   /* end images building */
