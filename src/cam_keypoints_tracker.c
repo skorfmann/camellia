@@ -140,19 +140,13 @@ int	camSortKeypointsShort(const void *p1x, const void *p2x);
 int	camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2);
 int	camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 
-inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTrackingContext *tc, int (*detectorValue)(CamImage *, CamKeypointShort*), int i, CamImage *integralImage, unsigned int *seedsIndexes)
+inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTrackingContext *tc, int (*detectorValue)(CamImage *, CamKeypointShort*), CamImage *integralImage, int seedX, int seedY, int seedScale)
 {
   int			j;
   int			k;
-  int			seedX;
-  int			seedY;
-  int			seedScale;
   CamKeypointShort	currentPoint;
   CamKeypointShort	*maxOnEachScale;
   
-  seedX = tc->previousFeatures->keypoint[seedsIndexes[i]]->x;
-  seedY = tc->previousFeatures->keypoint[seedsIndexes[i]]->y;
-  seedScale = tc->previousFeatures->keypoint[seedsIndexes[i]]->scale >> 2;
   maxOnEachScale = (CamKeypointShort*)calloc(((tc->rv.scale << 1) + 1), sizeof(CamKeypointShort));
   // on each scale, get the highest detector's value
   for (currentPoint.scale = max(seedScale - tc->rv.scale, 1), j = 0 ; currentPoint.scale <= seedScale + tc->rv.scale ; ++currentPoint.scale, ++j)
@@ -176,10 +170,35 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTra
 	}
     }
   for (k = 0 ; k < j && maxOnEachScale[k].scale ; ++k)
-	maxOnEachScale[k].value = (maxOnEachScale[k].value << 4) / (maxOnEachScale[k].scale * maxOnEachScale[k].scale);
-  /* sur un bord ? => TO BE DONE */
+    maxOnEachScale[k].value = (maxOnEachScale[k].value << 4) / (maxOnEachScale[k].scale * maxOnEachScale[k].scale);
   qsort(maxOnEachScale, j, sizeof(CamKeypointShort), camSortKeypointsShort);
   return (maxOnEachScale);
+}
+
+/* it's possible to have a maximum twice on the same point even with frontier shift => need to be handled */
+
+inline int	cam_keypoints_tracking_max_on_border(CamTrackingContext *tc, CamKeypointShort *localMax, int seedX, int seedY, int seedScale)
+{
+  if ( abs(localMax->x - seedX) == tc->rv.width || abs(localMax->y - seedY) == tc->rv.height ||
+       abs(localMax->scale - seedScale) == tc->rv.scale )
+    return (1);
+  return (0);
+}
+
+inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *tc, CamKeypointShort *localMax, int *seedX, int *seedY, int *seedScale)
+{
+  if (*seedX - localMax->x == -(tc->rv.width))
+    *seedX += tc->rv.width << 2;
+  else
+    *seedX -= tc->rv.width << 2;
+  if (*seedY - localMax->y == -(tc->rv.height))
+    *seedY += tc->rv.height << 2;
+  else
+    *seedY -= tc->rv.height << 2;
+  if (*seedScale - localMax->scale == -(tc->rv.scale))
+    *seedScale += tc->rv.scale << 2;
+  else
+    *seedScale -= tc->rv.scale << 2;
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, int options)
@@ -195,6 +214,9 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   CamKeypointShort	*maxOnEachScale;
   unsigned int		*seedsIndexes;
   CamKeypointsMatches	*seedsMatches;
+  int			seedX;
+  int			seedY;
+  int			seedScale;
 
   seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);  
 
@@ -205,7 +227,19 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   l = 0;
   for (i = 0 ; i < tc->nbSeeds ; ++i)
     {
-      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, i, integralImage, seedsIndexes);
+
+      seedX = tc->previousFeatures->keypoint[seedsIndexes[i]]->x;
+      seedY = tc->previousFeatures->keypoint[seedsIndexes[i]]->y;
+      seedScale = tc->previousFeatures->keypoint[seedsIndexes[i]]->scale >> 2;
+
+      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
+      /* max on a border of the research space => shift the research cube */
+      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], seedX, seedY, seedScale))
+	{
+	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &seedX, &seedY, &seedScale);
+	  free(maxOnEachScale);
+	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
+	}
       
       /* begin of angle computation of the 2 best */
       camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
