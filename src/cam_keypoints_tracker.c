@@ -50,6 +50,9 @@
 #include <string.h> // memcpy
 #include "camellia.h"
 
+extern double camSigmaParam;
+#define CAM_ORIENTATION_STAMP_SIZE 30
+
 typedef struct
 {
   int width;	// half width reseach size
@@ -128,9 +131,10 @@ inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc
   return (seedsIndexes);
 }
 
-int camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter, int options);
-int camSortKeypointsShort(const void *p1x, const void *p2x);
-int camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2);
+int	camKeypointDescriptor(CamKeypoint *point, CamImage *source, CamImage *filter, int options);
+int	camSortKeypointsShort(const void *p1x, const void *p2x);
+int	camKeypointsDistance(CamKeypoint *point1, CamKeypoint *point2);
+int	camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *filter, CamKeypointShort *next_point);
 
 CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
 {
@@ -166,12 +170,11 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   else
     {
       seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);
+
       camAllocateKeypoints(&currentFeatures, tc->nbFeatures);
       camAllocateKeypointsMatches(&seedMatches, tc->nbSeeds);
-      camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
-      camBuildGaussianFilter(&filter, 7);
-      camKeypointsInternalsPrepareDescriptor();
-	/* begin integral image computing */
+  
+      /* begin integral image computing */
       integralImage.imageData = NULL;
       camIntegralImage(image, &integralImage);
       /* end integral image computing */
@@ -207,20 +210,32 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 		}
 	    }
 	  for (k = 0 ; k < j && maxOnEachScale[k].scale ; ++k)
-	    {
-	      maxOnEachScale[k].value = (maxOnEachScale[k].value << 4) / (maxOnEachScale[k].scale * maxOnEachScale[k].scale);
-	    }
+	    maxOnEachScale[k].value = (maxOnEachScale[k].value << 4) / (maxOnEachScale[k].scale * maxOnEachScale[k].scale);
 	  qsort(maxOnEachScale, j, sizeof(CamKeypointShort), camSortKeypointsShort);
 	  /* sur un bord ? => TO BE DONE */
 
-	  /* check descriptor coherency */
+	  /* begin angle computation of the 2 best */
+	  camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
+	  camBuildGaussianFilter(&filter, camSigmaParam);
+	  camKeypointOrientation(image, &maxOnEachScale[0], &filter, &maxOnEachScale[k - 1]);
+	  camKeypointOrientation(image, &maxOnEachScale[1], &filter, &maxOnEachScale[k - 1]);
+	  camDeallocateImage(&filter);
+	  /* end angle computation of the 2 best */
+
+	  /* begin check descriptor coherency */
 	  memcpy(&possibleSeedMatch1.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
 	  memcpy(&possibleSeedMatch2.x, &maxOnEachScale[1], sizeof(CamKeypointShort));
-	  camKeypointDescriptor(&possibleSeedMatch1, image, &filter, options);
-	  camKeypointDescriptor(&possibleSeedMatch2, image, &filter, options);
+	  possibleSeedMatch1.scale = possibleSeedMatch1.scale << 2;
+	  possibleSeedMatch2.scale = possibleSeedMatch2.scale << 2;
+	  camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
+	  camBuildGaussianFilter(&filter, camSigmaParam);
+	  camKeypointsInternalsPrepareDescriptor();
+	  camKeypointDescriptor(&possibleSeedMatch1, &integralImage, &filter, options);
+	  camKeypointDescriptor(&possibleSeedMatch2, &integralImage, &filter, options);
 	  distance1 = camKeypointsDistance(tc->previousFeatures.keypoint[seedsIndexes[i]], &possibleSeedMatch1);
 	  distance2 = camKeypointsDistance(tc->previousFeatures.keypoint[seedsIndexes[i]], &possibleSeedMatch2);
-	  // ou est calculé l'angle ?
+	  camDeallocateImage(&filter);
+
 	  if (distance1 < distance2)
 	    {
 	      memcpy(currentFeatures.keypoint[l], &possibleSeedMatch1, sizeof(possibleSeedMatch1));
@@ -229,9 +244,11 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	      seedMatches.pairs[l].mark = distance1;
 	      ++l;
 	    }
+	  /* end check descriptor coherency */
 	  free (maxOnEachScale);
 	}
       free (seedsIndexes);
+      return (NULL);
     }
   return (NULL);
 }
