@@ -1289,16 +1289,16 @@ void example_recursive_keypoints()
     Y1.imageData = NULL;
     camRGB2Y(&image, &Y1);
     //    camSavePGM(&Y1, "output/clooney.pgm");
-    camAllocateKeypoints(&points1, 1000);
-    camAllocateKeypoints(&points2, 1000);
+    camAllocateKeypoints(&points1, 100);
+    camAllocateKeypoints(&points2, 100);
     camAllocateImage(&Y2, (((int)(Y1.width*ratio))/8)*8, (((int)(Y1.height*ratio))/8)*8, CAM_DEPTH_8U);
     camScale(&Y1, &Y2);
     //camSavePGM(&Y2, "output/clooney2.pgm");
 
     t1=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y1, &points1, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y1, &points1, 50, CAM_UPRIGHT);
     t2=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y2, &points2, 100, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y2, &points2, 50, CAM_UPRIGHT);
 	
     nbMatches = 0;
     
@@ -1348,9 +1348,9 @@ int main()
     camInitBenchmark();
 
     // Tracking examples
-    test_cam_keypoints_tracking();
-    //test_camRecursiveKeypoints();
-    //example_recursive_keypoints();
+    //test_cam_keypoints_tracking();
+    test_camRecursiveKeypoints();
+    example_recursive_keypoints();
     //example_keypoints2();
     
     /*
