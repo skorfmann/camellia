@@ -49,6 +49,7 @@
 #include <stdlib.h>	// malloc, calloc, qsort
 #include <string.h>	// memcpy
 #include <stdio.h>	// printf
+#include <limits.h>
 #ifdef __SSE2__
 #include <emmintrin.h>	// _mm_malloc
 #endif
@@ -73,6 +74,12 @@ typedef struct
   int			nbSeeds;
   researchVolume	rv;		
 } CamTrackingContext;
+
+typedef enum
+  {
+    TRUE,
+    FALSE
+  } BOOL;
 
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
@@ -201,7 +208,7 @@ inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *
     *seedScale -= tc->rv.scale << 2;
 }
 
-CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, int options)
+CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
 {
   int			i;
   int			l;
@@ -212,13 +219,11 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   CamROI		roi;
   CamImage		filter;
   CamKeypointShort	*maxOnEachScale;
-  unsigned int		*seedsIndexes;
   CamKeypointsMatches	*seedsMatches;
   int			seedX;
   int			seedY;
   int			seedScale;
 
-  seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);  
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
@@ -258,8 +263,16 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
       camBuildGaussianFilter(&filter, camSigmaParam);
       camKeypointsInternalsPrepareDescriptor();
-      camKeypointDescriptor(&possibleSeedMatch1, image, &filter, options);
-      camKeypointDescriptor(&possibleSeedMatch2, image, &filter, options);
+      if (options & CAM_UPRIGHT)
+	{
+	  camKeypointDescriptor(&possibleSeedMatch1, integralImage, &filter, options);
+	  camKeypointDescriptor(&possibleSeedMatch2, integralImage, &filter, options);
+	}
+      else
+	{
+	  camKeypointDescriptor(&possibleSeedMatch1, image, &filter, options);
+	  camKeypointDescriptor(&possibleSeedMatch2, image, &filter, options);
+	}
       distance1 = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], &possibleSeedMatch1);
       distance2 = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], &possibleSeedMatch2);
       camDeallocateImage(&filter);
@@ -276,11 +289,77 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
 	}
       else
 	seedsMatches->nbOutliers++;
-
       /* end check descriptor coherency */
     }
-  free (seedsIndexes);
   return (seedsMatches);
+}
+
+BOOL		cam_keypoints_tracking_is_seed(CamTrackingContext *tc, unsigned int *seedsIndexes, unsigned int featureIndex)
+{
+  unsigned int	k;
+  
+  for (k = 0 ; k < tc->nbSeeds ; ++k)
+    {
+      if (seedsIndexes[k] == featureIndex)
+	return (TRUE);
+    }  
+  return (FALSE);
+}
+
+inline unsigned int	cam_keypoints_tracking_distance_square(CamKeypoint *p1, CamKeypoint *p2)
+{
+  return ((p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y));
+}
+
+unsigned int	cam_keypoints_tracking_extract_closest_seed_index(CamTrackingContext *tc, CamKeypointsMatches *seedsMatches, unsigned int featureIndex)
+{
+  unsigned int	i;
+  unsigned int	res;
+  float		minDistanceSquare;
+  float		currentDistance;
+
+  minDistanceSquare = INT_MAX;
+  for (i = 0 ; i < seedsMatches->nbMatches ; ++i)
+    {
+      currentDistance = cam_keypoints_tracking_distance_square(seedsMatches->pairs[i].p1, tc->previousFeatures->keypoint[featureIndex]);
+      if (currentDistance < minDistanceSquare)
+	{
+	  minDistanceSquare = currentDistance;
+	  res = i;
+	}
+    }
+  return (res);
+}
+
+void			cam_keypoints_tracking_extract_points_matching(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), CamKeypointsMatches *seedsMatches, unsigned int *seedsIndexes, CamKeypoints *currentFeatures, int options)
+{
+  unsigned int		i;
+  unsigned int		closestSeedIndex;
+  CamKeypointShort	*maxOnEachScale;
+  int			featureX;
+  int			featureY;
+  int			featureScale;
+
+  for (i = 0 ; i < tc->nbFeatures ; ++i)
+    {
+      if (cam_keypoints_tracking_is_seed(tc, seedsIndexes, i) == TRUE)
+	continue ;
+      closestSeedIndex = cam_keypoints_tracking_extract_closest_seed_index(tc, seedsMatches, i);
+      featureX = tc->previousFeatures->keypoint[i]->x;
+      featureY = tc->previousFeatures->keypoint[i]->y;
+      featureScale = tc->previousFeatures->keypoint[i]->scale >> 2;
+      featureX += seedsMatches->pairs[closestSeedIndex].p2->x - seedsMatches->pairs[closestSeedIndex].p1->x;
+      featureY += seedsMatches->pairs[closestSeedIndex].p2->y - seedsMatches->pairs[closestSeedIndex].p1->y;
+      featureScale += seedsMatches->pairs[closestSeedIndex].p2->scale - seedsMatches->pairs[closestSeedIndex].p1->scale;
+      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+      /* max on a border of the research space => shift the research cube */
+      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale))
+	{
+	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &featureX, &featureY, &featureScale);
+	  free(maxOnEachScale);
+	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+	}
+    }
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
@@ -288,6 +367,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   CamImage		integralImage;
   CamKeypointsMatches	*seedsMatches;
   CamKeypoints		*currentFeatures;
+  unsigned int		*seedsIndexes;
 
   // initialisation of the tracker
   if (!(tc->previousFeatures->bag))
@@ -299,6 +379,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   // initialisation already done
   else
     {
+      seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);  
       currentFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
       camAllocateKeypoints(currentFeatures, tc->nbFeatures);
       if (currentFeatures->bag == NULL)
@@ -315,9 +396,11 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       camIntegralImage(image, &integralImage);
       /* end integral image computing */
 
-      seedsMatches = cam_keypoints_tracking_extract_seed_matches(tc, image, &integralImage, detectorValue, currentFeatures, options); // need to check the descriptor computation
-      
+      seedsMatches = cam_keypoints_tracking_extract_seed_matches(tc, image, &integralImage, detectorValue, currentFeatures, seedsIndexes, options); // need to check the descriptor computation
 
+      cam_keypoints_tracking_extract_points_matching(tc, image, &integralImage, detectorValue, seedsMatches, seedsIndexes, currentFeatures, options);
+
+      free (seedsIndexes);
       camFreeKeypoints(tc->previousFeatures);
       free(tc->previousFeatures);
       tc->previousFeatures = currentFeatures;
