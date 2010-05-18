@@ -195,17 +195,17 @@ inline int	cam_keypoints_tracking_max_on_border(CamTrackingContext *tc, CamKeypo
 inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *tc, CamKeypointShort *localMax, int *seedX, int *seedY, int *seedScale)
 {
   if (*seedX - localMax->x == -(tc->rv.width))
-    *seedX += tc->rv.width << 2;
-  else
-    *seedX -= tc->rv.width << 2;
+    *seedX += tc->rv.width << 1;
+  else if (*seedX - localMax->x == (tc->rv.width))
+    *seedX -= tc->rv.width << 1;
   if (*seedY - localMax->y == -(tc->rv.height))
-    *seedY += tc->rv.height << 2;
-  else
-    *seedY -= tc->rv.height << 2;
+    *seedY += tc->rv.height << 1;
+  else if (*seedY - localMax->y == (tc->rv.height))
+    *seedY -= tc->rv.height << 1;
   if (*seedScale - localMax->scale == -(tc->rv.scale))
-    *seedScale += tc->rv.scale << 2;
-  else
-    *seedScale -= tc->rv.scale << 2;
+    *seedScale += tc->rv.scale << 1;
+  else if (*seedScale - localMax->scale == (tc->rv.scale))
+    *seedScale -= tc->rv.scale << 1;
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
@@ -223,7 +223,12 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   int			seedX;
   int			seedY;
   int			seedScale;
-
+  int			oldSeedX;
+  int			oldSeedY;
+  int			oldSeedScale;
+  int			oldOldSeedX;
+  int			oldOldSeedY;
+  int			oldOldSeedScale;
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
@@ -238,9 +243,21 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       seedScale = tc->previousFeatures->keypoint[seedsIndexes[i]]->scale >> 2;
 
       maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
+      oldSeedX = -1;
+      oldSeedY = -1;
+      oldSeedScale = -1;
+      oldOldSeedX = -1;
+      oldOldSeedY = -1;
+      oldOldSeedScale = -1;
       /* max on a border of the research space => shift the research cube */
-      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], seedX, seedY, seedScale))
+      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], seedX, seedY, seedScale) && (seedX != oldOldSeedX || seedY != oldOldSeedY || seedScale != oldOldSeedScale))
 	{
+	  oldOldSeedX = oldSeedX;
+	  oldOldSeedY = oldSeedY;
+	  oldOldSeedScale = oldSeedScale;
+	  oldSeedX = seedX;
+	  oldSeedY = seedY;
+	  oldSeedScale = seedScale;
 	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &seedX, &seedY, &seedScale);
 	  free(maxOnEachScale);
 	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
@@ -333,17 +350,26 @@ unsigned int	cam_keypoints_tracking_extract_closest_seed_index(CamTrackingContex
 
 void			cam_keypoints_tracking_extract_points_matching(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), CamKeypointsMatches *seedsMatches, unsigned int *seedsIndexes, CamKeypoints *currentFeatures, int options)
 {
+  CamImage		filter;
   unsigned int		i;
   unsigned int		closestSeedIndex;
   CamKeypointShort	*maxOnEachScale;
+  CamKeypoint		featureMatch;
   int			featureX;
   int			featureY;
   int			featureScale;
+  int			oldFeatureX;
+  int			oldFeatureY;
+  int			oldFeatureScale;
+  int			oldOldFeatureX;
+  int			oldOldFeatureY;
+  int			oldOldFeatureScale;
 
   for (i = 0 ; i < tc->nbFeatures ; ++i)
     {
       if (cam_keypoints_tracking_is_seed(tc, seedsIndexes, i) == TRUE)
 	continue ;
+      // recupere la seed la plus proche
       closestSeedIndex = cam_keypoints_tracking_extract_closest_seed_index(tc, seedsMatches, i);
       featureX = tc->previousFeatures->keypoint[i]->x;
       featureY = tc->previousFeatures->keypoint[i]->y;
@@ -352,13 +378,44 @@ void			cam_keypoints_tracking_extract_points_matching(CamTrackingContext *tc, Ca
       featureY += seedsMatches->pairs[closestSeedIndex].p2->y - seedsMatches->pairs[closestSeedIndex].p1->y;
       featureScale += seedsMatches->pairs[closestSeedIndex].p2->scale - seedsMatches->pairs[closestSeedIndex].p1->scale;
       maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+      oldFeatureX = -1;
+      oldFeatureY = -1;
+      oldFeatureScale = -1;
+      oldOldFeatureX = -1;
+      oldOldFeatureY = -1;
+      oldOldFeatureScale = -1;
       /* max on a border of the research space => shift the research cube */
-      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale))
+      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale) && (featureX != oldOldFeatureX || featureY != oldOldFeatureY || featureScale != oldOldFeatureScale))
 	{
+	  oldOldFeatureX = oldFeatureX;
+	  oldOldFeatureY = oldFeatureY;
+	  oldOldFeatureScale = oldFeatureScale;
+	  oldFeatureX = featureX;
+	  oldFeatureY = featureY;
+	  oldFeatureScale = featureScale;
 	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &featureX, &featureY, &featureScale);
 	  free(maxOnEachScale);
 	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
 	}
+      /* begin of angle computation of the best */
+      camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
+      camBuildGaussianFilter(&filter, camSigmaParam);
+      camKeypointOrientation(image, &maxOnEachScale[0], &filter, &maxOnEachScale[1]); // check with bruno
+      camDeallocateImage(&filter);
+      /* end of angle computation of the best */
+ 
+      /* begin compute signature */
+      memcpy(&featureMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
+      free(maxOnEachScale);
+      featureMatch.scale = featureMatch.scale << 2;
+      camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
+      camBuildGaussianFilter(&filter, camSigmaParam);
+      camKeypointsInternalsPrepareDescriptor();
+      if (options & CAM_UPRIGHT)
+	camKeypointDescriptor(&featureMatch, integralImage, &filter, options);
+      else
+	camKeypointDescriptor(&featureMatch, image, &filter, options);
+      /* end compute signature */
     }
 }
 
