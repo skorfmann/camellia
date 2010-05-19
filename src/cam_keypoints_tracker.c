@@ -59,7 +59,7 @@
 extern double camSigmaParam;
 
 #define CAM_ORIENTATION_STAMP_SIZE 30
-#define CAM_TRACKING_SUBTIMINGS
+//#define CAM_TRACKING_SUBTIMINGS
 #define CAM_TRACKING_TIMINGS
 
 typedef struct
@@ -186,8 +186,6 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTra
   return (maxOnEachScale);
 }
 
-/* it's possible to have a maximum twice on the same point even with frontier shift => need to be handled */
-
 inline int	cam_keypoints_tracking_max_on_border(CamTrackingContext *tc, CamKeypointShort *localMax, int seedX, int seedY, int seedScale)
 {
   if ( abs(localMax->x - seedX) == tc->rv.width || abs(localMax->y - seedY) == tc->rv.height ||
@@ -212,31 +210,102 @@ inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *
     *seedScale -= tc->rv.scale << 1;
 }
 
+inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scale(CamTrackingContext *tc, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), int index, int shiftX, int shiftY, int shiftScale)
+{
+  int			featureX;
+  int			featureY;
+  int			featureScale;
+  int			oldFeatureX;
+  int			oldFeatureY;
+  int			oldFeatureScale;
+  int			oldOldFeatureX;
+  int			oldOldFeatureY;
+  int			oldOldFeatureScale;
+  CamKeypointShort	*maxOnEachScale;
+#ifdef CAM_TRACKING_SUBTIMINGS
+  int			deltaTimers;
+  struct timeval	tv1;
+  struct timeval	tv2;
+#endif
+  
+  featureX = tc->previousFeatures->keypoint[index]->x - shiftX;
+  featureY = tc->previousFeatures->keypoint[index]->y - shiftY;
+  featureScale = (tc->previousFeatures->keypoint[index]->scale >> 2) - shiftScale;
+  
+#ifdef CAM_TRACKING_SUBTIMINGS
+  gettimeofday(&tv1, NULL);
+#endif
+  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+  oldFeatureX = -1;
+  oldFeatureY = -1;
+  oldFeatureScale = -1;
+  oldOldFeatureX = -1;
+  oldOldFeatureY = -1;
+  oldOldFeatureScale = -1;
+  /* max on a border of the research space => shift the research cube */
+  while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale) && (featureX != oldOldFeatureX || featureY != oldOldFeatureY || featureScale != oldOldFeatureScale))
+    {
+      oldOldFeatureX = oldFeatureX;
+      oldOldFeatureY = oldFeatureY;
+      oldOldFeatureScale = oldFeatureScale;
+      oldFeatureX = featureX;
+      oldFeatureY = featureY;
+      oldFeatureScale = featureScale;
+      cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &featureX, &featureY, &featureScale);
+      free(maxOnEachScale);
+      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+    }
+#ifdef CAM_TRACKING_SUBTIMINGS
+  gettimeofday(&tv2, NULL);
+  deltaTimers = tv2.tv_usec - tv1.tv_usec;
+  if (deltaTimers < 0)
+    deltaTimers = 1000000 + deltaTimers;
+  printf("Max on each scale : %ius ", deltaTimers);
+#endif
+  return (maxOnEachScale);
+}
+
+void			cam_keypoints_tracking_compute_feature_description(CamKeypoint *keypoint, CamKeypointShort *feature, CamKeypointShort *nextFeature, CamImage *image, CamImage *integralImage, int options)
+{
+  CamImage		filter;  
+
+  if (!(options & CAM_UPRIGHT))
+    {
+      /* begin of angle computation of the best */
+      camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
+      camBuildGaussianFilter(&filter, camSigmaParam);
+      camKeypointOrientation(image, feature, &filter, nextFeature);
+      camDeallocateImage(&filter);
+      /* end of angle computation of the best */
+    }
+  camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
+  camBuildGaussianFilter(&filter, camSigmaParam);
+  camKeypointsInternalsPrepareDescriptor();
+  if (options & CAM_UPRIGHT)
+    {
+      camKeypointDescriptor(keypoint, integralImage, &filter, options);
+      keypoint->angle = 0;
+    }
+  else
+    camKeypointDescriptor(keypoint, image, &filter, options);
+  camDeallocateImage(&filter);
+}
+
 CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
 {
   int			i;
   int			l;
   int			distance1;
   int			distance2;
-  CamKeypoint		possibleSeedMatch1;
+  CamKeypoint		seedMatch;
   CamROI		roi;
   CamImage		filter;
   CamKeypointShort	*maxOnEachScale;
   CamKeypointsMatches	*seedsMatches;
-  int			seedX;
-  int			seedY;
-  int			seedScale;
-  int			oldSeedX;
-  int			oldSeedY;
-  int			oldSeedScale;
-  int			oldOldSeedX;
-  int			oldOldSeedY;
-  int			oldOldSeedScale;
 #ifdef CAM_TRACKING_SUBTIMINGS
+  int			deltaTimers;
   struct timeval	tv1;
   struct timeval	tv2;
-  struct timeval	tv3;
-  struct timeval	tv4;
 #endif
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
@@ -246,84 +315,29 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   l = 0;
   for (i = 0 ; i < tc->nbSeeds ; ++i)
     {
-      seedX = tc->previousFeatures->keypoint[seedsIndexes[i]]->x;
-      seedY = tc->previousFeatures->keypoint[seedsIndexes[i]]->y;
-      seedScale = tc->previousFeatures->keypoint[seedsIndexes[i]]->scale >> 2;
-
+      maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, seedsIndexes[i], 0, 0, 0);
 #ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv1, NULL);
+      gettimeofday(&tv1, NULL);      
 #endif
-      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
-      oldSeedX = -1;
-      oldSeedY = -1;
-      oldSeedScale = -1;
-      oldOldSeedX = -1;
-      oldOldSeedY = -1;
-      oldOldSeedScale = -1;
-      /* max on a border of the research space => shift the research cube */
-      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], seedX, seedY, seedScale) && (seedX != oldOldSeedX || seedY != oldOldSeedY || seedScale != oldOldSeedScale))
-	{
-	  oldOldSeedX = oldSeedX;
-	  oldOldSeedY = oldSeedY;
-	  oldOldSeedScale = oldSeedScale;
-	  oldSeedX = seedX;
-	  oldSeedY = seedY;
-	  oldSeedScale = seedScale;
-	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &seedX, &seedY, &seedScale);
-	  free(maxOnEachScale);
-	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, seedX, seedY, seedScale);
-	}
+      memcpy(&seedMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
+      cam_keypoints_tracking_compute_feature_description(&seedMatch, &maxOnEachScale[0], &maxOnEachScale[1], image, integralImage, options);
+      seedMatch.scale = seedMatch.scale << 2;
 #ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv2, NULL);
-#endif
-
-      if (options & CAM_UPRIGHT)
-	{
-	  /* begin of angle computation of the best */
-	  camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
-	  camBuildGaussianFilter(&filter, camSigmaParam);
-	  camKeypointOrientation(image, &maxOnEachScale[0], &filter, &maxOnEachScale[1]); // check with bruno
-	  camDeallocateImage(&filter);
-	  /* end of angle computation of the best */	  
-	}
-#ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv3, NULL);
-#endif
-      /* begin computation of descriptor */
-      memcpy(&possibleSeedMatch1.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
-      free(maxOnEachScale);
-      possibleSeedMatch1.scale = possibleSeedMatch1.scale << 2;
-      camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
-      camBuildGaussianFilter(&filter, camSigmaParam);
-      camKeypointsInternalsPrepareDescriptor();
-      if (options & CAM_UPRIGHT)
-	camKeypointDescriptor(&possibleSeedMatch1, integralImage, &filter, options);
-      else
-	camKeypointDescriptor(&possibleSeedMatch1, image, &filter, options);
-      camDeallocateImage(&filter);
-#ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv4, NULL);      
+      gettimeofday(&tv2, NULL);      
 #endif
       currentFeatures->keypoint[l] = &currentFeatures->bag[l];
-      memcpy(currentFeatures->keypoint[l], &possibleSeedMatch1, sizeof(possibleSeedMatch1));
+      memcpy(currentFeatures->keypoint[l], &seedMatch, sizeof(seedMatch));
+      ++currentFeatures->nbPoints;
       seedsMatches->pairs[l].p1 = tc->previousFeatures->keypoint[seedsIndexes[i]];
       seedsMatches->pairs[l].p2 = currentFeatures->keypoint[l];
-      seedsMatches->pairs[l].mark = distance1;
+      seedsMatches->pairs[l].error = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], currentFeatures->keypoint[l]);;
       seedsMatches->nbMatches++;
       ++l;
 #ifdef CAM_TRACKING_SUBTIMINGS
-      int foo = tv2.tv_usec - tv1.tv_usec;
-      if (foo < 0)
-	foo = 1000000 + foo;
-      printf("Max on each scale : %ius ", foo);
-      foo = tv3.tv_usec - tv2.tv_usec;
-      if (foo < 0)
-	foo = 1000000 + foo;
-      printf("Orientation : %ius ", foo);
-      foo = tv4.tv_usec - tv3.tv_usec;
-      if (foo < 0)
-	foo = 1000000 + foo;
-      printf("Descriptor : %ius\n", foo);
+      deltaTimers = tv2.tv_usec - tv1.tv_usec;
+      if (deltaTimers < 0)
+	deltaTimers = 1000000 + deltaTimers;
+      printf("Feature description : %ius ", deltaTimers);
 #endif
       /* end computation of descriptor */
     }
@@ -367,84 +381,81 @@ unsigned int	cam_keypoints_tracking_extract_closest_seed_index(CamTrackingContex
   return (res);
 }
 
-void			cam_keypoints_tracking_extract_points_matching(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), CamKeypointsMatches *seedsMatches, unsigned int *seedsIndexes, CamKeypoints *currentFeatures, int options)
+CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), CamKeypointsMatches *seedsMatches, unsigned int *seedsIndexes, CamKeypoints *currentFeatures, int options)
 {
-  CamImage		filter;
+
   unsigned int		i;
+  unsigned int		j;
+  unsigned int		k;
   unsigned int		closestSeedIndex;
   CamKeypointShort	*maxOnEachScale;
-  CamKeypoint		featureMatch;
-  int			featureX;
-  int			featureY;
-  int			featureScale;
-  int			oldFeatureX;
-  int			oldFeatureY;
-  int			oldFeatureScale;
-  int			oldOldFeatureX;
-  int			oldOldFeatureY;
-  int			oldOldFeatureScale;
+  CamKeypoint		keypoint;
+  CamKeypointsMatches	*featuresMatches;
+  CamKeypointsMatches	*res;
+  int			shiftX;
+  int			shiftY;
+  int			shiftScale;
+  int			supposedMinDistance;
+  int			currentDistance;
+  int			*goodMatchesTab;
+  int			nbGoodMatches;
 
+  featuresMatches = (CamKeypointsMatches*)malloc(sizeof(*featuresMatches));
+  camAllocateKeypointsMatches(featuresMatches, tc->nbFeatures - tc->nbSeeds);
+  goodMatchesTab = (int*)calloc(tc->nbFeatures - tc->nbSeeds, sizeof(int));
+
+  j = 0;
   for (i = 0 ; i < tc->nbFeatures ; ++i)
     {
       if (cam_keypoints_tracking_is_seed(tc, seedsIndexes, i) == TRUE)
 	continue ;
-      // recupere la seed la plus proche
       closestSeedIndex = cam_keypoints_tracking_extract_closest_seed_index(tc, seedsMatches, i);
-      featureX = tc->previousFeatures->keypoint[i]->x;
-      featureY = tc->previousFeatures->keypoint[i]->y;
-      featureScale = tc->previousFeatures->keypoint[i]->scale >> 2;
-      featureX += seedsMatches->pairs[closestSeedIndex].p2->x - seedsMatches->pairs[closestSeedIndex].p1->x;
-      featureY += seedsMatches->pairs[closestSeedIndex].p2->y - seedsMatches->pairs[closestSeedIndex].p1->y;
-      featureScale += seedsMatches->pairs[closestSeedIndex].p2->scale - seedsMatches->pairs[closestSeedIndex].p1->scale;
-      maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
-      oldFeatureX = -1;
-      oldFeatureY = -1;
-      oldFeatureScale = -1;
-      oldOldFeatureX = -1;
-      oldOldFeatureY = -1;
-      oldOldFeatureScale = -1;
-      /* max on a border of the research space => shift the research cube */
-      while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale) && (featureX != oldOldFeatureX || featureY != oldOldFeatureY || featureScale != oldOldFeatureScale))
-	{
-	  oldOldFeatureX = oldFeatureX;
-	  oldOldFeatureY = oldFeatureY;
-	  oldOldFeatureScale = oldFeatureScale;
-	  oldFeatureX = featureX;
-	  oldFeatureY = featureY;
-	  oldFeatureScale = featureScale;
-	  cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &featureX, &featureY, &featureScale);
-	  free(maxOnEachScale);
-	  maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
-	}
-      if (options & CAM_UPRIGHT)
-	{
-	  /* begin of angle computation of the best */
-	  camAllocateImage(&filter, CAM_ORIENTATION_STAMP_SIZE, CAM_ORIENTATION_STAMP_SIZE, CAM_DEPTH_16S);
-	  camBuildGaussianFilter(&filter, camSigmaParam);
-	  camKeypointOrientation(image, &maxOnEachScale[0], &filter, &maxOnEachScale[1]); // check with bruno
-	  camDeallocateImage(&filter);
-	  /* end of angle computation of the best */
-	}
- 
-      /* begin compute signature */
-      memcpy(&featureMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
+      shiftX = seedsMatches->pairs[closestSeedIndex].p2->x - seedsMatches->pairs[closestSeedIndex].p1->x;
+      shiftY = seedsMatches->pairs[closestSeedIndex].p2->y - seedsMatches->pairs[closestSeedIndex].p1->y;
+      shiftScale = seedsMatches->pairs[closestSeedIndex].p2->scale - seedsMatches->pairs[closestSeedIndex].p1->scale;
+      maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, i, shiftX, shiftY, shiftScale);
+      memcpy(&keypoint.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
+      keypoint.scale = keypoint.scale << 2;
+      cam_keypoints_tracking_compute_feature_description(&keypoint, &maxOnEachScale[0], &maxOnEachScale[1], image, integralImage, options);
       free(maxOnEachScale);
-      featureMatch.scale = featureMatch.scale << 2;
-      camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
-      camBuildGaussianFilter(&filter, camSigmaParam);
-      camKeypointsInternalsPrepareDescriptor();
-      if (options & CAM_UPRIGHT)
-	camKeypointDescriptor(&featureMatch, integralImage, &filter, options);
-      else
-	camKeypointDescriptor(&featureMatch, image, &filter, options);
-      /* end compute signature */
+      featuresMatches->pairs[j].p1 = tc->previousFeatures->keypoint[i];
+      currentFeatures->keypoint[currentFeatures->nbPoints] = &currentFeatures->bag[currentFeatures->nbPoints];
+      memcpy(currentFeatures->keypoint[currentFeatures->nbPoints++], &keypoint, sizeof(keypoint));
+      featuresMatches->pairs[j].p2 = currentFeatures->keypoint[j + seedsMatches->nbMatches];
+      ++j;
     }
+  /* begin of checking for each point if the found one is the good one */
+  for (i = 0 ; i < j ; ++i)
+    {
+      supposedMinDistance = camKeypointsDistance(featuresMatches->pairs[i].p1, featuresMatches->pairs[i].p2);
+      for (k = 0 ; k < j ; ++k)
+	{
+	  currentDistance = camKeypointsDistance(featuresMatches->pairs[i].p1, featuresMatches->pairs[k].p2);
+	  if (supposedMinDistance > currentDistance)
+	    break;
+	}
+      if (k == j)
+	{
+	  featuresMatches->pairs[i].mark = 1;
+	  featuresMatches->pairs[i].error = supposedMinDistance;
+	  ++featuresMatches->nbMatches;
+	}
+      else
+	{
+	  featuresMatches->pairs[i].mark = 0;
+	  featuresMatches->pairs[i].error = currentDistance; // the first better found, maybe others
+	  ++featuresMatches->nbOutliers;
+	}
+    }
+  /* end of checking for each point if the found one is the good one */
+  return (featuresMatches);
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
 {
   CamImage		integralImage;
   CamKeypointsMatches	*seedsMatches;
+  CamKeypointsMatches	*keypointsMatches;
   CamKeypoints		*currentFeatures;
   unsigned int		*seedsIndexes;
 #ifdef CAM_TRACKING_TIMINGS
@@ -494,7 +505,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 #ifdef CAM_TRACKING_TIMINGS
       t2 = camGetTimeMs();
 #endif
-      cam_keypoints_tracking_extract_points_matching(tc, image, &integralImage, detectorValue, seedsMatches, seedsIndexes, currentFeatures, options);
+      keypointsMatches = cam_keypoints_tracking_extract_points_matching(tc, image, &integralImage, detectorValue, seedsMatches, seedsIndexes, currentFeatures, options);
 #ifdef CAM_TRACKING_TIMINGS
       t3 = camGetTimeMs();
       printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 -t4);
@@ -502,8 +513,14 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       free (seedsIndexes);
       camFreeKeypoints(tc->previousFeatures);
       free(tc->previousFeatures);
-      tc->previousFeatures = currentFeatures;
+      camFreeKeypointsMatches(seedsMatches);
       free (seedsMatches);
+      
+      updateTrackerFeatures(tc, );
+
+      tc->previousFeatures = currentFeatures;
+      camFreeKeypointsMatches(keypointsMatches);
+      free (keypointsMatches);
       camDeallocateImage(&integralImage);
       return (NULL);
     }
@@ -548,11 +565,11 @@ void			test_cam_keypoints_tracking()
 #ifdef CAM_TRACKING_TIMINGS
   t1 = camGetTimeMs();
 #endif
-  cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, 0);
+  cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
 #ifdef CAM_TRACKING_TIMINGS
   t2 = camGetTimeMs();
 #endif
-  cam_keypoints_tracking(&tc, &secondImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, 0);
+  cam_keypoints_tracking(&tc, &secondImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
 #ifdef CAM_TRACKING_TIMINGS
   t3 = camGetTimeMs();
   printf("initial detection timing : %ims\ntracking timing : %ims\n", t2 - t1, t3 - t2);
