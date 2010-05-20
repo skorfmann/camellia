@@ -1,7 +1,7 @@
 /** \file camellia.h
  *  \brief Camellia Image Processing Library header file
  *  \author Bruno STEUX (Mines Paris / ParisTech)
- *    
+ *
  *  Camellia Image Processing Library
  *
 
@@ -34,15 +34,15 @@
           derived from this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   ==========================================================================
@@ -73,7 +73,7 @@
 #define CAM_GENERATE_FULL_CODE
 
 /*                                         *
- *******************************************/ 
+ *******************************************/
 
 // Check integer types
 #ifdef _WIN32
@@ -117,11 +117,11 @@
 #define CAM_ALIGN16
 #endif
 
-#define CAM_FIXED_POINT CAM_INT32 
+#define CAM_FIXED_POINT CAM_INT32
 #define CAM_FLOAT2FIXED(x,dot_pos) ((CAM_FIXED_POINT)((x)*(1<<dot_pos)))
 
-#define CAM_DEPTH_SIGN 0x80000000               
-#define CAM_DEPTH_MASK 0x7FFFFFFF               
+#define CAM_DEPTH_SIGN 0x80000000
+#define CAM_DEPTH_MASK 0x7FFFFFFF
 
 #define CAM_DEPTH_1U     1
 #define CAM_DEPTH_8U     8
@@ -148,7 +148,7 @@
 
 #define CAM_ALIGN_DWORD   CAM_ALIGN_4BYTES
 #define CAM_ALIGN_QWORD   CAM_ALIGN_8BYTES
- 
+
 #define CAM_BORDER_CONSTANT   0
 #define CAM_BORDER_REPLICATE  1
 
@@ -207,12 +207,12 @@ typedef struct {
      *  be affected by processing taking place in the region of interest;
      *  coi equal to 0 indicates that all channel will be affected
      */
-    int             coi;		
-    int             xOffset;		///< The offset from the origin of the rectangular ROI.				
-    int             yOffset;		///< The offset from the origin of the rectangular ROI.				
+    int             coi;
+    int             xOffset;		///< The offset from the origin of the rectangular ROI.
+    int             yOffset;		///< The offset from the origin of the rectangular ROI.
     int             width;		///< The size of the rectangular ROI
     int             height;		///< The size of the rectangular ROI
-    
+
     // C++ Wrapping
 #ifdef __cplusplus
     CamROI() {coi=0; xOffset=0; yOffset=0; width=0; height=0;}
@@ -239,7 +239,7 @@ struct CamAffineTransform;
 struct CamPoint {
     int x; ///< x coordinate
     int y; ///< y coordinate
-    
+
     CamPoint apply_affine_transform(const CamAffineTransform &t) const;
     CamPoint(int xp, int yp) {x = xp; y = yp;}
     CamPoint() {x = 0; y = 0;}
@@ -276,23 +276,23 @@ typedef struct {
     int             id;                 ///< Frame Id (user dependant)
     int             nChannels;		///< Number of channels in the image (generally 1,3 or 4)
     int             alphaChannel;	///< Alpha channel number (0 if there is no alpha channel in the image)
-    
+
     /// Bit depth of pixels.
     /** Can be one of CAM_DEPTH_1U, CAM_DEPTH_8U, CAM_DEPTH_8S, CAM_DEPTH_10U, CAM_DEPTH_10S, CAM_DEPTH_12U, CAM_DEPTH_12S, CAM_DEPTH_16U, CAM_DEPTH_16S, CAM_DEPTH_32U, CAM_DEPTH_32S
      */
-    int             depth;              
+    int             depth;
     char            colorModel[4];	///< A four-character string describing the color model: "RGB", "GRAY", "HLS", etc.
-    
+
     /// The sequence of color channels
     /** Can be one of the following: "G", "GREY", "BGR", "BGRA", "RGB", "RGBA", "HLS", "YUV"
      */
-    char            channelSeq[4];		
+    char            channelSeq[4];
     int             dataOrder;		///< CAM_DATA_ORDER_PIXEL or CAM_DATA_ORDER_PLANE
     int             origin;		///< The origin of the image. Can only be CAM_ORIGIN_TL (top left).
-    int             align;              ///< Alignment of image data : 4 (CAM_ALIGN_DWORD) or 8 (CAM_ALIGN_QWORD) byte align 
+    int             align;              ///< Alignment of image data : 4 (CAM_ALIGN_DWORD) or 8 (CAM_ALIGN_QWORD) byte align
     int             width;		///< Width of the image in pixels
     int             height;		///< Height of the image in pixels
- 
+
 #ifdef SWIG
 %mutable;
 #endif
@@ -312,12 +312,12 @@ typedef struct {
      *	are supported (CamRLEImage structure)
      **/
     void           *mask;		///< Pointer to mask image
-    
+
     /// The image ID
     /** Field reserved for the use of the application to identify the image.
      */
     void           *imageId;            ///< Free for user application
-    
+
     void           *misc;               ///< Free for user application (information on tiling in IplImage structure)
     int             imageSize;          ///< Useful size in bytes
     unsigned char  *imageData;          ///< Pointer to aligned image
@@ -331,13 +331,13 @@ typedef struct {
 #ifdef __cplusplus
     CamImage() {nSize=sizeof(CamImage); imageData=NULL; roi=NULL; imageSize=0; mask=NULL; imageDataOrigin=NULL; depth=CAM_DEPTH_8U; nChannels=1; } ///< Default non-allocating constructor
     CamImage(int width, int height, int depth=CAM_DEPTH_8U, int channelseq=0); ///< Allocating constructor (1 to 16 bits, signed/unsigned, G/RGB/RGBA/YUV)
-    CamImage(const CamImage& image);                    ///< Copy constructor 
+    CamImage(const CamImage& image);                    ///< Copy constructor
     ~CamImage();                                        ///< Default destructor. Free any allocated memory.
 
 #ifndef SWIG
     CamImage& operator=(const CamImage &image);         ///< Operator= redefinition
 #endif
-    CamImage* clone() const;                            ///< Clone image (using camClone() function)                              
+    CamImage* clone() const;                            ///< Clone image (using camClone() function)
     CamImage* copy() const;                             ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopy() function
     bool copy(CamImage &dest) const;                    ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopy() function
     CamImage* copy_shift(int shift) const;              ///< Copy (not clone). Takes into account ROI and masks. C++ wrapping for camCopyShift() function
@@ -364,7 +364,7 @@ typedef struct {
     void inspect(char **result, int *len) const;        ///< Returns some textual information about the image
     bool view() const;                                  ///< View the picture
     bool set(int color);                                ///< C++ wrapping for camSet() function
-    bool alpha_composite(const CamImage& source2, CamImage& dest) const; ///< C++ wrapping for camAlphaComposite() function 
+    bool alpha_composite(const CamImage& source2, CamImage& dest) const; ///< C++ wrapping for camAlphaComposite() function
 
     int erode_square3();                                ///< C++ wrapping for camErodeSquare3() function
     int erode_square3(CamImage &dest) const;            ///< C++ wrapping for camErodeSquare3() function
@@ -476,7 +476,7 @@ typedef struct {
 
     int arithm(int operation, int c1=0, int c2=0, int c3=0);                            ///< C++ wrapping for camMonadicArithm() function
     int arithm(CamImage& dest, int operation, int c1=0, int c2=0, int c3=0) const;      ///< C++ wrapping for camMonadicArithm() function
-    int arithm(const CamImage& source2, CamImage& dest, int operation, int c1=0, int c2=0, int c3=0, int c4=0) const; ///< C++ wrapping for camDyadicArithm() function 
+    int arithm(const CamImage& source2, CamImage& dest, int operation, int c1=0, int c2=0, int c3=0, int c4=0) const; ///< C++ wrapping for camDyadicArithm() function
 
     CamMeasuresResults measures() const;                                                ///< C++ wrapping for camMeasures() function
     float average_deviation(int average=0) const;                                       ///< C++ wrapping for camMeasureAverageDeviation() function
@@ -499,8 +499,8 @@ typedef struct {
     bool draw_keypoints(const CamKeypoints &points, int color = 255);			///< C++ wrapping for camDrawKeypoints() function
     bool draw_keypoint(const CamKeypoint &point, int color = 255);			///< C++ wrapping for camDrawKeypoint() function
     int harris(CamKeypointShort &points, int k = 41) const;				///< C++ wrapping for camHarris() function
-    bool integral_image(CamImage &dest) const;						///< C++ wrapping for camIntegralImage() function	
-    CamImage *integral_image() const;							///< C++ wrapping for camIntegralImage() function	
+    bool integral_image(CamImage &dest) const;						///< C++ wrapping for camIntegralImage() function
+    CamImage *integral_image() const;							///< C++ wrapping for camIntegralImage() function
     bool fast_hessian_detector(CamKeypoints &points, int threshold, int options = 0) const; /// C++ wrapping for camFastHessianDetector() function
 };
 
@@ -543,7 +543,7 @@ inline CamROI::CamROI(const CamImage &image, int _coi) { coi=_coi; xOffset=0; yO
 #define CAM_ARITHM_ABS		    0
 #define CAM_ARITHM_INVERSE	    1
 #define CAM_ARITHM_SELECT	    2
-#define CAM_ARITHM_THRESHOLD	    3 
+#define CAM_ARITHM_THRESHOLD	    3
 #define CAM_ARITHM_DOUBLE_THRESHOLD 4
 
 #define CAM_ARITHM_ADD		    0
@@ -564,7 +564,7 @@ inline CamROI::CamROI(const CamImage &image, int _coi) { coi=_coi; xOffset=0; yO
 #define CAM_ABS		            0
 #define CAM_INVERSE	            1
 #define CAM_SELECT	            2
-#define CAM_THRESHOLD	            3 
+#define CAM_THRESHOLD	            3
 #define CAM_DOUBLE_THRESHOLD        4
 
 #define CAM_ADD		            0
@@ -612,7 +612,7 @@ extern "C" {
  *  \param dest	    The destination ::CamImage. The destination image can be either a grey-level
  *		    image or a binary image. In the latter case, <DFN>CAM_ARITHM_ABS</DFN> is not a valid
  *		    operation
- *  \param params   A pointer to a ::CamArithmParams structure, defining all the parameters 
+ *  \param params   A pointer to a ::CamArithmParams structure, defining all the parameters
  *		    of the function to apply to the source image.
  *
  *  Here are the details on the operations and parameters to set in the ::CamArithmParams structure :
@@ -631,7 +631,7 @@ int camMonadicArithm(CamImage *source, CamImage *dest, CamArithmParams *params);
 
 /// This is the function that implements all the dyadic arithmetic operators (i.e. operators with two operands)
 /** This function can be used to compute the sum of two images (<DFN>CAM_ARITHM_ADD</DFN>),
- *  to substract two images (<DFN>CAM_ARITHM_SUB</DFN>), to compute the absolute difference 
+ *  to substract two images (<DFN>CAM_ARITHM_SUB</DFN>), to compute the absolute difference
  *  between two images (<DFN>CAM_ARITHM_ABSDIFF</DFN>), to compute the weighted sum of two images (<DFN>CAM_ARITHM_WEIGHTED_SUM</DFN>),
  *  etc. (see below)
  *
@@ -644,7 +644,7 @@ int camMonadicArithm(CamImage *source, CamImage *dest, CamArithmParams *params);
  *  \param dest	    The destination ::CamImage. The destination image can be either a grey-level
  *		    image or a binary image, but source1, source2 and dest must be of the same kind.
  *
- *  \param params   A pointer to a ::CamArithmParams structure, defining all the parameters 
+ *  \param params   A pointer to a ::CamArithmParams structure, defining all the parameters
  *		    of the function to apply to the source images.
  *
  *  Here are the details on the operations and parameters to set in the ::CamArithmParams structure :
@@ -675,11 +675,11 @@ int camDyadicArithm(CamImage *source1, CamImage *source2, CamImage *dest, CamAri
 /** Simple wrapper for camDyadicArithm() */
 int camAdd(CamImage *source1, CamImage *source2, CamImage *dest);
 
-/// Image multiplication 
+/// Image multiplication
 /** Simple wrapper for camDyadicArithm() */
 int camMul(CamImage *source1, CamImage *source2, CamImage *dest);
 
-/// Image subtraction 
+/// Image subtraction
 /** Simple wrapper for camDyadicArithm() */
 int camSub(CamImage *source1, CamImage *source2, CamImage *dest);
 
@@ -714,10 +714,10 @@ typedef struct {
 #endif
     int t[CAM_TABLE_SIZE]; ///< Table containing the resulting pixel value for each input
     int size;              ///< Number of valid entries
-#ifdef __cplusplus    
+#ifdef __cplusplus
     CamTable(int s=0) {size=s;}
     int &operator[](int n);
-    bool set(const int* const array, int sz) { if (sz<CAM_TABLE_SIZE) { size=sz; for (int i=0;i<sz;i++) t[i]=array[i]; return true;} return false;} 
+    bool set(const int* const array, int sz) { if (sz<CAM_TABLE_SIZE) { size=sz; for (int i=0;i<sz;i++) t[i]=array[i]; return true;} return false;}
 };
 #else
 } CamTable;
@@ -770,7 +770,7 @@ typedef struct {
         source1=CAM_MM_ORIGINAL;
         source2=CAM_MM_ORIGINAL;
         operation=CAM_MM_MULTIPLEX;
-    }       
+    }
     /// Set an element of the dilation kernel
     bool set_dilate(int x, int y, int val) {
         if ((x>=0)&&(x<CAM_MM_NEIGHB)&&(y>=0)&&(y<CAM_MM_NEIGHB)) {
@@ -803,7 +803,7 @@ typedef struct {
 #ifndef SWIG
 
 /** @name Morphomaths LLAs
- *  These functions share the same morpho maths kernel 
+ *  These functions share the same morpho maths kernel
  */
 //@{
 
@@ -885,7 +885,7 @@ int camDilate5x5(CamImage *source, CamImage *dest, CamMorphoMathsKernel *kernel)
 int camDilate7x7(CamImage *source, CamImage *dest, CamMorphoMathsKernel *kernel); ///< 7x7 neighborhood dilation
 
 /** Computes the morphological gradient of an image.
- *  
+ *
  *  Uses a circular structural element of diameter 5.
  *  It is twice faster than the original morpho maths kernel.
  *
@@ -899,7 +899,7 @@ int camMorphoGradientCircle5(CamImage *source, CamImage *dest); ///< Morphologic
 
 /** Computes the eroded image of a source image, using a circular structural
  *  element of diameter 5. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -910,7 +910,7 @@ int camErodeCircle5(CamImage *source, CamImage *dest); ///< Erosion (Optimized f
 
 /** Computes the dilated image of a source image, using a circular structural
  *  element of diameter 5. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -920,7 +920,7 @@ int camErodeCircle5(CamImage *source, CamImage *dest); ///< Erosion (Optimized f
 int camDilateCircle5(CamImage *source, CamImage *dest);  ///< Dilation (Optimized for diameter-5 circle structural element)
 
 /** Computes the morphological gradient of an image.
- *  
+ *
  *  Uses a circular structural element of diameter 7.
  *  It is twice faster than the original morpho maths kernel.
  *
@@ -934,7 +934,7 @@ int camMorphoGradientCircle7(CamImage *source, CamImage *dest); ///< Morphologic
 
 /** Computes the eroded image of a source image, using a circular structural
  *  element of diameter 7. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -945,7 +945,7 @@ int camErodeCircle7(CamImage *source, CamImage *dest); ///< Erosion (Optimized f
 
 /** Computes the dilated image of a source image, using a circular structural
  *  element of diameter 7. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -955,7 +955,7 @@ int camErodeCircle7(CamImage *source, CamImage *dest); ///< Erosion (Optimized f
 int camDilateCircle7(CamImage *source, CamImage *dest);  ///< Dilation (Optimized for diameter-7 circle structural element)
 
 /** Computes the morphological gradient of an image.
- *  
+ *
  *  Uses a 3x3 square structural element (very classical).
  *  Highly optimized code.
  *
@@ -969,7 +969,7 @@ int camMorphoGradientSquare3(CamImage *source, CamImage *dest); ///< Morphologic
 
 /** Computes the eroded image of a source image, using a classical 3x3 square structural
  *  element. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -980,7 +980,7 @@ int camErodeSquare3(CamImage *source, CamImage *dest); ///< Erosion (3x3 square 
 
 /** Computes the dilated image of a source image, using a classical 3x3 square structural
  *  element. Highly optimized code.
- *  
+ *
  *  \param source   The source ::CamImage to process. Must be a grey-level image.
  *  \param dest	    The destination ::CamImage. Must be a grey-level image.
  *  \return Sum (Accumulator) of all computed pixels
@@ -1006,7 +1006,7 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 #define CAM_RLEOPTS_STRUCTELT	    4
 #define CAM_RLEOPTS_LABELLED	    8
 
-#define CAM_RLE_INT_TYPE CAM_UINT16 
+#define CAM_RLE_INT_TYPE CAM_UINT16
 
 /// The CamRun structure, basic element of a Run-Length Encoding (RLE) of an image.
 /** sizeof(CamRun) is 8 (64 bits)
@@ -1100,17 +1100,17 @@ typedef struct {
     bool blob_analysis(CamBlobs &results) const;                    ///< C++ wrapping for camRLEBlobAnalysis() function
     bool apply_lut(const CamTable &LUT);                            ///< C++ wrapping for camRLEApplyLUT() function
     bool apply_lut(CamRLEImage &dest, const CamTable &LUT) const;   ///< C++ wrapping for camRLEApplyLUT() function
-    bool decode(CamImage &dest) const;                              ///< C++ wrapping for camRLEDecode() function            
+    bool decode(CamImage &dest) const;                              ///< C++ wrapping for camRLEDecode() function
     bool decode(CamImage &dest, const CamTable &LUT) const;         ///< C++ wrapping for camRLEDecode() function
-    bool decode_blobs(CamImage &dest) const;                        ///< C++ wrapping for camRLEDecodeBlobs() function            
+    bool decode_blobs(CamImage &dest) const;                        ///< C++ wrapping for camRLEDecodeBlobs() function
     bool decode_blobs(CamImage &dest, const CamTable &LUT) const;   ///< C++ wrapping for camRLEDecodeBlos() function
     bool inverse();                                                 ///< C++ wrapping for camRLEInverse() function
-    bool erode_cross(CamRLEImage &dest) const;                      ///< C++ wrapping for camRLEErodeCross() function 
-    CamRLEImage *erode_cross() const;                               ///< C++ wrapping for camRLEErodeCross() function 
-    bool erode_3x3(CamRLEImage &dest) const;                        ///< C++ wrapping for camRLEErode3x3() function 
-    CamRLEImage *erode_3x3() const;                                 ///< C++ wrapping for camRLEErode3x3() function 
-    bool erode_3x2(CamRLEImage &dest) const;                        ///< C++ wrapping for camRLEErode3x2() function 
-    CamRLEImage *erode_3x2() const;                                 ///< C++ wrapping for camRLEErode3x2() function 
+    bool erode_cross(CamRLEImage &dest) const;                      ///< C++ wrapping for camRLEErodeCross() function
+    CamRLEImage *erode_cross() const;                               ///< C++ wrapping for camRLEErodeCross() function
+    bool erode_3x3(CamRLEImage &dest) const;                        ///< C++ wrapping for camRLEErode3x3() function
+    CamRLEImage *erode_3x3() const;                                 ///< C++ wrapping for camRLEErode3x3() function
+    bool erode_3x2(CamRLEImage &dest) const;                        ///< C++ wrapping for camRLEErode3x2() function
+    CamRLEImage *erode_3x2() const;                                 ///< C++ wrapping for camRLEErode3x2() function
 };
 #else
 } CamRLEImage;
@@ -1118,7 +1118,7 @@ typedef struct {
 
 /// RLE Image allocation.
 /** Allocates a RLE image.
- *  
+ *
  *  \param rle	    The ::CamRLEImage to allocate. The number of runs should be chosen
  *		    so that it is enough to encode the image to process. A typical value
  *		    used for this parameter is <DFN>source.width*source.height/16</DFN>, assuming
@@ -1129,7 +1129,7 @@ typedef struct {
  *
  *  Note that this function uses the standard C <DFN>malloc()</DFN> function.
  *
- *  Note also that the amount of memory allocated is <DFN>8*max_runs</DFN> bytes. Thus, using 
+ *  Note also that the amount of memory allocated is <DFN>8*max_runs</DFN> bytes. Thus, using
  *  the typical <DFN>max_runs</DFN> value exposed above, a grey-level image will be compressed
  *  by a factor of 2, and a binary image expanded by a factor of 4 using RLE encoding.
  *
@@ -1142,7 +1142,7 @@ int camRLEAllocate(CamRLEImage *rle, int max_runs);
 
 /// RLE image deallocation.
 /** Release a RLE image memory. Should be matched with a call to camRLEAllocate()
- *  
+ *
  *  \param rle	    The ::CamRLEImage to deallocate.
  *  \return	    0 (false) if an error occurs.
  *
@@ -1156,7 +1156,7 @@ int camRLEFree(CamRLEImage *rle);
 
 /// RLE image reallocation
 /** Reallocates a RLE image.
- *  
+ *
  *  \param rle	    The ::CamRLEImage to reallocate.
  *  \param new_max_runs The new number of allocated runs
  *  \return	    0 (false) if an error occurs.
@@ -1168,7 +1168,7 @@ int camRLEReallocate(CamRLEImage *rle, int new_max_runs);
 
 /// RLE image cloning
 /** Clone a RLE image.
- *  
+ *
  *  \param source   The ::CamRLEImage to clone.
  *  \param dest     The ::CamRLEImage to allocate (shouldn't be allocated)
  *  \return	    0 (false) if an error occurs.
@@ -1178,7 +1178,7 @@ int camRLEReallocate(CamRLEImage *rle, int new_max_runs);
 int camRLEClone(CamRLEImage *source, CamRLEImage *dest);
 
 /// Run-Length encoding
-/** 
+/**
  *  \param src	    The source ::CamImage to encode. This should be either a thresholded
  *		    image or a binary image. Note that this source image should be filtered
  *		    (using camErode3x3() for instance) before encoding,
@@ -1190,9 +1190,9 @@ int camRLEClone(CamRLEImage *source, CamRLEImage *dest);
  */
 int camRLEEncode(CamImage *src, CamRLEImage *dest);
 
-/// Run-Length encoding, with integrated LUT operations. 
+/// Run-Length encoding, with integrated LUT operations.
 /** Introduced v1.9.
- *  
+ *
  *  \param src	    The source ::CamImage to encode. This must be a grey-level image.
  *		    Note that this source image should be filtered
  *		    (using camErode3x3() for instance) before encoding,
@@ -1203,7 +1203,7 @@ int camRLEEncode(CamImage *src, CamRLEImage *dest);
  */
 int camRLEEncodeLUT(CamImage *src, CamRLEImage *dest, CamTable *LUT);
 
-/// Run-Length encoding, with integrated thresholding. 
+/// Run-Length encoding, with integrated thresholding.
 /** \param src	    The source ::CamImage to encode. This must be a grey-level image.
  *		    Note that this source image should be filtered
  *		    (using camErodeSquare3() for instance) before encoding,
@@ -1214,7 +1214,7 @@ int camRLEEncodeLUT(CamImage *src, CamRLEImage *dest, CamTable *LUT);
  */
 int camRLEEncodeThreshold(CamImage *src, CamRLEImage *dest, int threshold);
 
-/// Run-Length encoding, with integrated thresholding. 
+/// Run-Length encoding, with integrated thresholding.
 /** \param src	    The source ::CamImage to encode. This must be a grey-level image.
  *		    Note that this source image should be filtered
  *		    (using camErodeSquare3() for instance) before encoding,
@@ -1230,7 +1230,7 @@ int camRLEEncodeColor(CamImage *source, CamRLEImage *dest, CamTable *clusters);
 /// RLE image labeling + blob analysis. 4-connectedness labeling.
 /** Very fast labeling algorithm originally introduced by the Carneggie Mellon University (see below).
  *  This function also performs a basic blob analysis
- *  
+ *
  *  \param src	    The source ::CamRLEImage to label. Note that the content of <DFN>src</DFN> is altered,
  *		    for RLE labeling is performed in-place. This is what makes it especially fast,
  *		    since it doesn't require neither an additional label image nor an equivalence
@@ -1311,7 +1311,7 @@ int camRLEBlobROIIntersect(CamBlobInfo *blob, CamROI *roi);
 int camRLEBlobMeasures(CamBlobInfo *blob, CamImage *original);
 
 /// RLE image erosion (cross structural element)
-/** 
+/**
  *  \param image    The source ::CamRLEImage.
  *  \param result   The destination ::CamRLEImage
  *  \return	    0 (false) if an error occurs.
@@ -1319,7 +1319,7 @@ int camRLEBlobMeasures(CamBlobInfo *blob, CamImage *original);
 int camRLEErodeCross(CamRLEImage *image, CamRLEImage *result);
 
 /// RLE image erosion (3x3 square structural element)
-/** 
+/**
  *  \param image    The source ::CamRLEImage.
  *  \param result   The destination ::CamRLEImage
  *  \return	    0 (false) if an error occurs.
@@ -1327,7 +1327,7 @@ int camRLEErodeCross(CamRLEImage *image, CamRLEImage *result);
 int camRLEErode3x3(CamRLEImage *image, CamRLEImage *result);
 
 /// RLE image erosion (3x2 square structural element)
-/** 
+/**
  *  \param image    The source ::CamRLEImage.
  *  \param result   The destination ::CamRLEImage
  *  \return	    0 (false) if an error occurs.
@@ -1356,15 +1356,15 @@ int camHistogram(CamImage *image, CamTable *histo);
 #define CAM_EQUAL_PERFECT 0
 #define CAM_EQUAL_FAST	  1
 
-/// Histogram Equalization  
-/** Performs a histogram equalization, with no holes. 
- * 
+/// Histogram Equalization
+/** Performs a histogram equalization, with no holes.
+ *
  *  \param src      The ::CamImage to equalize. One channel only.
  *  \param dest	    The resulting equalized image.
  *  \param src_histo The histogram of the source image, obtained by a previous call to camHistogram().
  *  \param option   <DFN>CAM_EQUAL_FAST</DFN> or <DFN>CAM_EQUAL_PERFECT</DFN> (default)
- *  \param work	    A ::CamImage used for internal computation. If set to NULL, allocation and deallocation will be done internally.   
- *  \return	    0 (false) if an error occurs. 
+ *  \param work	    A ::CamImage used for internal computation. If set to NULL, allocation and deallocation will be done internally.
+ *  \return	    0 (false) if an error occurs.
  *
  *  camHistogramEqualization supports in-place operation, masking and ROIs.
  */
@@ -1382,7 +1382,7 @@ int camHistogramEqualization(CamImage *src, CamImage *dest, CamTable *src_histo,
  */
 int camHistogram2Channels(CamImage *image, int ch1, int ch2, CamImage *result, int size);
 
-/// Compute the threshold for a given percentage of pixels 
+/// Compute the threshold for a given percentage of pixels
 int camFindThreshold(CamTable *histo, int percent);
 //@}
 
@@ -1485,7 +1485,7 @@ float camMeasureAverageDeviation(CamImage *image, int average);
 typedef struct {
     int interpolation;	///< Interpolation method (either <DFN>CAM_NN_INTERPOLATION</DFN> or <DFN>CAM_BILINEAR_INTERPOLATION</DFN>.
     int perspective;	///< 2D (0) or 3D (parallel to the ground)
-    
+
     /// The points in the source image.
     /** Beware : These are 16-bits fixed-points (1 is (1<<16)).
      *
@@ -1522,10 +1522,10 @@ int camScale(CamImage *source, CamImage *dest);
 int camWarpingSuperSampling(CamImage *source, CamImage *dest, CamWarpingParams *params);
 
 /// Simple helper function, used by camWarping()
-/** 
+/**
  *  \param p	    An array defining the segments to intersect (AB and CD). These points
  *		    must be provided in 16-bits fixed-point arithmetic form (1 is (1<<16)).
- *  \param res	    The intersection point. 
+ *  \param res	    The intersection point.
  *  \return 0 if the segments are parallel. 1 otherwise
  */
 int camIntersectionSegments(CamPoint p[4], CamPoint *res);
@@ -1565,7 +1565,7 @@ typedef struct {
         }
         coeff1=1;
         coeff2=0;
-    }       
+    }
     /// Set an element of the linear filter kernel
     bool set(int x, int y, int val) {
         if ((x>=0)&&(x<CAM_LINEAR_FILTER_KERNEL_MAX_SIZE)&&(y>=0)&&(y<CAM_LINEAR_FILTER_KERNEL_MAX_SIZE)) {
@@ -1656,7 +1656,7 @@ struct CamSepFilterKernel {
 typedef struct {
 #endif
 #ifndef SWIG
-    int x[CAM_LINEAR_FILTER_KERNEL_MAX_SIZE]; ///< The horizontal array of coefficients 
+    int x[CAM_LINEAR_FILTER_KERNEL_MAX_SIZE]; ///< The horizontal array of coefficients
     int y[CAM_LINEAR_FILTER_KERNEL_MAX_SIZE]; ///< The vertical array of coefficients
 #endif
     int coeff1;         ///< Multiplicative coefficient
@@ -1669,7 +1669,7 @@ typedef struct {
         }
         coeff1=1;
         coeff2=0;
-    }       
+    }
     /// Set an element of the linear separable filter kernel
     bool set_x(int y, int val) {
         if ((y>=0)&&(y<CAM_LINEAR_FILTER_KERNEL_MAX_SIZE)) {
@@ -1924,7 +1924,7 @@ int camWatershed1D(int *input, int size, int *results);
 #endif // SWIG
 
 /// The structure defining a basin
-typedef struct 
+typedef struct
 {
    int dynamics;	///< Its dynamics (importance)
    int minimum;		///< Minimum of the basin
@@ -1965,7 +1965,7 @@ void camFreeTableOfBasins(CamTableOfBasins *t);
  *
  *  Watersheding computes a hierarchichal segmentation of an image.
  *  Watersheding operation is a very smart way to analyze the results of a gradient image.
- *  
+ *
  *  \param source   The ::CamImage for which to compute the watershed
  *  \param dest	    A 16-bits deep ::CamImage where the results of the watersheding operation are stored.
  *		    The index of the basin is given by the pixel value minus 1 (so starting at 1).
@@ -1984,7 +1984,7 @@ int camHierarchicalWatershed(CamImage *source, CamImage *dest, CamTableOfBasins 
  *
  *  Watersheding computes a hierarchichal segmentation of an image.
  *  Watersheding operation is a very smart way to analyze the results of a gradient image.
- *  
+ *
  *  \param source   The ::CamImage for which to compute the watershed
  *  \param dest	    A 16-bits deep ::CamImage where the results of the watersheding operation are stored.
  *		    A negative pixel value indicates a watershed point.
@@ -2030,9 +2030,9 @@ int camHoughCircle(CamImage *image, int percent, int rmin, int rmax, int *xc, in
 
 struct _CamKeypoints;
 
-#endif // SWIG 
+#endif // SWIG
 
-/** @name Keypoints and Local descriptors 
+/** @name Keypoints and Local descriptors
  */
 //@{
 
@@ -2157,7 +2157,7 @@ typedef struct _CamKeypoints {
     bool draw(CamImage &image, int color = 255) const;	///< C++ wrapping for camDrawKeypoints function
     int matching(const CamKeypoints **models, int nbModels, CamKeypointsMatches &matches) const;  ///< C++ wrapping for camKeypointsMatching() function
     int matching2(const CamKeypoints &points, CamKeypointsMatches &matches) const;		  ///< C++ wrapping for camKeypointsMatching2() function
-    int matchingKdTree(const CamKeypointsKdTree &kdTree, CamKeypointsMatches &matches, int explore = 100) const; ///< C++ wrapping for camKeypointsMatchingKdTree() function 
+    int matchingKdTree(const CamKeypointsKdTree &kdTree, CamKeypointsMatches &matches, int explore = 100) const; ///< C++ wrapping for camKeypointsMatchingKdTree() function
 
     bool alloc(int nbPoints);                           ///< Allocator (C++ wrapping of camKeypointsAllocate() function)
     bool realloc(int nbPoints);                         ///< Reallocator (C++ wrapping of camKeypointsReallocate() function)
@@ -2184,7 +2184,7 @@ int camAllocateKeypoints(CamKeypoints *fpoints, int nbPoints);
 /// Keypoints reallocation
 int camReallocateKeypoints(CamKeypoints *fpoints, int nbPoints);
 
-/// Keypoints release 
+/// Keypoints release
 int camFreeKeypoints(CamKeypoints *fpoints);
 
 /// Draw kepoints on screen
@@ -2263,7 +2263,7 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 #endif // SWIG
 
 #ifdef __cplusplus
-/// The CamKeypointsKdTree class 
+/// The CamKeypointsKdTree class
 struct CamKeypointsKdTree {
     CamFPKdTreeNode *root;
 
@@ -2304,7 +2304,7 @@ int camAllocateRGBAImage(CamImage *image, int width, int height);
 int camAllocateBGRImage(CamImage *image, int width, int height);
 /// BGR image allocation with alpha channel
 int camAllocateBGRAImage(CamImage *image, int width, int height);
-/// Image memory release 
+/// Image memory release
 int camDeallocateImage(CamImage *image);
 /// Image memory release
 int camFreeImage(CamImage *image);
@@ -2523,7 +2523,7 @@ void camSetErrorFunct(camErrorFunct funct);
 /** @name Color conversion functions
  */
 //@{
-int camYUV2RGB(CamImage* source, CamImage *dest); ///< Converts a YUV image to a RGB image 
+int camYUV2RGB(CamImage* source, CamImage *dest); ///< Converts a YUV image to a RGB image
 int camRGB2YUV(CamImage* source, CamImage *dest); ///< Converts a RGB image to a YUV image
 int camRGB2Y(CamImage *source, CamImage *dest);   ///< Converts a RGB image to a gray scale image
 int camRGB2HLS(CamImage* source, CamImage *dest); ///< Converts a RGB image to a HLS image
@@ -2611,6 +2611,13 @@ int camUndistortLUT(CamImage *source, CamImage *dest,
                     CamImage *LUTX, CamImage *LUTY);
 
 //@}
+
+int camSVD(double **a, int m, int n, double w[], double **v);
+int camSVDSolve(double **u, double w[], double **v, int m, int n, double b[], double x[]);
+double *camAllocateVector(int nl, int nh);
+int camFreeVector(double *v, int nl, int nh);
+double **camAllocateMatrix(int nrl, int nrh, int ncl, int nch);
+int camFreeMatrix(double **m, int nrl, int nrh, int ncl, int nch);
 
 #endif // SWIG
 

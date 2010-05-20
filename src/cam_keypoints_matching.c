@@ -32,15 +32,15 @@
           derived from this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   ==========================================================================
@@ -83,7 +83,7 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
     __m128i sum, d1, d2, md, d, cmp;
     __m128i *p1 = (__m128i*)desc1, *p2 = (__m128i*)desc2;
     ALIGN(int out_sse[4], 16);
-	
+
     /* Looks like a good idea... But this deteriorates performance...
     // Software prefetch
     d1 = _mm_load_si128(p1);
@@ -105,8 +105,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	md = _mm_and_si128(cmp, md);
 	d = _mm_andnot_si128(cmp, d);
 	sum = _mm_add_epi32(sum, md);
-	sum = _mm_add_epi32(sum, d);   
-	
+	sum = _mm_add_epi32(sum, d);
+
 	// 32-bits SAD for 4 integers in parallel
 	d1 = _mm_loadu_si128(p1++);
 	d2 = _mm_loadu_si128(p2++);
@@ -116,8 +116,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	md = _mm_and_si128(cmp, md);
 	d = _mm_andnot_si128(cmp, d);
 	sum = _mm_add_epi32(sum, md);
-	sum = _mm_add_epi32(sum, d);   
-	
+	sum = _mm_add_epi32(sum, d);
+
 	// 32-bits SAD for 4 integers in parallel
 	d1 = _mm_loadu_si128(p1++);
 	d2 = _mm_loadu_si128(p2++);
@@ -127,8 +127,8 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	md = _mm_and_si128(cmp, md);
 	d = _mm_andnot_si128(cmp, d);
 	sum = _mm_add_epi32(sum, md);
-	sum = _mm_add_epi32(sum, d);   
-	
+	sum = _mm_add_epi32(sum, d);
+
 	// 32-bits SAD for 4 integers in parallel
 	d1 = _mm_loadu_si128(p1++);
 	d2 = _mm_loadu_si128(p2++);
@@ -138,7 +138,7 @@ int camCompareDescriptors(const int *desc1, const int *desc2, const int s)
 	md = _mm_and_si128(cmp, md);
 	d = _mm_andnot_si128(cmp, d);
 	sum = _mm_add_epi32(sum, md);
-	sum = _mm_add_epi32(sum, d);   
+	sum = _mm_add_epi32(sum, d);
     }
     _mm_store_si128((__m128i*)out_sse, sum);
     return out_sse[0] + out_sse[1] + out_sse[2] + out_sse[3];
@@ -201,7 +201,7 @@ CamKeypoint* camFindKeypoint(CamKeypoint *point, CamKeypoints *points, int *dist
 	    bestDistance = distance;
 	    best = i;
 	} else if (distance <= secondBestDistance) {
-	    secondBestDistance = distance; 
+	    secondBestDistance = distance;
 	}
     }
     *dist1 = bestDistance;
@@ -251,14 +251,14 @@ int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, C
 		    bestDistance = distance;
 		    bestModel = model;
 		} else if (secondBestDistance == -1 || distance <= secondBestDistance) {
-		    secondBestDistance = distance; 
+		    secondBestDistance = distance;
 		    secondBestModel = model;
 		}
 	    }
 	}
-	
+
 	//printf("%d %d %d\n", bestMatch->set->id, bestDistance, secondBestDistance);
-	
+
 	/*
 	if (models[bestModel]->id == models[secondBestModel]->id) {
 	    // Accept the point whatever it is
@@ -275,13 +275,13 @@ int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, C
 		for (i = 0; i < models[model]->nbPoints; i++) {
 		    distance = camKeypointsDistance(models[model]->keypoint[i], point);
 		    if (secondBestDistance == -1 || distance <= secondBestDistance) {
-			secondBestDistance = distance; 
+			secondBestDistance = distance;
 			secondBestModel = model;
 		    }
 		}
 	    }
 	}
-	*/	 
+	*/
 
 	// Final test...
 	if (bestDistance < 0.8 * secondBestDistance) {
@@ -295,14 +295,14 @@ int camKeypointsMatching(CamKeypoints *target, CamKeypoints **models, int nbM, C
 	    best4Target[matches->nbMatches] = bestMatch->set->id;
 	    matches->nbMatches++;
 	    if (matches->nbMatches == matches->allocated) break;
-	}	    
+	}
     }
 
     best = 0;
     for (i = 1; i < nbModels; i++) {
 	if (results[i] > results[best]) best = i;
     }
-    
+
     c = 0;
     for (i = 0; i < matches->nbMatches; i++) {
 	if (best4Target[i] == best) {
@@ -319,7 +319,7 @@ int camKeypointsMatching2(CamKeypoints *points1, CamKeypoints *points2, CamKeypo
     CamKeypoint *best;
     matches->nbMatches = 0;
     matches->nbOutliers = 0;
-    
+
     for (i = 0; i < points1->nbPoints; i++) {
 	best = camFindKeypoint(points1->keypoint[i], points2, &dist1, &dist2);
 	if (dist1 < 0.8 * dist2) {
@@ -612,9 +612,9 @@ int camFindAffineTransform(CamKeypointsMatches *matches, CamAffineTransform *t, 
 {
     double **A, *b, *w, **v, *x;
     CamPoint xy, uv;
-    int d1, d2; 
+    int d1, d2;
     int i, c;
-    
+
     // Fill matrix A and vector b
     A = camAllocateMatrix(1, matches->nbMatches * 2, 1, 6);
     b = camAllocateVector(1, matches->nbMatches * 2);
@@ -622,18 +622,22 @@ int camFindAffineTransform(CamKeypointsMatches *matches, CamAffineTransform *t, 
 	if (matches->pairs[i].mark != -1) {
 	    A[c * 2 + 1][1] = matches->pairs[i].p1->x;
 	    A[c * 2 + 1][2] = matches->pairs[i].p1->y;
-	    A[c * 2 + 1][3] = 0; A[c * 2 + 1][4] = 0;
-	    A[c * 2 + 1][5] = 1; A[c * 2 + 1][6] = 0;
+	    A[c * 2 + 1][3] = 0;
+		A[c * 2 + 1][4] = 0;
+	    A[c * 2 + 1][5] = 1;
+		A[c * 2 + 1][6] = 0;
 	    A[c * 2 + 2][3] = matches->pairs[i].p1->x;
 	    A[c * 2 + 2][4] = matches->pairs[i].p1->y;
-	    A[c * 2 + 2][1] = 0; A[c * 2 + 2][2] = 0;
-	    A[c * 2 + 2][5] = 0; A[c * 2 + 2][6] = 1;
+	    A[c * 2 + 2][1] = 0;
+		A[c * 2 + 2][2] = 0;
+	    A[c * 2 + 2][5] = 0;
+		A[c * 2 + 2][6] = 1;
 	    b[c * 2 + 1] = matches->pairs[i].p2->x;
 	    b[c * 2 + 2] = matches->pairs[i].p2->y;
 	    c++;
 	}
     }
-    
+
     // Use SVD to find the result
     w = camAllocateVector(1, 6);
     v = camAllocateMatrix(1, 6, 1, 6);
@@ -653,7 +657,7 @@ int camFindAffineTransform(CamKeypointsMatches *matches, CamAffineTransform *t, 
 	    d2 = uv.y - matches->pairs[i].p2->y;
 	    matches->pairs[i].error = d1*d1 + d2*d2;
 	    *error += matches->pairs[i].error;
-	}	
+	}
     }
 
     camFreeMatrix(A, 1, matches->nbMatches * 2, 1, 6);
@@ -740,7 +744,7 @@ void camFPKdTreeInsert(CamFPKdTreeBranch *pqueue, CamFPKdTreeBranch *item, int *
 CamFPKdTreeBranch *camFPKdTreeGetmin(CamFPKdTreeBranch *pqueue, int *N)
 {
     CamFPKdTreeBranch tmp;
-    if (*N == 0) return NULL; 
+    if (*N == 0) return NULL;
     (*N)--;
     EXCH(0, *N);
     camFPKdTreeFixDown(pqueue, 0, *N);
@@ -773,7 +777,7 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
     descriptor_heap_size = point->size * MAX_NB_BRANCHES * 10;
     descriptor_heap = (int*)malloc(sizeof(int) * descriptor_heap_size);
     branches_pqueue = (CamFPKdTreeBranch*)malloc(sizeof(CamFPKdTreeBranch) * MAX_NB_BRANCHES);
-    for (i = 0; i < point->size; i++) descriptor_heap[i] = point->descriptor[i];    
+    for (i = 0; i < point->size; i++) descriptor_heap[i] = point->descriptor[i];
     branch.distance = 0;
     branch.descriptor = descriptor_heap;
     branch.node = kdTreeRoot;
@@ -794,7 +798,7 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 		    bestDistance = distance;
 		    best = (CamKeypoint*)br->node->right;
 		} else if (secondBestDistance == -1 || distance <= secondBestDistance) {
-		    secondBestDistance = distance; 
+		    secondBestDistance = distance;
 		}
 		explored++;
 		if (explored == explore) break;
@@ -817,14 +821,14 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 			    // OK. It is valid
 			    branch.node = cbr.node->right;
 			    if (descriptor_heap_pos == descriptor_heap_size) { best = NULL; break; }
-			    //for (i = 0; i < point->size; i++) *(descriptor_heap + descriptor_heap_pos + i) = cbr.descriptor[i];    
+			    //for (i = 0; i < point->size; i++) *(descriptor_heap + descriptor_heap_pos + i) = cbr.descriptor[i];
 			    memcpy(descriptor_heap + descriptor_heap_pos, cbr.descriptor, nbBytes);
 			    branch.descriptor = descriptor_heap + descriptor_heap_pos;
 			    branch.descriptor[cbr.node->i] = cbr.node->m;
 			    descriptor_heap_pos += point->size;
 			    if (nbBranches == MAX_NB_BRANCHES) { best = NULL; break; }
 			    camFPKdTreeInsert(branches_pqueue, &branch, &nbBranches);
-			}	
+			}
 		    } else {
 			// The right child is closer
 			// We can insert it for sure in the priority queue
@@ -837,23 +841,23 @@ CamKeypoint *camFindKeypointKdTree(CamKeypoint *point, CamFPKdTreeNode *kdTreeRo
 			    // OK. It is valid
 			    branch.node = cbr.node + 1;
 			    if (descriptor_heap_pos == descriptor_heap_size) { best = NULL; break; }
-			    //for (i = 0; i < point->size; i++) *(descriptor_heap + descriptor_heap_pos + i) = cbr.descriptor[i];    
+			    //for (i = 0; i < point->size; i++) *(descriptor_heap + descriptor_heap_pos + i) = cbr.descriptor[i];
 			    memcpy(descriptor_heap + descriptor_heap_pos, cbr.descriptor, nbBytes);
 			    branch.descriptor = descriptor_heap + descriptor_heap_pos;
 			    branch.descriptor[cbr.node->i] = cbr.node->m;
 			    descriptor_heap_pos += point->size;
 			    if (nbBranches == MAX_NB_BRANCHES) { best = NULL; break; }
 			    camFPKdTreeInsert(branches_pqueue, &branch, &nbBranches);
-			}	
+			}
 		    }
-		} else 
+		} else
 		    // No. No point in this node can be better than the one we have
 		    // It is the end of the exploration
 		    break;
 	    }
 	}
     } while (br);
-    
+
     *dist1 = bestDistance;
     *dist2 = secondBestDistance;
     free(descriptor_heap);
@@ -891,14 +895,14 @@ int camKeypointsMatchingKdTree(CamKeypoints *target, CamFPKdTreeNode *kdTreeRoot
 	    best4Target[matches->nbMatches] = bestMatch->set->id;
 	    matches->nbMatches++;
 	    if (matches->nbMatches == matches->allocated) break;
-	}	    
+	}
     }
 
     best = 0;
     for (i = 1; i < nbModels; i++) {
 	if (results[i] > results[best]) best = i;
     }
-    
+
     c = 0;
     for (i = 0; i < matches->nbMatches; i++) {
 	if (best4Target[i] == best) {
@@ -923,7 +927,7 @@ CamFPKdTreeNode *camFPKdTreeRecurs(CamFPKdTreeNode *node, double deviation[128],
     double dev[128], tmpdev;
     int idx[128], i, j, k, tmpidx;
     double sum, avg, devx, diff;
-    
+
     if (nbPoints == 1) {
 	node->i = -1;
 	node->right = (CamFPKdTreeNode*)points[0];
@@ -944,10 +948,10 @@ CamFPKdTreeNode *camFPKdTreeRecurs(CamFPKdTreeNode *node, double deviation[128],
 	deviation[j] = tmpdev;
 	tmpidx = index[k];
 	index[k] = index[j];
-	index[j] = tmpidx;	
+	index[j] = tmpidx;
 	k = j;
     }
-   
+
     // We have the maximum deviation
     // Let's find the median value on this index
     for (i = 0; i < nbPoints; i++) {
@@ -955,7 +959,7 @@ CamFPKdTreeNode *camFPKdTreeRecurs(CamFPKdTreeNode *node, double deviation[128],
     }
     qsort(points, nbPoints, sizeof(CamKeypoint*), camFPKdTreeCompare);
     node->m = (points[nbPoints/2 - 1]->descriptor[node->i] + points[nbPoints/2]->descriptor[node->i]) / 2;
-    
+
     // Now, we can compute the deviation on the left part
     for (i = 0; i < points[0]->size - 1; i++) {
 	dev[i] = deviation[i];
@@ -1024,10 +1028,10 @@ CamFPKdTreeNode *camKeypointsCompileKdTree(CamKeypoints **models, int nbModels)
     CamFPKdTreeNode *kdTree, *kdTreeCheck;
     CamKeypoint **points;
     double deviation[128], tmpdev;
-    int index[128], tmpidx; 
+    int index[128], tmpidx;
     double sum, avg, dev, diff;
     int i, j, k, nbPoints = 0;
-    
+
     // Initialization of kdTree and points index
     for (i = 0; i < nbModels; i++) nbPoints += models[i]->nbPoints;
     kdTree = malloc(sizeof(CamFPKdTreeNode) * nbPoints * 2);
@@ -1037,7 +1041,7 @@ CamFPKdTreeNode *camKeypointsCompileKdTree(CamKeypoints **models, int nbModels)
 	    points[nbPoints] = models[i]->keypoint[j];
 	}
     }
-    
+
     // Initialization of deviation and index
     for (i = 0; i < points[0]->size; i++) {
 	sum = 0;
