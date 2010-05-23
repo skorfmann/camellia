@@ -61,23 +61,33 @@ extern double camSigmaParam;
 #define CAM_ORIENTATION_STAMP_SIZE 30
 //#define CAM_TRACKING_SUBTIMINGS
 #define CAM_TRACKING_TIMINGS
+#define CAM_TRACKING_DEBUG_1
 
 typedef struct
 {
   int width;	// half width reseach size
   int height;	// half height reseach size
   int scale;	// half scale reseach size
-  int ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally
+  int ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally, not yet used
 } researchVolume;
 
 typedef struct
 {
   CamKeypoints		*previousFeatures;
-  int			nbFrames;
+  int			nbFrames;		//not yet used
   int			nbFeatures;
   int			nbSeeds;
-  researchVolume	rv;		
+  researchVolume	rv;
 } CamTrackingContext;
+
+typedef struct		s_pointList
+{
+  int			x;
+  int			y;
+  int			scale;
+  int			value;
+  struct s_pointList	*next;
+} CamPointsList;
 
 typedef enum
   {
@@ -122,6 +132,46 @@ inline int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamK
   valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo;
   res = valout - (valin << 2);
   return (res);
+}
+
+void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char *outfile, CamKeypointsMatches *matches)
+{
+  CamImage	res;
+  CamROI	roi;
+  char		filename[256];
+  int		i;
+  int		x1;
+  int		x2;
+  int		y1;
+  int		y2;
+
+  camAllocateRGBImage(&res, img1->width, img1->height * 2);
+  camSetROI(&roi, 0, 0, img1->height, img1->width, img1->height);
+  res.roi = NULL;
+  camCopy(img1, &res);
+  res.roi = &roi;
+  camCopy(img2, &res);
+  res.roi = NULL;
+
+  for (i = 0 ; matches->nbMatches ; ++i)
+    {
+      camDrawKeypoint(matches->pairs[i].p1, &res, CAM_RGB(255, 0, 0));
+      x1 = matches->pairs[i].p1->x;
+      y1 = matches->pairs[i].p1->y;
+      x2 = matches->pairs[i].p2->x;
+      y2 = matches->pairs[i].p2->y;
+      y2 += img1->height;
+      camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));
+    }
+  for (i = 0 ; matches->nbMatches ; ++i)
+    {
+      matches->pairs[i].p2->y += img1->height;
+      camDrawKeypoint(matches->pairs[i].p2, &res, 128);
+    }
+
+  sprintf(filename, "output/%s.bmp", outfile);
+  camSaveBMP(&res, filename);
+  camDeallocateImage(&res);
 }
 
 inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
@@ -210,18 +260,54 @@ inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *
     *seedScale -= tc->rv.scale << 1;
 }
 
+void		cam_keypoints_tracking_free_linked_list(CamPointsList *l)
+{
+  CamPointsList	*ptr;
+
+  ptr = l;
+  while (ptr)
+    {
+      l = l->next;
+      free (ptr);
+      ptr = l;
+    }
+}
+
+inline CamPointsList	*cam_keypoints_tracking_add_to_linked_list(CamPointsList *l, int x, int y, int scale, int value)
+{
+  CamPointsList		*head;
+
+  head = (CamPointsList*)malloc(sizeof(CamPointsList));
+  head->x = x;
+  head->y = y;
+  head->scale = scale;
+  head->value = value;
+  head->next = l;
+  return (head);
+}
+
+inline BOOL	cam_keypoints_tracking_point_not_visited(CamPointsList *l)
+{
+  CamPointsList	*point;
+
+  point = l->next;
+  while (point)
+    {
+      if (l->x == point->x && l->y == point->y && l->scale == point->scale)
+	return (FALSE);
+      point = point->next;
+    }
+  return (TRUE);
+}
+
+
 inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scale(CamTrackingContext *tc, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*), int index, int shiftX, int shiftY, int shiftScale)
 {
   int			featureX;
   int			featureY;
   int			featureScale;
-  int			oldFeatureX;
-  int			oldFeatureY;
-  int			oldFeatureScale;
-  int			oldOldFeatureX;
-  int			oldOldFeatureY;
-  int			oldOldFeatureScale;
   CamKeypointShort	*maxOnEachScale;
+  CamPointsList		*pointsList;
 #ifdef CAM_TRACKING_SUBTIMINGS
   int			deltaTimers;
   struct timeval	tv1;
@@ -236,24 +322,15 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scal
   gettimeofday(&tv1, NULL);
 #endif
   maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
-  oldFeatureX = -1;
-  oldFeatureY = -1;
-  oldFeatureScale = -1;
-  oldOldFeatureX = -1;
-  oldOldFeatureY = -1;
-  oldOldFeatureScale = -1;
+  pointsList = NULL;
+  pointsList = cam_keypoints_tracking_add_to_linked_list(pointsList, maxOnEachScale[0].x, maxOnEachScale[0].y, maxOnEachScale[0].scale, maxOnEachScale[0].value);
   /* max on a border of the research space => shift the research cube */
-  while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale) && (featureX != oldOldFeatureX || featureY != oldOldFeatureY || featureScale != oldOldFeatureScale))
+  while (cam_keypoints_tracking_max_on_border(tc, &maxOnEachScale[0], featureX, featureY, featureScale) && cam_keypoints_tracking_point_not_visited(pointsList))
     {
-      oldOldFeatureX = oldFeatureX;
-      oldOldFeatureY = oldFeatureY;
-      oldOldFeatureScale = oldFeatureScale;
-      oldFeatureX = featureX;
-      oldFeatureY = featureY;
-      oldFeatureScale = featureScale;
       cam_keypoints_tracking_extract_new_research_box(tc, &maxOnEachScale[0], &featureX, &featureY, &featureScale);
       free(maxOnEachScale);
       maxOnEachScale = cam_keypoints_tracking_extract_max_on_each_scale(tc, detectorValue, integralImage, featureX, featureY, featureScale);
+      pointsList = cam_keypoints_tracking_add_to_linked_list(pointsList, maxOnEachScale[0].x, maxOnEachScale[0].y, maxOnEachScale[0].scale, maxOnEachScale[0].value);
     }
 #ifdef CAM_TRACKING_SUBTIMINGS
   gettimeofday(&tv2, NULL);
@@ -330,7 +407,8 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       ++currentFeatures->nbPoints;
       seedsMatches->pairs[l].p1 = tc->previousFeatures->keypoint[seedsIndexes[i]];
       seedsMatches->pairs[l].p2 = currentFeatures->keypoint[l];
-      seedsMatches->pairs[l].error = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], currentFeatures->keypoint[l]);;
+      seedsMatches->pairs[l].error = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], currentFeatures->keypoint[l]);
+      seedsMatches->pairs[l].mark = 1;
       seedsMatches->nbMatches++;
       ++l;
 #ifdef CAM_TRACKING_SUBTIMINGS
@@ -451,6 +529,11 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
   return (featuresMatches);
 }
 
+void	cam_keypoints_tracking_fill_empty_area()
+{
+
+}
+
 CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
 {
   CamImage		integralImage;
@@ -458,6 +541,9 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   CamKeypointsMatches	*keypointsMatches;
   CamKeypoints		*currentFeatures;
   unsigned int		*seedsIndexes;
+  CamKeypointsMatches	*res;
+  int			i;
+  int			j;
 #ifdef CAM_TRACKING_TIMINGS
   int			t1;
   int			t2;
@@ -469,7 +555,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   // initialisation of the tracker
   if (!(tc->previousFeatures->bag))
     {
-      //srandom(time(NULL)); // used to extract seeds
+      srandom(time(NULL)); // used to extract seeds
       (*roiDetector)(image, tc->previousFeatures, tc->nbFeatures, options);
       return (NULL);
     }
@@ -478,6 +564,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
     {
       seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);  
       currentFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
+      res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
       camAllocateKeypoints(currentFeatures, tc->nbFeatures);
       if (currentFeatures->bag == NULL)
 	{
@@ -510,21 +597,40 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       t3 = camGetTimeMs();
       printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 -t4);
 #endif
+
+      camAllocateKeypointsMatches(res, seedsMatches->nbMatches + keypointsMatches->nbMatches);
+
+      j = 0;
+      for (i = 0 ; i < tc->nbSeeds ; ++i)
+	{
+	  if (seedsMatches->pairs[i].mark)
+	    {
+	      ++j;
+	    }
+	}
+      for (i = 0 ; i < tc->nbFeatures - tc->nbSeeds ; ++i)
+	{
+	  if (keypointsMatches->pairs[i].mark)
+	    {
+	      ++j;
+	    }
+	}
+
+      cam_keypoints_tracking_fill_empty_area();
+      cam_keypoints_tracking_fill_empty_area();
+      
       free (seedsIndexes);
       camFreeKeypoints(tc->previousFeatures);
       free(tc->previousFeatures);
       camFreeKeypointsMatches(seedsMatches);
       free (seedsMatches);
       
-      updateTrackerFeatures(tc, );
-
       tc->previousFeatures = currentFeatures;
       camFreeKeypointsMatches(keypointsMatches);
       free (keypointsMatches);
       camDeallocateImage(&integralImage);
-      return (NULL);
+      return (res);
     }
-  return (NULL);
 }
 
 int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
@@ -539,13 +645,16 @@ void			test_cam_keypoints_tracking()
   int			t1;
   int			t2;
   int			t3;
+  CamKeypointsMatches	*track;
 
   /* begin images building */
   modelImage.imageData = NULL;
-  camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
+  //camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
+  camLoadBMP(&modelImage, "./resources/rover/img-1.bmp");
   camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &firstImage);
-  camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
+  //camLoadBMP(&modelImage, "./resources/photos/scene1.bmp");
+  camLoadBMP(&modelImage, "./resources/rover/img-2.bmp");
   camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &secondImage);
   /* end images building */
@@ -565,13 +674,28 @@ void			test_cam_keypoints_tracking()
 #ifdef CAM_TRACKING_TIMINGS
   t1 = camGetTimeMs();
 #endif
+
   cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
+
 #ifdef CAM_TRACKING_TIMINGS
   t2 = camGetTimeMs();
 #endif
-  cam_keypoints_tracking(&tc, &secondImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
+
+  track = cam_keypoints_tracking(&tc, &secondImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
+  camDeallocateImage(&firstImage);
+  camDeallocateImage(&secondImage);
+
 #ifdef CAM_TRACKING_TIMINGS
   t3 = camGetTimeMs();
   printf("initial detection timing : %ims\ntracking timing : %ims\n", t2 - t1, t3 - t2);
 #endif
+
+  camLoadBMP(&firstImage, "./resources/rover/img-1.bmp");
+  camLoadBMP(&secondImage, "./resources/rover/img-2.bmp");
+  cam_keypoints_tracking_print_matches(&firstImage, &secondImage, "track", track);
+  camDeallocateImage(&firstImage);
+  camDeallocateImage(&secondImage);
+
+  camFreeKeypointsMatches(track);
+  free(track);
 }
