@@ -25,9 +25,9 @@ int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *
 int camSortKeypointsShort(const void *p1x, const void *p2x);
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
-int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options)
+int camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options)
 {
-    CamImage integral, filter;
+    CamImage filter;
     CamInternalROIPolicyStruct iROI;
     CamROI *roi, roix;
     int i, width, height;
@@ -40,6 +40,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     unsigned char *lmax_lines[2];
     unsigned int *lmax[2], nblmax[2];
     int widthStep;
+    int	integralPrecalculated;
 
     camPatchSizeParam = 16; //32 * 2 / 3; // Equivalent optimal value wrt SURF (the descriptor can partially lie outside screen)
     
@@ -51,16 +52,23 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     width = iROI.srcroi.width;
     height = iROI.srcroi.height;
 
-    // Compute integral image
-    integral.imageData = NULL;
-    roi = source->roi;
-    camSetMaxROI(&roix, source);
-    roix.coi = 1;
-    source->roi = &roix;
-    camIntegralImage(source, &integral);
-    integral.roi = &iROI.srcroi;
-    source->roi = roi;
-    widthStep = integral.widthStep / 4;
+    if (!integral)
+      {
+	integralPrecalculated = 0;
+	// Compute integral image
+	integral = (CamImage*)malloc(sizeof(CamImage));
+	integral->imageData = NULL;
+	roi = source->roi;
+	camSetMaxROI(&roix, source);
+	roix.coi = 1;
+	source->roi = &roix;
+	camIntegralImage(source, integral);
+	integral->roi = &iROI.srcroi;
+	source->roi = roi;
+      }
+    else
+      integralPrecalculated = 1;
+    widthStep = integral->widthStep / 4;
 
     // Allocate temp memory for keypoints
     keypoints = (CamKeypointShort*)malloc(CAM_MAX_KEYPOINTS * sizeof(CamKeypointShort));
@@ -130,7 +138,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                 int current_value = 0;
                 unsigned int abs_current_value = 0;
                 int current_scale = 1;
-                unsigned int *ptr = ((unsigned int*)(integral.imageData + (y + iROI.srcroi.yOffset) * integral.widthStep)) + iROI.srcroi.xOffset;
+                unsigned int *ptr = ((unsigned int*)(integral->imageData + (y + iROI.srcroi.yOffset) * integral->widthStep)) + iROI.srcroi.xOffset;
                 int s1, s2;
 
                 for (x = 0; x < width; x++, ptr++) {
@@ -418,7 +426,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
             if (keypoints[i].scale) {
                 int scale = keypoints[i].scale; // Save the scale
                 keypoints[i].scale = (scale << 2) + 1;
-                if (!camKeypointDescriptorCheckBounds(&keypoints[i], &integral)) 
+                if (!camKeypointDescriptorCheckBounds(&keypoints[i], integral)) 
                     keypoints[i].value = 0;
                 keypoints[i].scale = scale;
             }
@@ -459,7 +467,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
         max_scale -= CAM_SCALE_MARGIN;
 
         if (keypoint->scale < max_scale) {
-            unsigned int *ptr = ((unsigned int*)(integral.imageData + (y + iROI.srcroi.yOffset) * integral.widthStep)) + iROI.srcroi.xOffset + x;
+            unsigned int *ptr = ((unsigned int*)(integral->imageData + (y + iROI.srcroi.yOffset) * integral->widthStep)) + iROI.srcroi.xOffset + x;
             int scale = keypoint->scale - 1; 
             int yoffset = scale * widthStep;
             int value, num, den, x1, x3, y1, y2, y3;
@@ -547,7 +555,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     free(keypoints);
 
     if (options & CAM_UPRIGHT) {
-        camKeypointsDescriptor(points, &integral, options);
+        camKeypointsDescriptor(points, integral, options);
     } else { 
         camKeypointsDescriptor(points, source, options);
     }
@@ -558,7 +566,12 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     }
     
     // Integral Image is now useless
-    camDeallocateImage(&integral);
+    if (!integralPrecalculated)
+      {
+	camDeallocateImage(integral);
+	free(integral);
+      }
+    
     camInternalROIPolicyExit(&iROI);
     return 1;
 }
@@ -626,7 +639,7 @@ void test_camRecursiveKeypoints()
 #endif
     dest.imageData = NULL; 
     
-    camKeypointsRecursiveDetector(&image, &points, 20, 0);
+    camKeypointsRecursiveDetector(&image, NULL, &points, 20, 0);
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
     }
