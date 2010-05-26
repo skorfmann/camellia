@@ -49,8 +49,9 @@
 #include <stdlib.h>	// malloc, calloc, qsort
 #include <string.h>	// memcpy
 #include <stdio.h>	// printf
-#include <sys/time.h>
-#include <limits.h>
+#include <sys/time.h>	// gettimeofday
+#include <limits.h>	// INT_MAX
+#include <math.h>	// sqrt
 #ifdef __SSE2__
 #include <emmintrin.h>	// _mm_malloc
 #endif
@@ -184,22 +185,20 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
 inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
 {
   unsigned int		*seedsIndexes;
-  unsigned int		currentIndex;
   register int		i;
   register int		j;
-
+  register int		k;
+  int			step;
+  
+  step = sqrt(tc->nbFeatures) / sqrt(tc->nbSeeds);
   seedsIndexes = (unsigned int*)malloc(tc->nbSeeds * sizeof(unsigned int));
-  for (i = 0 ; i < tc->nbSeeds ; ++i)
+  k = 0;
+  for (i = step - 1 ; i < sqrt(tc->nbFeatures) ; i += step)
     {
-    _seedSelection:
-      currentIndex = rand() % tc->nbFeatures;
-      for (j = 0 ; j < i ; ++j)
-	{
-	  if (seedsIndexes[j] == currentIndex)
-	    goto _seedSelection;
-	}
-      seedsIndexes[i] = currentIndex;
+      for (j = step - 1 ; j < sqrt(tc->nbFeatures) ; j += step)
+	seedsIndexes[k++] = i * sqrt(tc->nbFeatures) + j;
     }
+
   return (seedsIndexes);
 }
 
@@ -565,7 +564,6 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   // initialisation of the tracker
   if (!(tc->previousFeatures->bag))
     {
-      srandom(time(NULL)); // used to extract seeds
       integralImage.imageData = NULL;
       camIntegralImage(image, &integralImage);
       tc->previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
@@ -635,10 +633,6 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 -t4);
 #endif
 
-#ifdef CAM_TRACKING_DEBUG_1
-      printf("seedsMatches : %i  keypointsMatches : %i\n", seedsMatches->nbMatches, keypointsMatches->nbMatches);
-#endif 
-      
       camAllocateKeypointsMatches(res, seedsMatches->nbMatches + keypointsMatches->nbMatches);
 
       j = 0;
@@ -713,15 +707,15 @@ void			test_cam_keypoints_tracking()
   /* end images building */
 
   /* begin tracking context */
-  tc.nbFeatures = 16;
+  tc.nbFeatures = 25;
   tc.nbFrames = 3;
-  tc.nbSeeds = 16;
+  tc.nbSeeds = sqrt(tc.nbFeatures) - 1;
   tc.rv.width = 2;
   tc.rv.height = 2;
   tc.rv.scale = 2;
   tc.rv.ds = 0;
-  tc.rw.height = firstImage.height / 4;
-  tc.rw.width = firstImage.width / 4;
+  tc.rw.height = firstImage.height / sqrt(tc.nbFeatures);
+  tc.rw.width = firstImage.width / sqrt(tc.nbFeatures);
   /* end tracking context */
 
 #ifdef CAM_TRACKING_TIMINGS
