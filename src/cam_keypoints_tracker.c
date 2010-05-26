@@ -63,13 +63,19 @@ extern double camSigmaParam;
 #define CAM_TRACKING_TIMINGS
 #define CAM_TRACKING_DEBUG_1
 
-typedef struct
+typedef	struct
 {
-  int width;	// half width reseach size
-  int height;	// half height reseach size
-  int scale;	// half scale reseach size
-  int ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally, not yet used
+  int	width;	// half width reseach size
+  int	height;	// half height reseach size
+  int	scale;	// half scale reseach size
+  int	ds;	// scale amplification, positive to start search at bigger scale than previous one and reciprocally, not yet used
 } researchVolume;
+
+typedef	struct
+{
+  int	height;
+  int	width;
+} researchWindow;
 
 typedef struct
 {
@@ -77,7 +83,8 @@ typedef struct
   int			nbFrames;		//not yet used
   int			nbFeatures;
   int			nbSeeds;
-  researchVolume	rv;
+  researchVolume	rv;			// volume around feature point
+  researchWindow	rw;			// window for the seeding
 } CamTrackingContext;
 
 typedef struct		s_pointList
@@ -534,7 +541,7 @@ void	cam_keypoints_tracking_fill_empty_area()
 
 }
 
-CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage*, CamImage *,CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
+CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage *,CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
 {
   CamImage		integralImage;
   CamKeypointsMatches	*seedsMatches;
@@ -542,8 +549,11 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   CamKeypoints		*currentFeatures;
   unsigned int		*seedsIndexes;
   CamKeypointsMatches	*res;
+  CamKeypoints		tmpPoint;
+  CamROI		roi;
   register int		i;
   register int		j;
+  
 #ifdef CAM_TRACKING_TIMINGS
   int			t1;
   int			t2;
@@ -556,7 +566,34 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   if (!(tc->previousFeatures->bag))
     {
       srandom(time(NULL)); // used to extract seeds
-      (*roiDetector)(image, NULL, tc->previousFeatures, tc->nbFeatures, options);
+      integralImage.imageData = NULL;
+      camIntegralImage(image, &integralImage);
+      tc->previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
+      camAllocateKeypoints(tc->previousFeatures, tc->nbFeatures);
+#ifdef __SSE2__
+      tc->previousFeatures->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * tc->nbFeatures, 16);
+#else
+      tc->previousFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
+#endif
+
+      camAllocateKeypoints(&tmpPoint, 1);
+      // configuration of the window related to the seeding
+      image->roi = &roi;
+      image->roi->width = tc->rw.width;
+      image->roi->height = tc->rw.height;
+      i = 0;
+      for (image->roi->xOffset = 0 ; image->roi->xOffset < image->width ; image->roi->xOffset += tc->rw.width)
+	{
+	  for (image->roi->yOffset = 0 ; image->roi->yOffset < image->height ; image->roi->yOffset += tc->rw.height)
+	    {
+	      (*roiDetector)(image, &tmpPoint, 1, options);
+	      tc->previousFeatures->keypoint[i] = &tc->previousFeatures->bag[i];
+	      memcpy(tc->previousFeatures->keypoint[i], tmpPoint.keypoint[0], sizeof(CamKeypoint));
+	      ++i;
+	    }
+	}
+      camFreeKeypoints(&tmpPoint);
+      camDeallocateImage(&integralImage);
       return (NULL);
     }
   // initialisation already done
@@ -647,8 +684,8 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
     }
 }
 
-//int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
-int camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options);
+int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
 
 void			test_cam_keypoints_tracking()
 {
@@ -676,15 +713,15 @@ void			test_cam_keypoints_tracking()
   /* end images building */
 
   /* begin tracking context */
-  tc.nbFeatures = 100;
+  tc.nbFeatures = 16;
   tc.nbFrames = 3;
-  tc.nbSeeds = 100;
+  tc.nbSeeds = 16;
   tc.rv.width = 2;
   tc.rv.height = 2;
   tc.rv.scale = 2;
   tc.rv.ds = 0;
-  tc.previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
-  camAllocateKeypoints(tc.previousFeatures, tc.nbFeatures);
+  tc.rw.height = firstImage.height / 4;
+  tc.rw.width = firstImage.width / 4;
   /* end tracking context */
 
 #ifdef CAM_TRACKING_TIMINGS
