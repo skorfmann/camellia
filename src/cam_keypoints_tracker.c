@@ -185,17 +185,17 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
 inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc)
 {
   unsigned int		*seedsIndexes;
-  register int		i;
-  register int		j;
-  register int		k;
-  int			step;
+  register unsigned int	i;
+  register unsigned int	j;
+  register unsigned int	k;
+  unsigned int			step;
   
   step = sqrt(tc->nbFeatures) / sqrt(tc->nbSeeds);
   seedsIndexes = (unsigned int*)malloc(tc->nbSeeds * sizeof(unsigned int));
   k = 0;
   for (i = step - 1 ; i < sqrt(tc->nbFeatures) ; i += step)
     {
-      for (j = step - 1 ; j < sqrt(tc->nbFeatures) ; j += step)
+      for (j = step - 1 ; j < sqrt(tc->nbFeatures) && k < tc->nbSeeds ; j += step)
 	seedsIndexes[k++] = i * sqrt(tc->nbFeatures) + j;
     }
 
@@ -320,9 +320,9 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scal
   struct timeval	tv2;
 #endif
   
-  featureX = tc->previousFeatures->keypoint[index]->x - shiftX;
-  featureY = tc->previousFeatures->keypoint[index]->y - shiftY;
-  featureScale = (tc->previousFeatures->keypoint[index]->scale >> 2) - shiftScale;
+  featureX = tc->previousFeatures->keypoint[index]->x + shiftX;
+  featureY = tc->previousFeatures->keypoint[index]->y + shiftY;
+  featureScale = max((tc->previousFeatures->keypoint[index]->scale + shiftScale) >> 2, 1);
   
 #ifdef CAM_TRACKING_SUBTIMINGS
   gettimeofday(&tv1, NULL);
@@ -562,7 +562,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 #endif
 
   // initialisation of the tracker
-  if (!(tc->previousFeatures->bag))
+  if (!(tc->previousFeatures))
     {
       integralImage.imageData = NULL;
       camIntegralImage(image, &integralImage);
@@ -608,7 +608,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 #else
 	  currentFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
 #endif
-      }
+	}
       
       /* begin integral image computing */
 #ifdef CAM_TRACKING_TIMINGS
@@ -669,7 +669,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       free(tc->previousFeatures);
       camFreeKeypointsMatches(seedsMatches);
       free (seedsMatches);
-      
+
       tc->previousFeatures = currentFeatures;
       camFreeKeypointsMatches(keypointsMatches);
       free (keypointsMatches);
@@ -707,7 +707,7 @@ void			test_cam_keypoints_tracking()
   /* end images building */
 
   /* begin tracking context */
-  tc.nbFeatures = 25;
+  tc.nbFeatures = 16;
   tc.nbFrames = 3;
   tc.nbSeeds = sqrt(tc.nbFeatures) - 1;
   tc.rv.width = 2;
@@ -716,12 +716,16 @@ void			test_cam_keypoints_tracking()
   tc.rv.ds = 0;
   tc.rw.height = firstImage.height / sqrt(tc.nbFeatures);
   tc.rw.width = firstImage.width / sqrt(tc.nbFeatures);
+  tc.previousFeatures = NULL;
   /* end tracking context */
 
 #ifdef CAM_TRACKING_TIMINGS
   t1 = camGetTimeMs();
 #endif
 
+  printf("%i\n", firstImage.width);
+  printf("%i\n", firstImage.height);
+  
   cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
 
 #ifdef CAM_TRACKING_TIMINGS

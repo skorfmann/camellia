@@ -168,7 +168,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             unsigned int valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo; \
                             value = valout - (valin << 2); \
 			    if (abs(value) > 256 * height * width) printf("value : %i width : %i height : %i\n xOffset : %i yOffset : %i \n", value, width, height, iROI.srcroi.xOffset, iROI.srcroi.yOffset); \
-                            assert(abs(value) < 256 * height * width); \
+                            assert(abs(value) < 256 * height * width);	\
                         }
                         CAM_RECURSIVE_PATTERN;
                         current_scale = scale;
