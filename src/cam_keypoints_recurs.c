@@ -57,7 +57,7 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
     camSetMaxROI(&roix, source);
     roix.coi = 1;
     source->roi = &roix;
-    camIntegralImage(source, &integral);
+    camIntegralImage(source, &integral); // Computed on the whole frame, not only on ROI
     integral.roi = &iROI.srcroi;
     source->roi = roi;
     widthStep = integral.widthStep / 4;
@@ -167,8 +167,6 @@ int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb
                             unsigned int *ptrCo = ptr + ((yoffset - scale) << 1); \
                             unsigned int valout = *ptrDo - *ptrBo - *ptrCo + *ptrAo; \
                             value = valout - (valin << 2); \
-			    if (abs(value) > 256 * height * width) printf("value : %i width : %i height : %i\n xOffset : %i yOffset : %i \n", value, width, height, iROI.srcroi.xOffset, iROI.srcroi.yOffset); \
-                            assert(abs(value) < 256 * height * width);	\
                         }
                         CAM_RECURSIVE_PATTERN;
                         current_scale = scale;
