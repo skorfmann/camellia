@@ -343,7 +343,7 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scal
   deltaTimers = tv2.tv_usec - tv1.tv_usec;
   if (deltaTimers < 0)
     deltaTimers = 1000000 + deltaTimers;
-  printf("Max on each scale : %ius ", deltaTimers);
+  printf("Max on each scale : %ius\n", deltaTimers);
 #endif
   return (maxOnEachScale);
 }
@@ -421,7 +421,7 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       deltaTimers = tv2.tv_usec - tv1.tv_usec;
       if (deltaTimers < 0)
 	deltaTimers = 1000000 + deltaTimers;
-      printf("Feature description : %ius ", deltaTimers);
+      printf("Feature description : %ius\n", deltaTimers);
 #endif
       /* end computation of descriptor */
     }
@@ -540,7 +540,7 @@ void	cam_keypoints_tracking_fill_empty_area()
 
 }
 
-CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage *,CamKeypoints*, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
+CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *image, int (*roiDetector)(CamImage *,CamImage *, CamKeypoints *, int, int), int (*detectorValue)(CamImage *, CamKeypointShort*), int options)
 {
   CamImage		integralImage;
   CamKeypointsMatches	*seedsMatches;
@@ -550,10 +550,12 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   CamKeypointsMatches	*res;
   CamKeypoints		tmpPoint;
   CamROI		roi;
+  CamROI		roix;
   register int		i;
   register int		j;
   
 #ifdef CAM_TRACKING_TIMINGS
+  int			timeInROIDetector;
   int			t1;
   int			t2;
   int			t3;
@@ -564,8 +566,6 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   // initialisation of the tracker
   if (!(tc->previousFeatures))
     {
-      integralImage.imageData = NULL;
-      camIntegralImage(image, &integralImage);
       tc->previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
       camAllocateKeypoints(tc->previousFeatures, tc->nbFeatures);
 #ifdef __SSE2__
@@ -575,21 +575,41 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 #endif
 
       camAllocateKeypoints(&tmpPoint, 1);
+
+      /* computation of integral image */
+      integralImage.imageData = NULL;
+      camSetMaxROI(&roix, image);
+      roix.coi = 1;
+      image->roi = &roix;
+      camIntegralImage(image, &integralImage);
+      integralImage.roi = &roi;
+
       // configuration of the window related to the seeding
       image->roi = &roi;
       image->roi->width = tc->rw.width;
       image->roi->height = tc->rw.height;
       i = 0;
+      timeInROIDetector = 0;
       for (image->roi->xOffset = 0 ; image->roi->xOffset < image->width ; image->roi->xOffset += tc->rw.width)
 	{
 	  for (image->roi->yOffset = 0 ; image->roi->yOffset < image->height ; image->roi->yOffset += tc->rw.height)
-	    {
-	      (*roiDetector)(image, &tmpPoint, 1, options);
+	    {	
+#ifdef CAM_TRACKING_SUBTIMINGS
+	      t1 = camGetTimeMs();
+#endif
+	      (*roiDetector)(image, &integralImage, &tmpPoint, 1, options);
+#ifdef CAM_TRACKING_SUBTIMINGS
+	      t2 = camGetTimeMs();
+	      timeInROIDetector += t2 - t1;
+#endif
 	      tc->previousFeatures->keypoint[i] = &tc->previousFeatures->bag[i];
 	      memcpy(tc->previousFeatures->keypoint[i], tmpPoint.keypoint[0], sizeof(CamKeypoint));
 	      ++i;
 	    }
 	}
+#ifdef CAM_TRACKING_SUBTIMINGS
+      printf("Time spent in roiDetector : %ims\n", timeInROIDetector);
+#endif
       camFreeKeypoints(&tmpPoint);
       camDeallocateImage(&integralImage);
       return (NULL);
@@ -609,17 +629,17 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	  currentFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
 #endif
 	}
-      
-      /* begin integral image computing */
+
 #ifdef CAM_TRACKING_TIMINGS
       t4 = camGetTimeMs();
 #endif
+      /* begin integral image computing */ 
       integralImage.imageData = NULL;
-      camIntegralImage(image, &integralImage);
+      camIntegralImage(image, &integralImage); 
 #ifdef CAM_TRACKING_TIMINGS
       t5 = camGetTimeMs();
 #endif
-      /* end integral image computing */
+     /* end integral image computing */
 #ifdef CAM_TRACKING_TIMINGS
       t1 = camGetTimeMs();
 #endif
@@ -630,7 +650,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       keypointsMatches = cam_keypoints_tracking_extract_points_matching(tc, image, &integralImage, detectorValue, seedsMatches, seedsIndexes, currentFeatures, options);
 #ifdef CAM_TRACKING_TIMINGS
       t3 = camGetTimeMs();
-      printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 -t4);
+      printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 - t4);
 #endif
 
       camAllocateKeypointsMatches(res, seedsMatches->nbMatches + keypointsMatches->nbMatches);
@@ -678,8 +698,8 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
     }
 }
 
-int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
-int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+//int camKeypointsDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+int camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options);
 
 void			test_cam_keypoints_tracking()
 {
@@ -707,7 +727,7 @@ void			test_cam_keypoints_tracking()
   /* end images building */
 
   /* begin tracking context */
-  tc.nbFeatures = 16;
+  tc.nbFeatures = 100;
   tc.nbFrames = 3;
   tc.nbSeeds = sqrt(tc.nbFeatures) - 1;
   tc.rv.width = 2;
@@ -722,9 +742,6 @@ void			test_cam_keypoints_tracking()
 #ifdef CAM_TRACKING_TIMINGS
   t1 = camGetTimeMs();
 #endif
-
-  printf("%i\n", firstImage.width);
-  printf("%i\n", firstImage.height);
   
   cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
 
