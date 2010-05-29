@@ -424,6 +424,9 @@ void		cam_keypoints_tracking_convolve_horiz(CamImage *imgIn, float *kernel, CamI
   unsigned char	*ppp;
 
   ptrrow = imgIn->imageData;
+  ncols = imgIn->width;
+  nrows = imgIn->height;
+  ptrout = imgOut->imageData;
   for  (j = 0 ; j < nrows ; ++j)
     {
       for (i = 0 ; i < ncols ; ++i)
@@ -531,7 +534,7 @@ void		cam_keypoints_tracking_compute_local_image_displacement(CamTrackingContext
   printf("intensity difference : %i\n", intensityDifference);
 #endif
   
-  cam_keypoints_tracking_compute_gradients(image, &gradX, &gradY, gaussKernel, gaussDerivKernel);
+  cam_keypoints_tracking_compute_gradients(&img, &gradX, &gradY, gaussKernel, gaussDerivKernel);
 
   free(gaussKernel);
   free(gaussDerivKernel);
