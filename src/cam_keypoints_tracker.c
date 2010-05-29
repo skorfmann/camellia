@@ -62,7 +62,7 @@ extern double camSigmaParam;
 #define CAM_ORIENTATION_STAMP_SIZE 30
 //#define CAM_TRACKING_SUBTIMINGS
 #define CAM_TRACKING_TIMINGS
-#define	CAM_TRACKING_DEBUG_2
+//#define	CAM_TRACKING_DEBUG_2
 #define CAM_TRACKING_DEBUG_1
 
 typedef	struct
@@ -472,6 +472,8 @@ void		cam_keypoints_tracking_convolve_vert(CamImage *imgIn, float *kernel, CamIm
 	  *ptrout = (unsigned char)sum;
 	  ptrout += ncols;
 	}
+      ptrcol++;
+      ptrout -= nrows * ncols - 1;
     }
 }
 
@@ -527,7 +529,6 @@ void		cam_keypoints_tracking_compute_local_image_displacement(CamTrackingContext
   camAllocateYUVImage(&img, windowSize, windowSize);
   x = (tc->previousFeatures->keypoint[index]->x - windowSize / 2);
   y = (tc->previousFeatures->keypoint[index]->y - windowSize / 2);
-  printf("%i %i\n", x, y);
   memcpy(img.imageData, &image->imageData[y * image->widthStep + x], windowSize * windowSize * sizeof(unsigned char)); // fix me to be not necessary
   intensityDifference = cam_keypoints_tracking_compute_intensity_difference(tc, image, index);
 #ifdef CAM_TRACKING_DEBUG_2
