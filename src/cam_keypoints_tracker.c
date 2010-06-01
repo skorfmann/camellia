@@ -190,16 +190,39 @@ inline unsigned int	*cam_keypoints_tracking_extract_seeds(CamTrackingContext *tc
   unsigned int		*seedsIndexes;
   register unsigned int	i;
   register unsigned int	j;
-  register unsigned int	k;
-  unsigned int			step;
-  
-  step = sqrt(tc->nbFeatures) / sqrt(tc->nbSeeds);
-  seedsIndexes = (unsigned int*)malloc(tc->nbSeeds * sizeof(unsigned int));
-  k = 0;
-  for (i = step - 1 ; i < sqrt(tc->nbFeatures) ; i += step)
+  register int		k;
+  register int		l;
+  register unsigned int	m;
+  int			valueMax;
+  unsigned int		step;
+  int			width;
+
+  width = sqrt(tc->nbFeatures);
+  step = width / sqrt(tc->nbSeeds);
+  seedsIndexes = (unsigned int*)calloc(tc->nbSeeds, sizeof(unsigned int));
+  m = 0;
+  for (i = step - 1 ; i < width ; i += step)
     {
-      for (j = step - 1 ; j < sqrt(tc->nbFeatures) && k < tc->nbSeeds ; j += step)
-	seedsIndexes[k++] = i * sqrt(tc->nbFeatures) + j;
+      for (j = step - 1 ; j < width && m < tc->nbSeeds ; j += step)
+	{
+	  valueMax = 0;
+	  for (k = -1 ; k < 2 ; ++k)
+	    {
+	      for (l = -1 ; l < 2 ; ++l)
+		{
+		  if (tc->previousFeatures->keypoint[(i + k) * width + (j + l)] &&
+		      abs(tc->previousFeatures->keypoint[(i + k) * width + (j + l)]->value) > valueMax)
+		    {
+		      valueMax = abs(tc->previousFeatures->keypoint[(i + k) * width + (j + l)]->value);
+		      seedsIndexes[m] = (i + k) * width + (j + l);
+		    }
+		}
+	    }
+#ifdef CAM_TRACKING_DEBUG_3
+	  printf("Seed %i is better in %i with value %i\n", i * width + j, seedsIndexes[m], tc->previousFeatures->keypoint[seedsIndexes[m]]->value);
+#endif
+	  ++m;
+	}
     }
 
   return (seedsIndexes);
@@ -233,8 +256,8 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTra
 		break;
 	      if ((currentPoint.x + (currentPoint.scale << 1)) >= integralImage->width)
 		break;
-	      currentPoint.value = abs(((*detectorValue)(integralImage, &currentPoint)));
-	      if (currentPoint.value > maxOnEachScale[j].value)
+	      currentPoint.value = ((*detectorValue)(integralImage, &currentPoint));
+	      if (abs(currentPoint.value) > abs(maxOnEachScale[j].value))
 		memcpy(&maxOnEachScale[j], &currentPoint, sizeof(CamKeypointShort));
 	    }
 	}
@@ -796,6 +819,8 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
   j = 0;
   for (i = 0 ; i < tc->nbFeatures ; ++i)
     {
+      if (!tc->previousFeatures->keypoint[i])
+	continue ;
       if (cam_keypoints_tracking_is_seed(tc, seedsIndexes, i) == TRUE)
 	continue ;
       closestSeedIndex = cam_keypoints_tracking_extract_closest_seed_index(tc, seedsMatches, i);
@@ -832,8 +857,7 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
       else
 	{
 #ifdef	CAM_TRACKING_DEBUG_2
-	  printf("Missmatch : %i %i %i, %i %i %i\n", featuresMatches->pairs[i].p1->x, featuresMatches->pairs[i].p1->y, featuresMatches->pairs[i].p1->scale,
-		 featuresMatches->pairs[i].p2->x,featuresMatches->pairs[i].p2->y,featuresMatches->pairs[i].p2->scale);
+	  printf("Missmatch : %i %i %i %i, %i %i %i %i\n", featuresMatches->pairs[i].p1->x, featuresMatches->pairs[i].p1->y, featuresMatches->pairs[i].p1->scale, featuresMatches->pairs[i].p1->value, featuresMatches->pairs[i].p2->x,featuresMatches->pairs[i].p2->y,featuresMatches->pairs[i].p2->scale, featuresMatches->pairs[i].p2->value);
 #endif
 	  featuresMatches->pairs[i].mark = 0;
 	  featuresMatches->pairs[i].error = currentDistance; // the first better found, maybe others
@@ -856,7 +880,7 @@ void		printMatchings(CamKeypointsMatches *matches)
   
   for (i = 0 ; i < matches->nbMatches ; ++i)
     {
-      printf("x1: %i\ty1: %i\tscale1: %i\t// x2: %i\ty2: %i\tscale2: %i\n", matches->pairs[i].p1->x, matches->pairs[i].p1->y, matches->pairs[i].p1->scale, matches->pairs[i].p2->x, matches->pairs[i].p2->y, matches->pairs[i].p2->scale);
+      printf("x1: %i\ty1: %i\tscale1: %i\tvalue: %i\t// x2: %i\ty2: %i\tscale2: %i\tvalue: %i\n", matches->pairs[i].p1->x, matches->pairs[i].p1->y, matches->pairs[i].p1->scale, matches->pairs[i].p1->value, matches->pairs[i].p2->x, matches->pairs[i].p2->y, matches->pairs[i].p2->scale, matches->pairs[i].p2->value);
     }
 }
 #endif
@@ -927,8 +951,19 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	      t2 = camGetTimeMs();
 	      timeInROIDetector += t2 - t1;
 #endif
-	      tc->previousFeatures->keypoint[i] = &tc->previousFeatures->bag[i];
-	      memcpy(tc->previousFeatures->keypoint[i], tmpPoint.keypoint[0], sizeof(CamKeypoint));
+	      if (tmpPoint.nbPoints)
+		{
+		  tc->previousFeatures->keypoint[i] = &tc->previousFeatures->bag[i];
+		  memcpy(tc->previousFeatures->keypoint[i], tmpPoint.keypoint[0], sizeof(CamKeypoint));
+		  tc->previousFeatures->nbPoints++;
+		}
+	      else
+		{
+#ifdef CAM_TRACKING_DEBUG_3
+		  printf("Index %i has no keypoint\n", i);
+#endif
+		  tc->previousFeatures->keypoint[i] = NULL;
+		}
 	      ++i;
 	    }
 	}
