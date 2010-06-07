@@ -442,19 +442,17 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
     const int hw = MAX_KERNEL_WIDTH / 2;
     float max_gauss = 1.0f, max_gaussderiv = (float) (sigma*exp(-0.5f));
     
-    for (i = -hw ; i <= hw ; i++)  {
-      gauss->data[i+hw]      = (float) exp(-i*i / (2*sigma*sigma));
-      gaussderiv->data[i+hw] = -i * gauss->data[i+hw];
-    }
-
+    for (i = -hw ; i <= hw ; i++)
+      {
+	gauss->data[i+hw]      = (float) exp(-i*i / (2*sigma*sigma));
+	gaussderiv->data[i+hw] = -i * gauss->data[i+hw];
+      }
+    
     gauss->width = MAX_KERNEL_WIDTH;
-    for (i = -hw ; fabs(gauss->data[i+hw] / max_gauss) < factor ; 
-         i++, gauss->width -= 2);
+    for (i = -hw ; fabs(gauss->data[i+hw] / max_gauss) < factor ; i++, gauss->width -= 2);
     gaussderiv->width = MAX_KERNEL_WIDTH;
-    for (i = -hw ; fabs(gaussderiv->data[i+hw] / max_gaussderiv) < factor ; 
-         i++, gaussderiv->width -= 2);
-    if (gauss->width == MAX_KERNEL_WIDTH || 
-        gaussderiv->width == MAX_KERNEL_WIDTH)
+    for (i = -hw ; fabs(gaussderiv->data[i+hw] / max_gaussderiv) < factor ; i++, gaussderiv->width -= 2);
+    if (gauss->width == MAX_KERNEL_WIDTH || gaussderiv->width == MAX_KERNEL_WIDTH)
       camError("cam_keypoints_tracking_compute_kernels", "Max kernel width too small\n");
   }
 
@@ -467,24 +465,36 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
     float den;
     
     den = 0.0;
-    for (i = 0 ; i < gauss->width ; i++)  den += gauss->data[i];
-    for (i = 0 ; i < gauss->width ; i++)  gauss->data[i] /= den;
+    for (i = 0 ; i < gauss->width ; i++)
+      den += gauss->data[i];
+    for (i = 0 ; i < gauss->width ; i++)
+      gauss->data[i] /= den;
     den = 0.0;
-    for (i = -hw ; i <= hw ; i++)  den -= i*gaussderiv->data[i+hw];
-    for (i = -hw ; i <= hw ; i++)  gaussderiv->data[i+hw] /= den;
+    for (i = -hw ; i <= hw ; i++)
+      den -= i*gaussderiv->data[i+hw];
+    for (i = -hw ; i <= hw ; i++)
+      gaussderiv->data[i+hw] /= den;
   }
 }
 
-void	cam_keypoints_tracking_convolve_horiz(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
+void			cam_keypoints_tracking_convolve_horiz(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
 {
-  float *ptrrow = imgin->data;
-  register float *ptrout = imgout->data,
-    *ppp;
-  register float sum;
-  register int radius = kernel->width / 2;
-  register int ncols = imgin->ncols, nrows = imgin->nrows;
-  register int i, j, k;
-  
+  register float	*ptrrow;
+  register float	*ptrout;
+  register float	*ppp;
+  register float	sum;
+  register int		radius;
+  register int		ncols;
+  register int		nrows;
+  register int		i;
+  register int		j;
+  register int		k;
+
+  ptrrow = imgin->data;
+  ptrout = imgout->data;
+  radius = kernel->width / 2;
+  ncols = imgin->ncols;
+  nrows = imgin->nrows;
   for (j = 0 ; j < nrows ; j++)
     {
       
@@ -507,16 +517,22 @@ void	cam_keypoints_tracking_convolve_horiz(CamFloatImage *imgin, CamConvolutionK
     }
 }
 
-void	cam_keypoints_tracking_convolve_vert(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
+void			cam_keypoints_tracking_convolve_vert(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
 {
-  float *ptrcol = imgin->data;
-  register float *ptrout = imgout->data,
-    *ppp;
-  register float sum;
-  register int radius = kernel->width / 2;
-  register int ncols = imgin->ncols, nrows = imgin->nrows;
-  register int i, j, k;
+  register float	*ptrcol;
+  register float	*ptrout;
+  register float	*ppp;
+  register float	sum;
+  register int		radius;
+  register int		ncols;
+  register int		nrows;
+  register int		i, j, k;
 
+  ptrcol = imgin->data;
+  ptrout = imgout->data;
+  radius = kernel->width / 2;
+  ncols = imgin->ncols;
+  nrows = imgin->nrows;
   for (i = 0 ; i < ncols ; i++)
     {
       
@@ -550,7 +566,7 @@ void	cam_keypoints_tracking_convolve_vert(CamFloatImage *imgin, CamConvolutionKe
     }
 }
 
-void	cam_keypoints_tracking_convolve_separate(CamFloatImage *imgin, CamConvolutionKernel *horiz_kernel, CamConvolutionKernel *vert_kernel, CamFloatImage *imgout)
+void		cam_keypoints_tracking_convolve_separate(CamFloatImage *imgin, CamConvolutionKernel *horiz_kernel, CamConvolutionKernel *vert_kernel, CamFloatImage *imgout)
 {
   CamFloatImage tmpimg;
 
@@ -800,6 +816,11 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   struct timeval	tv3;
   struct timeval	tv4;
 #endif
+#ifdef CAM_TRACKING_TIMINGS
+  int			deltaTimers3;
+  struct timeval	tv5;
+  struct timeval	tv6;
+#endif
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
@@ -833,10 +854,20 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   printf("Kernels computation : %ius\n", deltaTimers2);
 #endif
 
+#ifdef CAM_TRACKING_TIMINGS
+  gettimeofday(&tv5, NULL);
+#endif
   cam_keypoints_tracking_copy_image_to_float_image(&img1, tc->previousImage);
   cam_keypoints_tracking_copy_image_to_float_image(&img2, image);
   cam_keypoints_tracking_compute_gradients(&img1, &gradX1, &gradY1, &gaussKernel, &gaussDerivKernel);
   cam_keypoints_tracking_compute_gradients(&img2, &gradY1, &gradY2, &gaussKernel, &gaussDerivKernel);
+#ifdef CAM_TRACKING_TIMINGS
+  gettimeofday(&tv6, NULL);
+  deltaTimers3 = tv6.tv_usec - tv5.tv_usec;
+  if (deltaTimers3 < 0)
+    deltaTimers3 = 1000000 + deltaTimers3;
+  printf("Gradients computation : %ims\n", deltaTimers3 / 1000);
+#endif
 
   for (i = 0 ; i < tc->nbSeeds ; ++i)
     {
@@ -844,7 +875,7 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       y1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->y;
       x2 = x1;
       y2 = y1;
-      cam_keypoints_tracking_compute_local_image_displacement(x1, y1, &x2, &y2, &img1, &gradX1, &gradY1, &img2, &gradX2, &gradY2, 7, 7, 1.0f, 0.001);
+      //cam_keypoints_tracking_compute_local_image_displacement(x1, y1, &x2, &y2, &img1, &gradX1, &gradY1, &img2, &gradX2, &gradY2, 7, 7, 1.0f, 0.001);
       maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, seedsIndexes[i], (int)(x2 - x1), (int)(y2 - y1), 0);
 #ifdef CAM_TRACKING_DEBUG_2
       printf("shiftx : %f shifty : %f\n", x2 - x1, y2 - y1);
@@ -1246,10 +1277,10 @@ void			test_cam_keypoints_tracking()
   int			t2;
   int			t3;
   CamKeypointsMatches	*track;
-  //char			img1[] = "./resources/rover/translation1.bmp";
-  //char			img2[] = "./resources/rover/translation2.bmp";
-  char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img1[] = "./resources/rover/translation1.bmp";
+  char			img2[] = "./resources/rover/translation2.bmp";
+  //  char			img1[] = "./resources/klt/img0.bmp";
+  //char			img2[] = "./resources/klt/img2.bmp";
 
   /* begin images building */
   modelImage.imageData = NULL;
