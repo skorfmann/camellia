@@ -862,7 +862,7 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
 
-  scale = 4;
+  scale = 2;
   CamAllocateFloatImage(&gradX1, image->width / scale, image->height / scale);
   CamAllocateFloatImage(&gradY1, image->width / scale, image->height / scale);
   CamAllocateFloatImage(&gradX2, image->width / scale, image->height / scale);
@@ -1030,8 +1030,8 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
       free(maxOnEachScale);
       featuresMatches->pairs[j].p1 = tc->previousFeatures->keypoint[i];
       currentFeatures->keypoint[currentFeatures->nbPoints] = &currentFeatures->bag[currentFeatures->nbPoints];
-      memcpy(currentFeatures->keypoint[currentFeatures->nbPoints++], &keypoint, sizeof(keypoint));
-      featuresMatches->pairs[j].p2 = currentFeatures->keypoint[j + seedsMatches->nbMatches];
+      memcpy(currentFeatures->keypoint[currentFeatures->nbPoints], &keypoint, sizeof(keypoint));
+      featuresMatches->pairs[j].p2 = currentFeatures->keypoint[currentFeatures->nbPoints++];
       ++j;
     }
   /* begin of checking for each point if the found one is the good one */
