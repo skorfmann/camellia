@@ -122,6 +122,15 @@ typedef enum
     FALSE
   } BOOL;
 
+typedef enum
+  {
+    TRACKED,
+    OOB,
+    MAX_ITERATIONS,
+    LARGE_RESIDUE,
+    SMALL_DET
+  } TRACKING_STATUS;
+
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
 
@@ -573,31 +582,13 @@ void		cam_keypoints_tracking_convolve_separate(CamFloatImage *imgin, CamConvolut
   CamDisallocateFloatImage(&tmpimg);
 }
 
-void			cam_keypoints_tracking_copy_image_to_float_image(CamFloatImage *dst, CamImage *src)
+void			cam_keypoints_tracking_copy_image_to_float_image(CamFloatImage *dst, CamImage *src, int scale)
 {
   register unsigned int	i;
 
-  CamImage modelImage;
-  CamImage firstImage;
-  static int a = 0;
-
-  modelImage.imageData = NULL;
-  if (!a)
-    camLoadBMP(&modelImage, "./resources/rover/rotation1.bmp");
-  else
-    camLoadBMP(&modelImage, "./resources/rover/rotation2.bmp");
-  firstImage.imageData = NULL;
-  camRGB2Y(&modelImage, &firstImage);
-
-  CamAllocateFloatImage(dst, modelImage.width, modelImage.height);
-  for (i = 0 ; i < modelImage.width * modelImage.height ; ++i)
-    dst->data[i] = (float)firstImage.imageData[i];
-  ++a;
-  /*
-  CamAllocateFloatImage(dst, src->width, src->height);
-  for (i = 0 ; i < src->width * src->height ; ++i)
-    dst->data[i] = (float)src->imageData[i];
-  */
+  CamAllocateFloatImage(dst, src->width / scale, src->height / scale);
+  for (i = 0 ; i < dst->ncols * dst->nrows ; ++i)
+    dst->data[i] = (float)src->imageData[i * scale];
 }
 
 void		cam_keypoints_tracking_compute_gradients(CamFloatImage *img, CamFloatImage *gradx, CamFloatImage *grady, CamConvolutionKernel *gauss_kernel, CamConvolutionKernel *gaussderiv_kernel)
@@ -723,19 +714,25 @@ void			cam_keypoints_tracking_compute_2by1_error_vector(CamFloatImage *imgdiff, 
   *ey *= step_factor;
 }
 
-void	cam_keypoints_tracking_solve_mouvement_equation(float gxx, float gxy, float gyy, float ex, float ey,
+TRACKING_STATUS	cam_keypoints_tracking_solve_mouvement_equation(float gxx, float gxy, float gyy, float ex, float ey,
 					      float small, float *dx, float *dy)
 {
   float det;
 
   det = gxx*gyy - gxy*gxy;
+#ifdef CAM_TRACKING_DEBUG_2
+  printf("gxx : %f gxy : %f gyy : %f det : %f\n", gxx, gxy, gyy, det);
+#endif
   if (det < small)
-    return;
+    return (SMALL_DET);
   *dx = (gyy*ex - gxy*ey)/det;
   *dy = (gxx*ey - gxy*ex)/det;
+  return (TRACKED);
 }
 
-void			cam_keypoints_tracking_compute_local_image_displacement(float x1, float y1, float *x2, float *y2, CamFloatImage *img1, CamFloatImage *gradx1, CamFloatImage *grady1, CamFloatImage *img2, CamFloatImage *gradx2, CamFloatImage *grady2, int width, int height, float step_factor, float small)
+
+
+TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x1, float y1, float *x2, float *y2, CamFloatImage *img1, CamFloatImage *gradx1, CamFloatImage *grady1, CamFloatImage *img2, CamFloatImage *gradx2, CamFloatImage *grady2, int width, int height, float step_factor, float small)
 {
   CamFloatImage		imgdiff;
   CamFloatImage		gradx;
@@ -747,6 +744,7 @@ void			cam_keypoints_tracking_compute_local_image_displacement(float x1, float y
   int			nc;
   int			nr;
   float			one_plus_eps;
+  TRACKING_STATUS	status;
 #ifdef CAM_TRACKING_SUBTIMINGS
   int			deltaTimers1;
   struct timeval	tv1;
@@ -795,7 +793,7 @@ void			cam_keypoints_tracking_compute_local_image_displacement(float x1, float y
     
     dx = 0.0f;
     dy = 0.0f;
-    cam_keypoints_tracking_solve_mouvement_equation(gxx, gxy, gyy, ex, ey, small, &dx, &dy);
+    status = cam_keypoints_tracking_solve_mouvement_equation(gxx, gxy, gyy, ex, ey, small, &dx, &dy);
 
     *x2 += dx;
     *y2 += dy;
@@ -803,13 +801,34 @@ void			cam_keypoints_tracking_compute_local_image_displacement(float x1, float y
 
   }  while ((fabs(dx)>=0.1f || fabs(dy)>=0.1f) && iteration < 10);
 
-#ifdef CAM_TRACKING_DEBUG_3
-  printf("Iterations : %i\n", iteration);
+  if (*x2-hw < 0.0f || nc-(*x2+hw) < one_plus_eps || 
+      *y2-hh < 0.0f || nr-(*y2+hh) < one_plus_eps)
+    status = OOB;
+
+  if (iteration == 10)
+    status = MAX_ITERATIONS;
+
+#ifdef CAM_TRACKING_DEBUG_2
+  printf("iterations : %i\n", iteration);
 #endif
-  
+
+#ifdef CAM_TRACKING_DEBUG_3
+  if (status == TRACKED)
+    printf("tracked !\n");
+  else if (status == OOB)
+    printf("out of bounds\n");
+  else if (status == MAX_ITERATIONS)
+    printf("max iterations \n");
+  else if (status == SMALL_DET)
+    printf("small determinant\n");
+  else
+    printf("not tracked\n");
+#endif
+
   CamDisallocateFloatImage(&imgdiff);
   CamDisallocateFloatImage(&gradx);
   CamDisallocateFloatImage(&grady);
+  return (status);
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
@@ -829,6 +848,8 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   CamConvolutionKernel	gaussDerivKernel;
   int			kernelSize;
   CamFloatImage		gradX1, gradY1, gradX2, gradY2, img1, img2;
+  TRACKING_STATUS	status;
+  int			scale;
 #ifdef CAM_TRACKING_SUBTIMINGS
   int			deltaTimers1;
   struct timeval	tv1;
@@ -840,11 +861,12 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
-  
-  CamAllocateFloatImage(&gradX1, image->width, image->height);
-  CamAllocateFloatImage(&gradY1, image->width, image->height);
-  CamAllocateFloatImage(&gradX2, image->width, image->height);
-  CamAllocateFloatImage(&gradY2, image->width, image->height);
+
+  scale = 4;
+  CamAllocateFloatImage(&gradX1, image->width / scale, image->height / scale);
+  CamAllocateFloatImage(&gradY1, image->width / scale, image->height / scale);
+  CamAllocateFloatImage(&gradX2, image->width / scale, image->height / scale);
+  CamAllocateFloatImage(&gradY2, image->width / scale, image->height / scale);
 
   // in the specified research volume, finds the more coherent point corresponding to the current seed <=> highest detector value
   l = 0;
@@ -870,21 +892,25 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   printf("Kernels computation : %ius\n", deltaTimers2);
 #endif
 
-  cam_keypoints_tracking_copy_image_to_float_image(&img1, tc->previousImage);
-  cam_keypoints_tracking_copy_image_to_float_image(&img2, image);
+  cam_keypoints_tracking_copy_image_to_float_image(&img1, tc->previousImage, scale);
+  cam_keypoints_tracking_copy_image_to_float_image(&img2, image, scale);
   cam_keypoints_tracking_compute_gradients(&img1, &gradX1, &gradY1, &gaussKernel, &gaussDerivKernel);
   cam_keypoints_tracking_compute_gradients(&img2, &gradY1, &gradY2, &gaussKernel, &gaussDerivKernel);
 
   for (i = 0 ; i < tc->nbSeeds ; ++i)
     {
-      x1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->x;
-      y1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->y;
+      x1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->x / scale;
+      y1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->y / scale;
       x2 = x1;
       y2 = y1;
-      cam_keypoints_tracking_compute_local_image_displacement(x1, y1, &x2, &y2, &img1, &gradX1, &gradY1, &img2, &gradX2, &gradY2, 7, 7, 1.0f, 0.001);
+      status = cam_keypoints_tracking_compute_local_image_displacement(x1, y1, &x2, &y2, &img1, &gradX1, &gradY1, &img2, &gradX2, &gradY2, 7, 7, 1.0f, 0.01f);
+      x1 *= scale;
+      y1 *= scale;
+      x2 *= scale;
+      y2 *= scale;
       maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, seedsIndexes[i], (int)(x2 - x1), (int)(y2 - y1), 0);
 #ifdef CAM_TRACKING_DEBUG_2
-      printf("shiftx : %f shifty : %f\n", x2 - x1, y2 - y1);
+      printf("shiftx : %f shifty : %f\n", (x2 - x1), (y2 - y1));
 #endif
 #ifdef CAM_TRACKING_SUBTIMINGS
       gettimeofday(&tv1, NULL);      
@@ -902,7 +928,16 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
       seedsMatches->pairs[l].p2 = currentFeatures->keypoint[l];
       seedsMatches->pairs[l].error = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], currentFeatures->keypoint[l]);
       seedsMatches->pairs[l].mark = 1;
-      seedsMatches->nbMatches++;
+      if (status == TRACKED)
+	{
+	  seedsMatches->pairs[l].mark = 1;
+	  seedsMatches->nbMatches++;
+	}
+      else
+	{
+	  seedsMatches->pairs[l].mark = 0;
+	  seedsMatches->nbOutliers++;
+	}
       ++l;
 #ifdef CAM_TRACKING_SUBTIMINGS
       deltaTimers1 = tv2.tv_usec - tv1.tv_usec;
@@ -1044,7 +1079,8 @@ void		printMatchings(CamKeypointsMatches *matches)
   
   for (i = 0 ; i < matches->nbMatches ; ++i)
     {
-      printf("x1: %i\ty1: %i\tscale1: %i\tvalue: %i\t// x2: %i\ty2: %i\tscale2: %i\tvalue: %i\n", matches->pairs[i].p1->x, matches->pairs[i].p1->y, matches->pairs[i].p1->scale, matches->pairs[i].p1->value, matches->pairs[i].p2->x, matches->pairs[i].p2->y, matches->pairs[i].p2->scale, matches->pairs[i].p2->value);
+      if (matches->pairs[i].mark)
+	printf("index : %i x1: %i\ty1: %i\tscale1: %i\tvalue: %i\t// x2: %i\ty2: %i\tscale2: %i\tvalue: %i\n", i, matches->pairs[i].p1->x, matches->pairs[i].p1->y, matches->pairs[i].p1->scale, matches->pairs[i].p1->value, matches->pairs[i].p2->x, matches->pairs[i].p2->y, matches->pairs[i].p2->scale, matches->pairs[i].p2->value);
     }
 }
 #endif
@@ -1285,10 +1321,10 @@ void			test_cam_keypoints_tracking()
   CamKeypointsMatches	*track;
   //char			img1[] = "./resources/rover/translation1.bmp";
   //char			img2[] = "./resources/rover/translation2.bmp";
-  char			img1[] = "./resources/rover/rotation1.bmp";
-  char			img2[] = "./resources/rover/rotation2.bmp";
-  //  char			img1[] = "./resources/klt/img0.bmp";
-  //char			img2[] = "./resources/klt/img2.bmp";
+  //char			img1[] = "./resources/rover/rotation1.bmp";
+  //char			img2[] = "./resources/rover/rotation2.bmp";
+  char			img1[] = "./resources/klt/img0.bmp";
+  char			img2[] = "./resources/klt/img2.bmp";
 
   /* begin images building */
   modelImage.imageData = NULL;
