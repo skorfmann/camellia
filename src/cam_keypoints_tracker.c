@@ -49,7 +49,7 @@
 #include <stdlib.h>	// malloc, calloc, qsort
 #include <string.h>	// memcpy
 #include <stdio.h>	// printf
-#include <sys/time.h>	// gettimeofday
+
 #include <limits.h>	// INT_MAX
 #include <math.h>	// sqrt
 #ifdef __SSE2__
@@ -62,13 +62,18 @@ extern double camSigmaParam;
 #define CAM_ORIENTATION_STAMP_SIZE 30
 #define MAX_KERNEL_WIDTH 71
 
-//#define CAM_TRACKING_SUBTIMINGS
+//#define CAM_TRACKING_SUBTIMING
 #define CAM_TRACKING_TIMINGS
-//#define	CAM_TRACKING_DEBUG_4
+#define	CAM_TRACKING_DEBUG_4
 #define	CAM_TRACKING_DEBUG_3
 #define	CAM_TRACKING_DEBUG_2
 #define CAM_TRACKING_DEBUG_1
 //#define CAM_TRACKING_ONLY_SEEDS
+//#define CAM_TRACKING_MAX_ITER
+
+#ifdef CAM_TRACKING_TIMINGS
+#include <sys/time.h>	// gettimeofday
+#endif
 
 typedef	struct
 {
@@ -126,11 +131,20 @@ typedef enum
 typedef enum
   {
     TRACKED,
-    OOB,
     MAX_ITERATIONS,
+    OOB,
+    SMALL_DET,
     LARGE_RESIDUE,
-    SMALL_DET
+    NOT_YET_EVALUATED
   } TRACKING_STATUS;
+
+typedef struct
+{
+  CamFloatImage		gradX1, gradY1, gradX2, gradY2, img1, img2;
+  float			x1, y1, x2, y2;
+  TRACKING_STATUS	status;
+  int			scale;
+}			MultiscaleDisplacement;
 
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
@@ -195,7 +209,7 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
   int		x2;
   int		y1;
   int		y2;
-
+  
   camAllocateRGBImage(&res, img1->width, img1->height * 2);
   camSetROI(&roi, 0, 0, img1->height, img1->width, img1->height);
   res.roi = NULL;
@@ -206,6 +220,8 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
 
   for (i = 0 ; i < matches->nbMatches ; ++i)
     {
+      if (!matches->pairs[i].mark)
+	continue ;
       camDrawKeypoint(matches->pairs[i].p1, &res, CAM_RGB(255, 0, 0));
       x1 = matches->pairs[i].p1->x;
       y1 = matches->pairs[i].p1->y;
@@ -216,6 +232,8 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
     }
   for (i = 0 ; i < matches->nbMatches ; ++i)
     {
+      if (!matches->pairs[i].mark)
+	continue ;
       matches->pairs[i].p2->y += img1->height;
       camDrawKeypoint(matches->pairs[i].p2, &res, 128);
     }
@@ -832,25 +850,54 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
   return (status);
 }
 
-CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
+void	cam_keypoints_tracking_fill_pyramid(MultiscaleDisplacement *pyramid, CamImage *image1, CamImage *image2, int scale,
+					    CamConvolutionKernel *gaussKernel, CamConvolutionKernel *gaussDerivKernel)
 {
-  register int		i;
-  register int		l;
-  int			distance1;
-  int			distance2;
-  CamKeypoint		seedMatch;
-  CamROI		roi;
-  CamImage		filter;
-  CamKeypointShort	*maxOnEachScale;
-  CamKeypointsMatches	*seedsMatches;
-  float			x1, y1, x2, y2;
-  int			windowSize;
-  CamConvolutionKernel	gaussKernel;
-  CamConvolutionKernel	gaussDerivKernel;
-  int			kernelSize;
-  CamFloatImage		gradX1, gradY1, gradX2, gradY2, img1, img2;
-  TRACKING_STATUS	status;
-  int			scale;
+  pyramid->scale = scale;
+  pyramid->status = NOT_YET_EVALUATED;
+  CamAllocateFloatImage(&(pyramid->gradX1), image1->width / scale, image1->height / scale);
+  CamAllocateFloatImage(&(pyramid->gradY1), image1->width / scale, image1->height / scale);
+  CamAllocateFloatImage(&(pyramid->gradX2), image1->width / scale, image1->height / scale);
+  CamAllocateFloatImage(&(pyramid->gradY2), image1->width / scale, image1->height / scale);
+  CamAllocateFloatImage(&(pyramid->img1), image1->width / scale, image1->height / scale);
+  CamAllocateFloatImage(&(pyramid->img2), image1->width / scale, image1->height / scale);
+  cam_keypoints_tracking_copy_image_to_float_image(&(pyramid->img1), image1, scale);
+  cam_keypoints_tracking_copy_image_to_float_image(&(pyramid->img2), image2, scale);
+  cam_keypoints_tracking_compute_gradients(&(pyramid->img1), &(pyramid->gradX1), &(pyramid->gradY1), gaussKernel, gaussDerivKernel);
+  cam_keypoints_tracking_compute_gradients(&(pyramid->img2), &(pyramid->gradY1), &(pyramid->gradY2), gaussKernel, gaussDerivKernel);
+}
+
+void		cam_keypoints_tracking_disallocate_pyramid(MultiscaleDisplacement *pyramid, int nbScales)
+{
+  register int	i;
+
+  for (i = 0 ;i < nbScales ; ++i)
+    {
+      CamDisallocateFloatImage(&(pyramid[i].img1));
+      CamDisallocateFloatImage(&(pyramid[i].img2));
+      CamDisallocateFloatImage(&(pyramid[i].gradX1));
+      CamDisallocateFloatImage(&(pyramid[i].gradX2));
+      CamDisallocateFloatImage(&(pyramid[i].gradY1));
+      CamDisallocateFloatImage(&(pyramid[i].gradY2));
+    }
+}
+
+CamKeypointsMatches		*cam_keypoints_tracking_extract_seed_matches(CamTrackingContext *tc, CamImage *image, CamImage *integralImage, int (*detectorValue)(CamImage *, CamKeypointShort*),   CamKeypoints *currentFeatures, unsigned int *seedsIndexes, int options)
+{
+  register int			i;
+  register int			l;
+  register int			s;
+  int				distance1;
+  int				distance2;
+  CamKeypoint			seedMatch;
+  CamROI			roi;
+  CamImage			filter;
+  CamKeypointShort		*maxOnEachScale;
+  CamKeypointsMatches		*seedsMatches;
+  CamConvolutionKernel		gaussKernel;
+  CamConvolutionKernel		gaussDerivKernel;
+  MultiscaleDisplacement	pyramid[2];
+  TRACKING_STATUS		status;
 #ifdef CAM_TRACKING_SUBTIMINGS
   int			deltaTimers1;
   struct timeval	tv1;
@@ -862,25 +909,9 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
-
-  scale = 2;
-  CamAllocateFloatImage(&gradX1, image->width / scale, image->height / scale);
-  CamAllocateFloatImage(&gradY1, image->width / scale, image->height / scale);
-  CamAllocateFloatImage(&gradX2, image->width / scale, image->height / scale);
-  CamAllocateFloatImage(&gradY2, image->width / scale, image->height / scale);
-
+  
   // in the specified research volume, finds the more coherent point corresponding to the current seed <=> highest detector value
   l = 0;
-  windowSize = max(min(tc->rw.height, tc->rw.width) / 3, 5);
-  if (!(windowSize % 2))
-    windowSize++;
-  /*
-    kernelSize = max(windowSize / 2, 3);
-  if (!(kernelSize % 2))
-    kernelSize++;
-  */
-  kernelSize = 5;
-  printf("windowSize : %i kernelSize : %i\n", windowSize, kernelSize);
 #ifdef CAM_TRACKING_SUBTIMINGS
   gettimeofday(&tv3, NULL);      
 #endif
@@ -893,43 +924,59 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
   printf("Kernels computation : %ius\n", deltaTimers2);
 #endif
 
-  cam_keypoints_tracking_copy_image_to_float_image(&img1, tc->previousImage, scale);
-  cam_keypoints_tracking_copy_image_to_float_image(&img2, image, scale);
-  cam_keypoints_tracking_compute_gradients(&img1, &gradX1, &gradY1, &gaussKernel, &gaussDerivKernel);
-  cam_keypoints_tracking_compute_gradients(&img2, &gradY1, &gradY2, &gaussKernel, &gaussDerivKernel);
+  cam_keypoints_tracking_fill_pyramid(&pyramid[0], tc->previousImage, image, 4, &gaussKernel, &gaussDerivKernel);
+  cam_keypoints_tracking_fill_pyramid(&pyramid[1], tc->previousImage, image, 2, &gaussKernel, &gaussDerivKernel);
 
   for (i = 0 ; i < tc->nbSeeds ; ++i)
     {
-      x1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->x / scale;
-      y1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->y / scale;
-      x2 = x1;
-      y2 = y1;
-      status = cam_keypoints_tracking_compute_local_image_displacement(x1, y1, &x2, &y2, &img1, &gradX1, &gradY1, &img2, &gradX2, &gradY2, 7, 7, 1.0f, 0.01f);
-      x1 *= scale;
-      y1 *= scale;
-      x2 *= scale;
-      y2 *= scale;
-      maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, seedsIndexes[i], (int)(x2 - x1), (int)(y2 - y1), 0);
+      status = NOT_YET_EVALUATED;
+      for (s = 0 ; s < 2 ; ++s)
+	{
+	  pyramid[s].x1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->x / pyramid[s].scale;
+	  pyramid[s].y1 = (float)tc->previousFeatures->keypoint[seedsIndexes[i]]->y / pyramid[s].scale;
+	  pyramid[s].x2 = pyramid[s].x1;
+	  pyramid[s].y2 = pyramid[s].y1;
+	  pyramid[s].status = cam_keypoints_tracking_compute_local_image_displacement(pyramid[s].x1, pyramid[s].y1, &pyramid[s].x2, &pyramid[s].y2,
+										      &pyramid[s].img1, &pyramid[s].gradX1, &pyramid[s].gradY1,
+										      &pyramid[s].img2, &pyramid[s].gradX2, &pyramid[s].gradY2, 7,
+										      7, 1.0f, 0.01f);
+	  pyramid[s].x1 *= pyramid[s].scale;
+	  pyramid[s].y1 *= pyramid[s].scale;
+	  pyramid[s].x2 *= pyramid[s].scale;
+	  pyramid[s].y2 *= pyramid[s].scale;
+	}
+      for (s = 0 ; s < 2 ; ++s)
+	{
+	  if (pyramid[s].status == TRACKED)
+	    {
+	      maxOnEachScale = cam_keypoints_tracking_extract_overall_max_on_each_scale(tc, integralImage, detectorValue, seedsIndexes[i], (int)(pyramid[s].x2 - pyramid[s].x1), (int)(pyramid[s].y2 - pyramid[s].y1), 0);
 #ifdef CAM_TRACKING_DEBUG_2
-      printf("shiftx : %f shifty : %f\n", (x2 - x1), (y2 - y1));
+	      printf("shiftx : %f shifty : %f\n", (pyramid[s].x2 - pyramid[s].x1), (pyramid[s].y2 - pyramid[s].y1));
 #endif
 #ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv1, NULL);      
+	      gettimeofday(&tv1, NULL);      
 #endif
-      memcpy(&seedMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
-      cam_keypoints_tracking_compute_feature_description(&seedMatch, &maxOnEachScale[0], &maxOnEachScale[1], image, integralImage, options);
-      seedMatch.scale = seedMatch.scale << 2;
+	      memcpy(&seedMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
+	      cam_keypoints_tracking_compute_feature_description(&seedMatch, &maxOnEachScale[0], &maxOnEachScale[1], image, integralImage, options);
+	      seedMatch.scale = seedMatch.scale << 2;
 #ifdef CAM_TRACKING_SUBTIMINGS
-      gettimeofday(&tv2, NULL);      
+	      gettimeofday(&tv2, NULL);      
 #endif
+	    }
+	  status = min(pyramid[s].status, status);
+	}
+
       currentFeatures->keypoint[l] = &currentFeatures->bag[l];
       memcpy(currentFeatures->keypoint[l], &seedMatch, sizeof(seedMatch));
       ++currentFeatures->nbPoints;
       seedsMatches->pairs[l].p1 = tc->previousFeatures->keypoint[seedsIndexes[i]];
       seedsMatches->pairs[l].p2 = currentFeatures->keypoint[l];
       seedsMatches->pairs[l].error = camKeypointsDistance(tc->previousFeatures->keypoint[seedsIndexes[i]], currentFeatures->keypoint[l]);
-      seedsMatches->pairs[l].mark = 1;
-      if (status == TRACKED)
+      if (status == TRACKED
+#ifdef CAM_TRACKING_MAX_ITER
+	  || status == MAX_ITERATIONS
+#endif
+	  )
 	{
 	  seedsMatches->pairs[l].mark = 1;
 	  seedsMatches->nbMatches++;
@@ -948,8 +995,7 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_seed_matches(CamTrackingCont
 #endif
       /* end computation of descriptor */
     }
-  CamDisallocateFloatImage(&img1);
-  CamDisallocateFloatImage(&img2);
+  cam_keypoints_tracking_disallocate_pyramid(pyramid, 2);
   return (seedsMatches);
 }
 
@@ -978,10 +1024,10 @@ unsigned int		cam_keypoints_tracking_extract_closest_seed_index(CamTrackingConte
   float			currentDistance;
 
   minDistanceSquare = INT_MAX;
-  for (i = 0 ; i < seedsMatches->nbMatches ; ++i)
+  for (i = 0 ; i < seedsMatches->nbMatches + seedsMatches->nbOutliers ; ++i)
     {
       currentDistance = cam_keypoints_tracking_distance_square(seedsMatches->pairs[i].p1, tc->previousFeatures->keypoint[featureIndex]);
-      if (currentDistance < minDistanceSquare)
+      if (currentDistance < minDistanceSquare && seedsMatches->pairs[i].mark)
 	{
 	  minDistanceSquare = currentDistance;
 	  res = i;
@@ -1044,13 +1090,13 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
 	  currentDistance = camKeypointsDistance(featuresMatches->pairs[i].p1, featuresMatches->pairs[k].p2);
 	  if (supposedMinDistance > currentDistance)
 	    break;
-	}
+	    }
       if (k == j)
-	{
+      {
 	  featuresMatches->pairs[i].mark = 1;
 	  featuresMatches->pairs[i].error = supposedMinDistance;
 	  ++featuresMatches->nbMatches;
-	}
+      }
       else
 	{
 #ifdef	CAM_TRACKING_DEBUG_2
@@ -1078,7 +1124,7 @@ void		printMatchings(CamKeypointsMatches *matches)
 {
   register int	i;
   
-  for (i = 0 ; i < matches->nbMatches ; ++i)
+  for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (matches->pairs[i].mark)
 	printf("index : %i x1: %i\ty1: %i\tscale1: %i\tvalue: %i\t// x2: %i\ty2: %i\tscale2: %i\tvalue: %i\n", i, matches->pairs[i].p1->x, matches->pairs[i].p1->y, matches->pairs[i].p1->scale, matches->pairs[i].p1->value, matches->pairs[i].p2->x, matches->pairs[i].p2->y, matches->pairs[i].p2->scale, matches->pairs[i].p2->value);
@@ -1231,7 +1277,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       camAllocateKeypointsMatches(res, seedsMatches->nbMatches);
 #endif
       j = 0;
-      for (i = 0 ; i < tc->nbSeeds ; ++i)
+      for (i = 0 ; i < seedsMatches->nbMatches + seedsMatches->nbOutliers ; ++i)
 	{
 	  if (seedsMatches->pairs[i].mark)
 	    {
@@ -1243,7 +1289,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	    }
 	}
 #ifndef CAM_TRACKING_ONLY_SEEDS
-      for (i = 0 ; i < tc->previousFeatures->nbPoints - tc->nbSeeds ; ++i)
+      for (i = 0 ; i <  keypointsMatches->nbMatches + keypointsMatches->nbOutliers ; ++i)
 	{
 	  if (keypointsMatches->pairs[i].mark)
 	    {
@@ -1264,7 +1310,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       printMatchings(seedsMatches);
 #endif
 #ifndef CAM_TRACKING_ONLY_SEEDS
-#ifdef CAM_TRACKING_DEBUG_
+#ifdef CAM_TRACKING_DEBUG_1
       printf("Keypoints matches inliers : %i outliers : %i\n", keypointsMatches->nbMatches, keypointsMatches->nbOutliers);
 #endif
 #ifdef CAM_TRACKING_DEBUG_3
@@ -1275,7 +1321,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 
 #ifndef CAM_TRACKING_ONLY_SEEDS
       res->nbMatches = seedsMatches->nbMatches + keypointsMatches->nbMatches;
-      res->nbOutliers = tc->nbFeatures - seedsMatches->nbMatches + keypointsMatches->nbMatches;
+      res->nbOutliers = seedsMatches->nbMatches + keypointsMatches->nbMatches;
 #else
       res->nbMatches = seedsMatches->nbMatches;
       res->nbOutliers = seedsMatches->nbOutliers;
