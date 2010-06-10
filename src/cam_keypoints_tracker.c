@@ -68,6 +68,7 @@ extern double camSigmaParam;
 #define	CAM_TRACKING_DEBUG_3
 #define	CAM_TRACKING_DEBUG_2
 #define CAM_TRACKING_DEBUG_1
+//#define CAM_TRACKING_ONLY_SEEDS
 
 typedef	struct
 {
@@ -1224,8 +1225,11 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       printf("Seed matches : %ims, features matches : %ims, integral image : %ims\n", t2 - t1, t3 - t2, t5 - t4);
 #endif
 
+#ifndef CAM_TRACKING_ONLY_SEEDS
       camAllocateKeypointsMatches(res, seedsMatches->nbMatches + keypointsMatches->nbMatches);
-
+#else
+      camAllocateKeypointsMatches(res, seedsMatches->nbMatches);
+#endif
       j = 0;
       for (i = 0 ; i < tc->nbSeeds ; ++i)
 	{
@@ -1238,7 +1242,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	      ++j;
 	    }
 	}
-
+#ifndef CAM_TRACKING_ONLY_SEEDS
       for (i = 0 ; i < tc->previousFeatures->nbPoints - tc->nbSeeds ; ++i)
 	{
 	  if (keypointsMatches->pairs[i].mark)
@@ -1250,6 +1254,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 	      ++j;
 	    }
 	}
+#endif
 
 #ifdef CAM_TRACKING_DEBUG_1
       printf("Seeds matches inliers : %i outliers : %i\n", seedsMatches->nbMatches, seedsMatches->nbOutliers);
@@ -1258,16 +1263,23 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       printf("Matches of the seeds :\n");
       printMatchings(seedsMatches);
 #endif
-#ifdef CAM_TRACKING_DEBUG_1
+#ifndef CAM_TRACKING_ONLY_SEEDS
+#ifdef CAM_TRACKING_DEBUG_
       printf("Keypoints matches inliers : %i outliers : %i\n", keypointsMatches->nbMatches, keypointsMatches->nbOutliers);
 #endif
 #ifdef CAM_TRACKING_DEBUG_3
       printf("Matches of the keypoints :\n");
       printMatchings(keypointsMatches);
 #endif
+#endif
 
+#ifndef CAM_TRACKING_ONLY_SEEDS
       res->nbMatches = seedsMatches->nbMatches + keypointsMatches->nbMatches;
       res->nbOutliers = tc->nbFeatures - seedsMatches->nbMatches + keypointsMatches->nbMatches;
+#else
+      res->nbMatches = seedsMatches->nbMatches;
+      res->nbOutliers = seedsMatches->nbOutliers;
+#endif
 
       // cam_keypoints_tracking_clean_keypoints(currentFeatures, keypointsMatches, seedsMatches->nbMatches); => to be done
       cam_keypoints_tracking_fill_empty_area();
