@@ -1079,6 +1079,11 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
       currentFeatures->keypoint[currentFeatures->nbPoints] = &currentFeatures->bag[currentFeatures->nbPoints];
       memcpy(currentFeatures->keypoint[currentFeatures->nbPoints], &keypoint, sizeof(keypoint));
       featuresMatches->pairs[j].p2 = currentFeatures->keypoint[currentFeatures->nbPoints++];
+#ifdef	CAM_TRACKING_DEBUG_2
+      printf("index %i : %i %i %i %i possibly matches to %i %i %i %i\n", j, seedsMatches->pairs[closestSeedIndex].p1->x, seedsMatches->pairs[closestSeedIndex].p1->y,
+	     seedsMatches->pairs[closestSeedIndex].p1->scale, seedsMatches->pairs[closestSeedIndex].p1->value, seedsMatches->pairs[closestSeedIndex].p2->x,
+	     seedsMatches->pairs[closestSeedIndex].p2->y, seedsMatches->pairs[closestSeedIndex].p2->scale, seedsMatches->pairs[closestSeedIndex].p2->value);
+#endif
       ++j;
     }
   /* begin of checking for each point if the found one is the good one */
@@ -1090,17 +1095,17 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_points_matching(CamTrackingC
 	  currentDistance = camKeypointsDistance(featuresMatches->pairs[i].p1, featuresMatches->pairs[k].p2);
 	  if (supposedMinDistance > currentDistance)
 	    break;
-	    }
+	}
       if (k == j)
-      {
+	{
 	  featuresMatches->pairs[i].mark = 1;
 	  featuresMatches->pairs[i].error = supposedMinDistance;
 	  ++featuresMatches->nbMatches;
-      }
+	}
       else
 	{
 #ifdef	CAM_TRACKING_DEBUG_2
-	  printf("Missmatch of %ith: %i %i %i %i, %i %i %i %i\n", i, featuresMatches->pairs[i].p1->x, featuresMatches->pairs[i].p1->y, featuresMatches->pairs[i].p1->scale, featuresMatches->pairs[i].p1->value, featuresMatches->pairs[i].p2->x,featuresMatches->pairs[i].p2->y,featuresMatches->pairs[i].p2->scale, featuresMatches->pairs[i].p2->value);
+	  printf("Missmatch of %ith: %i %i %i %i to %i %i %i %i. Better fits in %i %i %i %i\n", i, featuresMatches->pairs[i].p1->x, featuresMatches->pairs[i].p1->y, featuresMatches->pairs[i].p1->scale, featuresMatches->pairs[i].p1->value, featuresMatches->pairs[i].p2->x,featuresMatches->pairs[i].p2->y,featuresMatches->pairs[i].p2->scale, featuresMatches->pairs[i].p2->value, featuresMatches->pairs[k].p2->x, featuresMatches->pairs[k].p2->y, featuresMatches->pairs[k].p2->scale, featuresMatches->pairs[k].p2->value);
 #endif
 	  featuresMatches->pairs[i].mark = 0;
 	  featuresMatches->pairs[i].error = currentDistance; // the first better found, maybe others
@@ -1377,7 +1382,7 @@ void			test_cam_keypoints_tracking()
   int			t2;
   int			t3;
   CamKeypointsMatches	*track;
-  //char			img1[] = "./resources/rover/translation1.bmp";
+  //  char			img1[] = "./resources/rover/translation1.bmp";
   //char			img2[] = "./resources/rover/translation2.bmp";
   //char			img1[] = "./resources/rover/rotation1.bmp";
   //char			img2[] = "./resources/rover/rotation2.bmp";
