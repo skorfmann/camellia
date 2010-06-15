@@ -545,6 +545,7 @@ inline CamROI::CamROI(const CamImage &image, int _coi) { coi=_coi; xOffset=0; yO
 #define CAM_ARITHM_SELECT	    2
 #define CAM_ARITHM_THRESHOLD	    3
 #define CAM_ARITHM_DOUBLE_THRESHOLD 4
+#define CAM_ARITHM_SATURATE         5
 
 #define CAM_ARITHM_ADD		    0
 #define CAM_ARITHM_SUM		    0
@@ -621,6 +622,7 @@ extern "C" {
  *  - <DFN>CAM_ARITHM_SELECT</DFN> : Selection of a part of an image. <I>if (psource=c1) then pdest=c2 else pdest=c3</I>.
  *  - <DFN>CAM_ARITHM_THRESHOLD</DFN> : Comparison with a scalar (also called thresholding). <I>if (psource<c1) then pdest=c2 else pdest=c3</I>.
  *  - <DFN>CAM_ARITHM_DOUBLE_THRESHOLD</DFN> : Double thresholding. <I>if (psource>c1 and psource<c2) then pdest=c3 else pdest=c4</I>.
+ *  - <DFN>CAM_ARITHM_SATURATE</DFN> : Saturation. <I>if (psource<c1) then pdest=psource else pdest=c1</I>.
  *
  *  \return 0 (false) if an error occurs. An accumulator of all results pixel values otherwise.
  *

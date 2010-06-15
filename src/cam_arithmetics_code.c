@@ -271,6 +271,15 @@ int camMonadicArithm(CamImage *source, CamImage *dest, CamArithmParams *params)
             }
 	} END_FOREACH_PIXEL
 	break;
+    case CAM_ARITHM_SATURATE:
+	FOREACH_PIXEL {
+            if (*srcptr < c1) {
+                *dstptr = *srcptr; acc += *srcptr;
+            } else {
+                *dstptr = c1; acc += c1;
+            }
+	} END_FOREACH_PIXEL
+	break;
     }
 
     camInternalROIPolicyExit(&iROI);
