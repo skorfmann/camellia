@@ -64,14 +64,17 @@ extern double camSigmaParam;
 
 //#define CAM_TRACKING_SUBTIMING
 #define CAM_TRACKING_TIMINGS
-#define	CAM_TRACKING_DEBUG_4
-#define	CAM_TRACKING_DEBUG_3
-#define	CAM_TRACKING_DEBUG_2
-#define CAM_TRACKING_DEBUG_1
+//#define	CAM_TRACKING_DEBUG_4
+//#define	CAM_TRACKING_DEBUG_3
+///#define	CAM_TRACKING_DEBUG_2
+//#define CAM_TRACKING_DEBUG_1
 //#define CAM_TRACKING_ONLY_SEEDS
 //#define CAM_TRACKING_MAX_ITER
 
 #ifdef CAM_TRACKING_TIMINGS
+#include <sys/time.h>	// gettimeofday
+#endif
+#ifdef CAM_TRACKING_SUBTIMING
 #include <sys/time.h>	// gettimeofday
 #endif
 
@@ -461,6 +464,20 @@ void			cam_keypoints_tracking_compute_feature_description(CamKeypoint *keypoint,
   camDeallocateImage(&filter);
 }
 
+#ifdef CAM_TRACKING_DEBUG_3
+void		cam_keypoints_tracking_print_kernels(CamConvolutionKernel *k)
+{
+  register int	i;
+
+  printf("Kernel : ");
+  for (i = 0 ; i < k->width ; ++i)
+    {
+      printf("%f\t",k->data[i]);
+    }
+  printf("\n");
+}
+#endif
+
 void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *gauss, CamConvolutionKernel *gaussderiv)
 {
   const float	factor = 0.01f;
@@ -472,10 +489,9 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
     
     for (i = -hw ; i <= hw ; i++)
       {
-	gauss->data[i+hw] = (float) exp(-i*i / (2*sigma*sigma));
+	gauss->data[i+hw] = (float) (exp(-i*i / (2*sigma*sigma)));
 	gaussderiv->data[i+hw] = -i * gauss->data[i+hw];
       }
-
     gauss->width = MAX_KERNEL_WIDTH;
     for (i = -hw ; fabs(gauss->data[i+hw] / max_gauss) < factor ; i++, gauss->width -= 2);
     gaussderiv->width = MAX_KERNEL_WIDTH;
@@ -484,6 +500,9 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
         gaussderiv->width == MAX_KERNEL_WIDTH)
       camError("cam_keypoints_tracking_compute_kernels", "Max kernel width too small\n");
   }
+  
+  //gauss->width = 15;
+  //gaussderiv->width = 15;
 
   for (i = 0 ; i < gauss->width ; i++)
     gauss->data[i] = gauss->data[i+(MAX_KERNEL_WIDTH-gauss->width)/2];
@@ -916,6 +935,10 @@ CamKeypointsMatches		*cam_keypoints_tracking_extract_seed_matches(CamTrackingCon
   gettimeofday(&tv3, NULL);      
 #endif
   cam_keypoints_tracking_compute_kernels(1.0f, &gaussKernel, &gaussDerivKernel);
+#ifdef CAM_TRACKING_DEBUG_3
+  cam_keypoints_tracking_print_kernels(&gaussKernel);
+  cam_keypoints_tracking_print_kernels(&gaussDerivKernel);
+#endif
 #ifdef CAM_TRACKING_SUBTIMINGS
   gettimeofday(&tv4, NULL);
   deltaTimers2 = tv4.tv_usec - tv3.tv_usec;
