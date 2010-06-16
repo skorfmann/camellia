@@ -154,6 +154,7 @@ typedef struct
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
 
+/*
 void	CamAllocateFloatImage(CamFloatImage *res, int ncols, int nrows)
 {
   res->nrows = nrows;
@@ -167,7 +168,7 @@ void	CamDisallocateFloatImage(CamFloatImage *res)
   res->nrows = 0;
   free (res->data);
 }
-
+*/
 inline int	cam_keypoints_tracking_compute_detector(CamImage *integralImage, CamKeypointShort *keypoint)
 {
   unsigned int	*ptr;
@@ -359,6 +360,7 @@ inline void	cam_keypoints_tracking_extract_new_research_box(CamTrackingContext *
     *seedScale -= tc->rv.scale << 1;
 }
 
+/*
 void		cam_keypoints_tracking_free_linked_list(CamPointsList *l)
 {
   CamPointsList	*ptr;
@@ -384,6 +386,7 @@ inline CamPointsList	*cam_keypoints_tracking_add_to_linked_list(CamPointsList *l
   head->next = l;
   return (head);
 }
+*/
 
 inline BOOL	cam_keypoints_tracking_point_not_visited(CamPointsList *l)
 {
@@ -883,8 +886,6 @@ void	cam_keypoints_tracking_fill_pyramid(MultiscaleDisplacement *pyramid, CamIma
   CamAllocateFloatImage(&(pyramid->img1), image1->width / scale, image1->height / scale);
   CamAllocateFloatImage(&(pyramid->img2), image1->width / scale, image1->height / scale);
   cam_keypoints_tracking_copy_image_to_float_image(&(pyramid->img1), image1, scale);
-  cam_keypoints_tracking_copy_image_to_float_image(&(pyramid->img2), image2, scale);
-  cam_keypoints_tracking_compute_gradients(&(pyramid->img1), &(pyramid->gradX1), &(pyramid->gradY1), gaussKernel, gaussDerivKernel);
   cam_keypoints_tracking_compute_gradients(&(pyramid->img2), &(pyramid->gradY1), &(pyramid->gradY2), gaussKernel, gaussDerivKernel);
 }
 
