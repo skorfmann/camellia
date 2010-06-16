@@ -65,6 +65,8 @@ extern double camSigmaParam;
 #ifdef LINUX
 #define CAM_TRACKING_SUBTIMING
 #define CAM_TRACKING_TIMINGS
+#else
+#define inline
 #endif
 
 //#define	CAM_TRACKING_DEBUG_4
