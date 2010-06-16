@@ -13,6 +13,7 @@ SET(files
     cam_keypoints_descriptor.c 
     cam_keypoints_matching.c 
     cam_keypoints_tracker.c 
+    cam_keypoints_tracker2.c 
     cam_harris.c 
     cam_histogram.c 
     cam_hls.c 
