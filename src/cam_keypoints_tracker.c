@@ -62,8 +62,11 @@ extern double camSigmaParam;
 #define CAM_ORIENTATION_STAMP_SIZE 30
 #define MAX_KERNEL_WIDTH 71
 
-//#define CAM_TRACKING_SUBTIMING
+#ifdef LINUX
+#define CAM_TRACKING_SUBTIMING
 #define CAM_TRACKING_TIMINGS
+#endif
+
 //#define	CAM_TRACKING_DEBUG_4
 //#define	CAM_TRACKING_DEBUG_3
 ///#define	CAM_TRACKING_DEBUG_2
@@ -71,10 +74,7 @@ extern double camSigmaParam;
 //#define CAM_TRACKING_ONLY_SEEDS
 //#define CAM_TRACKING_MAX_ITER
 
-#ifdef CAM_TRACKING_TIMINGS
-#include <sys/time.h>	// gettimeofday
-#endif
-#ifdef CAM_TRACKING_SUBTIMING
+#ifdef LINUX
 #include <sys/time.h>	// gettimeofday
 #endif
 
