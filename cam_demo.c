@@ -1354,6 +1354,7 @@ int main()
     //example_keypoints2();
     
     // Legacy examples
+    /*
     example_filters();
     example_warping();
     example_binary();
@@ -1371,16 +1372,16 @@ int main()
     example_sobel();
     example_high_pass();
     example_histogram();
-    //example_harris();
+    example_harris();
     example_integralimage();
     example_keypoints();
     example_keypoints3();
     example_capture();
     example_bmp();
-    example_jpeg();
+    example_jpeg();*/
 
     // C++ reference examples
-    cpp_example_mask();
+    /*    cpp_example_mask();
     cpp_example_erosion();
     cpp_example_labeling();
     cpp_example_color_labeling();
@@ -1390,7 +1391,7 @@ int main()
     cpp_example_copy();
     cpp_example_alpha_composite();
     cpp_example_watershed();
-    cpp_example_draw();
+    cpp_example_draw();*/
     return 0;
 }
 

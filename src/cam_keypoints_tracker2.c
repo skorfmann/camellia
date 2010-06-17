@@ -465,10 +465,6 @@ int		cam_keypoints_tracking2_position_filter(CamTrackingContext *tc, CamKeypoint
   minDistance /= tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
   for (i = 0 ; i < (ncols - 2 * borderX) * (nrows - 2 * borderY) && found < tc->nbFeatures ; ++i)
     {
-      if ((sortedPointsList[i].y - borderY) < 0)
-	printf("x: %i\n", (sortedPointsList[i].y - borderY));
-      if ((sortedPointsList[i].x - borderX) < 0)
-	printf("x: %i\n", (sortedPointsList[i].x - borderX));
       if (!pointsList[(sortedPointsList[i].y - borderY) * (ncols- 2 * borderX) + (sortedPointsList[i].x - borderX)].value)
 	{
 	  sortedPointsList[i].value = 0;
@@ -478,7 +474,7 @@ int		cam_keypoints_tracking2_position_filter(CamTrackingContext *tc, CamKeypoint
 	{
 	  for (x = max(borderX, sortedPointsList[i].x - minDistance / 2) ; x < min(ncols - borderX, sortedPointsList[i].x + 1 + minDistance / 2) ; ++x)
 	    {
-	      pointsList[(y - borderY) * ncols + (x - borderX)].value = 0;
+	      pointsList[(y - borderY) * (ncols - 2 * borderX) + (x - borderX)].value = 0;
 	    }
 	}
       ++found;
