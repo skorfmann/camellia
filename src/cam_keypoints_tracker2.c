@@ -54,7 +54,8 @@
 #include <math.h>	// fabs, exp
 #include <emmintrin.h>	// _mm_malloc
 #include <stdlib.h>	// malloc, qsort
-#include <limits.h>
+#include <limits.h>	// INT_MAX
+#include <string.h>	// memcpy
 #include "camellia.h"
 
 #define max(a, b) (a > b ? a : b)
@@ -146,6 +147,7 @@ typedef struct
   CamKeypoints		*previousFeatures;
   CamImage		*previousImage;
   int			nbFeatures;
+  int			nbDetectedFeatures;
   researchVolume	rv;
   researchWindow	rw;
   borders		b;
@@ -272,6 +274,7 @@ void		cam_keypoints_tracking_free_context(CamTrackingContext *tc)
       tc->pyramidImages = NULL;
     }
   tc->nbFeatures = 0;
+  tc->nbDetectedFeatures = 0;
   tc->rv.width = 0;
   tc->rv.height = 0;
   tc->rv.scale = 0;
@@ -288,6 +291,7 @@ void			cam_keypoint_tracking2_configure_context(CamTrackingContext *tc, int nbFe
     return ;
   cam_keypoints_tracking2_compute_kernels(1.0f, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
   tc->nbFeatures = nbFeatures;
+  tc->nbDetectedFeatures = 0;
   tc->rv.width = rvWidth;
   tc->rv.height = rvHeight;
   tc->rv.scale = rvScale;
@@ -442,6 +446,46 @@ float	cam_keypoints_tracking2_min_eigen_value(float gxx, float gxy, float gyy)
   return ((gxx + gyy - sqrt((gxx - gyy) * (gxx - gyy) + 4 * gxy* gxy)) / 2.0f);
 }
 
+int		cam_keypoints_tracking2_position_filter(CamTrackingContext *tc, CamKeypointShort *pointsList, CamKeypointShort *sortedPointsList, int nbPoints, int minDistance)
+{
+  register int	x;
+  register int	y;
+  register int	i;
+  int		ncols;
+  int		nrows;
+  int		found;
+  int		borderX;
+  int		borderY;
+
+  ncols = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.ncols ;
+  nrows = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.nrows;
+  found = 0;
+  borderX = tc->b.borderX / tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+  borderY = tc->b.borderY / tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+  minDistance /= tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+  for (i = 0 ; i < (ncols - 2 * borderX) * (nrows - 2 * borderY) && found < tc->nbFeatures ; ++i)
+    {
+      if ((sortedPointsList[i].y - borderY) < 0)
+	printf("x: %i\n", (sortedPointsList[i].y - borderY));
+      if ((sortedPointsList[i].x - borderX) < 0)
+	printf("x: %i\n", (sortedPointsList[i].x - borderX));
+      if (!pointsList[(sortedPointsList[i].y - borderY) * (ncols- 2 * borderX) + (sortedPointsList[i].x - borderX)].value)
+	{
+	  sortedPointsList[i].value = 0;
+	  continue ;
+	}
+      for (y = max(borderY, sortedPointsList[i].y - minDistance / 2) ; y < min(nrows - borderY, sortedPointsList[i].y + 1 + minDistance / 2) ; ++y)
+	{
+	  for (x = max(borderX, sortedPointsList[i].x - minDistance / 2) ; x < min(ncols - borderX, sortedPointsList[i].x + 1 + minDistance / 2) ; ++x)
+	    {
+	      pointsList[(y - borderY) * ncols + (x - borderX)].value = 0;
+	    }
+	}
+      ++found;
+    }
+  return (found);
+}
+
 int	camSortKeypointsShort(const void *p1x, const void *p2x);
 
 void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamImage *image)
@@ -450,11 +494,15 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
   int				x;
   int				y;
   CamKeypointShort		*pointsList;
+  CamKeypointShort		*sortedPointsList;
   int				window_hh;
   int				window_hw;
   int				nbPoints;
   int				nrows;
   int				ncols;
+  int				nbFound;
+  int				borderX;
+  int				borderY;
   register CamKeypointShort	*ptr;
   register int			xx;
   register int			yy;
@@ -463,17 +511,22 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
   register float		gxx;
   register float		gxy;
   register float		gyy;
+  register int			i;
+  register int			j;
 
+  borderX = tc->b.borderX / tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+  borderY = tc->b.borderY / tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
   window_hh = tc->rw.height / 2;
   window_hw = tc->rw.width / 2;
   ncols = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.ncols;
   nrows = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.nrows;
-  pointsList = (CamKeypointShort *)malloc(nrows * ncols * sizeof(CamKeypointShort));
+  pointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) * sizeof(CamKeypointShort));
+  sortedPointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) * sizeof(CamKeypointShort));
   ptr = pointsList;
   nbPoints = 0;
-  for (y = tc->b.borderY ; y < nrows - tc->b.borderY ; ++y)
+  for (y = borderY ; y < nrows - borderY ; ++y)
     {
-      for (x = tc->b.borderX ; x < ncols - tc->b.borderX ; ++x)
+      for (x = borderX ; x < ncols - borderX ; ++x)
 	{
 	  gxx = 0;
 	  gxy = 0;
@@ -495,17 +548,35 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
 	  if (val > (float)INT_MAX)
 	    val = (float)INT_MAX;
 	  ptr->value = (int)val;
+	  ptr->scale = 4;
+	  ptr->angle = 0;
 	  ++ptr;
 	  nbPoints++;
 	}
     }
-  qsort(pointsList, nbPoints, sizeof(CamKeypointShort), camSortKeypointsShort);
+  memcpy(sortedPointsList, pointsList, nbPoints * sizeof(CamKeypointShort));
+  qsort(sortedPointsList, nbPoints, sizeof(CamKeypointShort), camSortKeypointsShort);
+  nbFound = cam_keypoints_tracking2_position_filter(tc, pointsList, sortedPointsList, nbPoints, 29);
+  for (i = 0 , j = 0 ; j < min(nbFound, tc->nbFeatures) ; ++i)
+    {
+      if (sortedPointsList[i].value > 1)
+	{
+	  tc->previousFeatures->keypoint[j] = &tc->previousFeatures->bag[j];
+	  sortedPointsList[i].x *= tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+	  sortedPointsList[i].y *= tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].scale;
+	  memcpy(&tc->previousFeatures->keypoint[j]->x, &sortedPointsList[i], sizeof(CamKeypointShort));
+	  ++j;
+	}
+    }
+  tc->nbDetectedFeatures = j;
+  free(sortedPointsList);
   free(pointsList);
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *image, int options)
 {
   register int		i;
+  CamKeypointsMatches	*res;
 
   if (!tc->previousImage)
     {
@@ -515,6 +586,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  cam_keypoints_tracking2_compute_gradients(&tc->pyramidImages->levels[i].img1->image, &tc->pyramidImages->levels[i].img1->gradX, &tc->pyramidImages->levels[i].img1->gradY, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
 	}
       cam_keypoints_tracking2_select_good_features(tc, image);
+      return (NULL);
     }
   else
     {
@@ -523,6 +595,72 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  cam_keypoints_tracking2_copy_image_to_float_image(&tc->pyramidImages->levels[i].img2->image, image, tc->pyramidImages->levels[i].scale);
 	  cam_keypoints_tracking2_compute_gradients(&tc->pyramidImages->levels[i].img2->image, &tc->pyramidImages->levels[i].img2->gradX, &tc->pyramidImages->levels[i].img2->gradY, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
 	}
+      res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
+      camAllocateKeypointsMatches(res, tc->nbFeatures);      
+      for (i = 0 ; i < tc->nbDetectedFeatures ; ++i)
+	{
+	  res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	  res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	  res->pairs[i].mark = 1;
+	  memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
+	  memcpy(res->pairs[i].p2, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
+	}
+      res->nbMatches = tc->nbDetectedFeatures;
+      return (res);
+    }
+}
+void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char *outfile, CamKeypointsMatches *matches)
+{
+  CamImage	res;
+  CamROI	roi;
+  char		filename[256];
+  register int	i;
+  int		x1;
+  int		x2;
+  int		y1;
+  int		y2;
+  
+  camAllocateRGBImage(&res, img1->width, img1->height * 2);
+  camSetROI(&roi, 0, 0, img1->height, img1->width, img1->height);
+  res.roi = NULL;
+  camCopy(img1, &res);
+  res.roi = &roi;
+  camCopy(img2, &res);
+  res.roi = NULL;
+
+  for (i = 0 ; i < matches->nbMatches ; ++i)
+    {
+      if (!matches->pairs[i].mark)
+	continue ;
+      camDrawKeypoint(matches->pairs[i].p1, &res, CAM_RGB(255, 0, 0));
+      x1 = matches->pairs[i].p1->x;
+      y1 = matches->pairs[i].p1->y;
+      x2 = matches->pairs[i].p2->x;
+      y2 = matches->pairs[i].p2->y;
+      y2 += img1->height;
+      camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));
+    }
+  for (i = 0 ; i < matches->nbMatches ; ++i)
+    {
+      if (!matches->pairs[i].mark)
+	continue ;
+      matches->pairs[i].p2->y += img1->height;
+      camDrawKeypoint(matches->pairs[i].p2, &res, 128);
+    }
+  sprintf(filename, "output/%s.bmp", outfile);
+  camSaveBMP(&res, filename);
+  camDeallocateImage(&res);
+}
+
+void		cam_keypoints_tracking2_release_matches(CamKeypointsMatches *track)
+{
+  register int	i;
+
+  for (i = 0 ; i < track->nbMatches ; ++i)
+    {
+      free(track->pairs[i].p1);
+      free(track->pairs[i].p2);
+      track->pairs[i].mark = 1;
     }
 }
 
@@ -535,7 +673,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img2[] = "./resources/klt/img0.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
   int			t1;
   int			t2;
@@ -553,7 +691,7 @@ void			test_cam_keypoints_tracking2()
   camDeallocateImage(&modelImage);
 
   scales = NULL;
-  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)2);
+  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)1);
   scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)4);
   
   cam_keypoint_tracking2_configure_context(&tc, 100, 7, 7, 3, 3, 3, scales, &firstImage);
@@ -573,7 +711,15 @@ void			test_cam_keypoints_tracking2()
   t3 = camGetTimeMs();
   printf("tracking : %ims\n", t3 - t2);
 #endif
-
   cam_keypoints_tracking_free_context(&tc);
   camDeallocateImage(&secondImage);
+
+  camLoadBMP(&firstImage, img1);
+  camLoadBMP(&secondImage, img2);
+  cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track);
+  camDeallocateImage(&firstImage);
+  camDeallocateImage(&secondImage);
+  cam_keypoints_tracking2_release_matches(track);
+  camFreeKeypointsMatches(track);
+  free(track);
 }
