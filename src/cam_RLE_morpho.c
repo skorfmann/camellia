@@ -72,3 +72,9 @@ int camRLEErode3x2(CamRLEImage *source, CamRLEImage *dest)
     return 0;
 }
 
+// Generic algorithm
+int camRLEErode(CamRLEImage *source, CamRLEImage *dest, CamRLEImage *elt)
+{
+    return 0;
+}
+

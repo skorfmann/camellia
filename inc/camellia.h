@@ -1014,9 +1014,9 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 /** sizeof(CamRun) is 8 (64 bits)
  */
 typedef struct {
-    CAM_RLE_INT_TYPE x;		///< The starting position of the run
+    CAM_RLE_INT_TYPE x;		///< The starting position of the run (the line number when length is 0)
     CAM_RLE_INT_TYPE length;    ///< The length of the run (in pixels)
-    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents (the line number when length is 0)
+    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents     
     CAM_RLE_INT_TYPE blob;	///< Run's parent in the connected components tree, which becomes the blob number after labeling
 } CamRun;
 

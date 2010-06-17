@@ -208,7 +208,7 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     return 1;
 }
 
-// TO DO : update this function according to camRLEDecode function
+// TODO : update this function according to camRLEDecode function
 int camRLEDecodeBlobs(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
 {
     CAM_PIXEL *ptr;
