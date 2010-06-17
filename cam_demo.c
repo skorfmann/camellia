@@ -1296,9 +1296,9 @@ void example_recursive_keypoints()
     //camSavePGM(&Y2, "output/clooney2.pgm");
 
     t1=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y1, &points1, 50, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y1, NULL, &points1, 50, CAM_UPRIGHT);
     t2=camGetTimeMs();
-    camKeypointsRecursiveDetector(&Y2, &points2, 50, CAM_UPRIGHT);
+    camKeypointsRecursiveDetector(&Y2, NULL, &points2, 50, CAM_UPRIGHT);
 	
     nbMatches = 0;
     
@@ -1353,7 +1353,6 @@ int main()
     //example_recursive_keypoints();
     //example_keypoints2();
     
-    /*
     // Legacy examples
     example_filters();
     example_warping();
@@ -1392,7 +1391,6 @@ int main()
     cpp_example_alpha_composite();
     cpp_example_watershed();
     cpp_example_draw();
-*/
     return 0;
 }
 

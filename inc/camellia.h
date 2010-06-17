@@ -60,8 +60,8 @@
  */
 
 // Max image size
-#define CAM_MAX_SCANLINE 1280
-#define CAM_MAX_FRAME_HEIGHT 1024
+#define CAM_MAX_SCANLINE 2048
+#define CAM_MAX_FRAME_HEIGHT 2048
 
 // 64-bit processor or memory bandwidth?
 #define CAM_64BITS
