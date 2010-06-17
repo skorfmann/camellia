@@ -1,0 +1,576 @@
+/***************************************
+ *
+ *  Camellia Image Processing Library
+ *
+
+    The Camellia Image Processing Library is an open source low-level image processing library.
+    As it uses the IplImage structure to describe images, it is a good replacement to the IPL (Intel) library
+    and a good complement to the OpenCV library. It includes a lot of functions for image processing
+    (filtering, morphological mathematics, labeling, warping, loading/saving images, etc.),
+    some of them being highly optimized; It is also cross-platform and robust. It is doxygen-documented
+    and examples of use are provided.
+
+    This software library is an outcome of the Camellia european project (IST-2001-34410).
+    It was developped by the Ecole des Mines de Paris (ENSMP), in coordination with
+    the other partners of the project.
+
+  ==========================================================================
+
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer
+          in the documentation and/or other materials provided with the distribution.
+        * Neither the name of the Ecole des Mines de Paris nor the names of
+          its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  ==========================================================================
+*/
+
+#ifndef LINUX
+#define inline
+#endif
+
+#include <stdio.h>	// printf
+#include <math.h>	// fabs, exp
+#include <emmintrin.h>	// _mm_malloc
+#include <limits.h>
+#include "camellia.h"
+
+#define max(a, b) (a > b ? a : b)
+#define min(a, b) (a > b ? b : a)
+
+#define MAX_KERNEL_WIDTH 71
+
+#define CAM_TRACKING2_TIMINGS
+
+typedef enum
+  {
+    TRUE,
+    FALSE
+  } BOOL;
+
+typedef enum
+  {
+    TRACKED,
+    MAX_ITERATIONS,
+    OOB,
+    SMALL_DET,
+    LARGE_RESIDUE,
+    NOT_YET_EVALUATED
+  } TRACKING_STATUS;
+
+typedef struct
+{
+  int	width;
+  float	data[MAX_KERNEL_WIDTH];
+} CamConvolutionKernel;
+
+typedef	struct
+{
+  int	width;	// half width reseach size
+  int	height;	// half height reseach size
+  int	scale;	// half scale reseach size
+}	researchVolume;
+
+typedef struct		s_camList
+{
+  void			*data;
+  struct s_camList	*next;
+  int			index;
+}			CamList;
+
+typedef	struct
+{
+  int	height;
+  int	width;
+}	researchWindow;
+
+typedef struct
+{
+  int	ncols;
+  int	nrows;
+  float	*data;
+}	CamFloatImage;
+
+typedef struct
+{
+  CamFloatImage	gradX;
+  CamFloatImage	gradY;
+  CamFloatImage	image;
+  float		x;
+  float		y;
+}		pyramidLevel;
+
+typedef struct
+{
+  pyramidLevel	*img1;
+  pyramidLevel	*img2;
+  int		scale;
+}		pyramidLevels;
+
+typedef struct
+{
+  int		nbLevels;
+  pyramidLevels *levels;
+}		pyramid;
+
+typedef struct
+{
+  int	borderX;
+  int	borderY;
+}	borders;
+
+typedef struct
+{
+  CamKeypoints		*previousFeatures;
+  CamImage		*previousImage;
+  int			nbFeatures;
+  researchVolume	rv;
+  researchWindow	rw;
+  borders		b;
+  pyramid		*pyramidImages;
+  CamConvolutionKernel	gaussianKernel;
+  CamConvolutionKernel	gaussianDerivedKernel;
+}			CamTrackingContext;
+
+void		cam_keypoints_tracking_free_linked_list(CamList *l)
+{
+  CamList	*ptr;
+
+  ptr = l;
+  while (ptr)
+    {
+      l = l->next;
+      free (ptr);
+      ptr = l;
+    }
+}
+
+inline CamList	*cam_keypoints_tracking_add_to_linked_list(CamList *l, void *data)
+{
+  CamList	*head;
+
+  head = (CamList*)malloc(sizeof(CamList));
+  head->data = data;
+  head->next = l;
+  if (l)
+    head->index = l->index + 1;
+  else
+    head->index = 1;
+  return (head);
+}
+
+void	CamAllocateFloatImage(CamFloatImage *res, int ncols, int nrows)
+{
+  res->nrows = nrows;
+  res->ncols = ncols;
+  res->data = (float *)malloc(ncols * nrows * sizeof(float));
+}
+
+void	CamDisallocateFloatImage(CamFloatImage *res)
+{
+  res->ncols = 0;
+  res->nrows = 0;
+  if (res->data)
+    {
+      free (res->data);
+      res->data = NULL;
+    }
+}
+
+void		cam_keypoints_tracking2_compute_kernels(float sigma, CamConvolutionKernel *gauss, CamConvolutionKernel *gaussderiv)
+{
+  const float	factor = 0.01f;
+  int i;
+
+  {
+    const int hw = MAX_KERNEL_WIDTH / 2;
+    float max_gauss = 1.0f, max_gaussderiv = (float) (sigma*exp(-0.5f));
+    
+    for (i = -hw ; i <= hw ; i++)
+      {
+	gauss->data[i+hw] = (float) (exp(-i*i / (2*sigma*sigma)));
+	gaussderiv->data[i+hw] = -i * gauss->data[i+hw];
+      }
+    gauss->width = MAX_KERNEL_WIDTH;
+    for (i = -hw ; fabs(gauss->data[i+hw] / max_gauss) < factor ; i++, gauss->width -= 2);
+    gaussderiv->width = MAX_KERNEL_WIDTH;
+    for (i = -hw ; fabs(gaussderiv->data[i+hw] / max_gaussderiv) < factor ; i++, gaussderiv->width -= 2);
+    if (gauss->width == MAX_KERNEL_WIDTH || 
+        gaussderiv->width == MAX_KERNEL_WIDTH)
+      camError("cam_keypoints_tracking_compute_kernels", "Max kernel width too small\n");
+  }
+
+  for (i = 0 ; i < gauss->width ; i++)
+    gauss->data[i] = gauss->data[i+(MAX_KERNEL_WIDTH-gauss->width)/2];
+  for (i = 0 ; i < gaussderiv->width ; i++)
+    gaussderiv->data[i] = gaussderiv->data[i+(MAX_KERNEL_WIDTH-gaussderiv->width)/2];
+  {
+    const int hw = gaussderiv->width / 2;
+    float den;
+    
+    den = 0.0;
+    for (i = 0 ; i < gauss->width ; i++)  den += gauss->data[i];
+    for (i = 0 ; i < gauss->width ; i++)  gauss->data[i] /= den;
+    den = 0.0;
+    for (i = -hw ; i <= hw ; i++)  den -= i*gaussderiv->data[i+hw];
+    for (i = -hw ; i <= hw ; i++)  gaussderiv->data[i+hw] /= den;
+  }
+}
+
+void		cam_keypoints_tracking_free_context(CamTrackingContext *tc)
+{
+  register int	i;
+
+  if (tc->previousFeatures)
+    {
+      camFreeKeypoints(tc->previousFeatures);
+      free(tc->previousFeatures);
+      tc->previousFeatures = NULL;
+    }
+  if (tc->previousImage)
+    {
+      camDeallocateImage(tc->previousImage);
+      tc->previousImage = NULL;
+    }
+  if (tc->pyramidImages)
+    {
+      for (i = 0 ; i < tc->pyramidImages->nbLevels ; ++i)
+	{
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->gradX);
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->gradY);
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->image);
+	  free(tc->pyramidImages->levels[i].img1);
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->gradX);
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->gradY);
+	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->image);
+	  free(tc->pyramidImages->levels[i].img2);
+	}
+      free(tc->pyramidImages->levels);
+      free(tc->pyramidImages);
+      tc->pyramidImages = NULL;
+    }
+  tc->nbFeatures = 0;
+  tc->rv.width = 0;
+  tc->rv.height = 0;
+  tc->rv.scale = 0;
+  tc->rw.height = 0;
+  tc->rw.width = 0;
+}
+
+void			cam_keypoint_tracking2_configure_context(CamTrackingContext *tc, int nbFeatures, int rwHeight, int rwWidth, int rvHeight, int rvWidth, int rvScale, CamList *scales, CamImage *image)
+{
+  register CamList	*ptr;
+  register int		i;
+
+  if (!tc)
+    return ;
+  cam_keypoints_tracking2_compute_kernels(1.0f, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
+  tc->nbFeatures = nbFeatures;
+  tc->rv.width = rvWidth;
+  tc->rv.height = rvHeight;
+  tc->rv.scale = rvScale;
+  tc->rw.height = rwHeight;
+  tc->rw.width = rwWidth;
+  tc->b.borderX = max(max(tc->rw.height, tc->rw.width), min(image->height / 20, image->width / 20));
+  tc->b.borderY = max(max(tc->rw.height, tc->rw.width), min(image->height / 20, image->width / 20));
+  tc->previousFeatures = NULL;
+  tc->previousImage = NULL;
+  tc->pyramidImages = NULL;
+  tc->previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
+  camAllocateKeypoints(tc->previousFeatures, tc->nbFeatures);
+#ifdef __SSE2__
+  tc->previousFeatures->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * tc->nbFeatures, 16);
+#else
+  tc->previousFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
+#endif
+  if (scales)
+    {
+      ptr = scales;
+      tc->pyramidImages = (pyramid*)malloc(sizeof(pyramid));
+      tc->pyramidImages->nbLevels = scales->index;
+      tc->pyramidImages->levels = (pyramidLevels*)malloc(scales->index * sizeof(pyramidLevels));
+      for (ptr = scales, i = 0 ; ptr ; ptr = ptr->next, ++i)
+	{
+	  tc->pyramidImages->levels[i].scale = (int)ptr->data;
+	  tc->pyramidImages->levels[i].img1 = (pyramidLevel*)malloc(sizeof(pyramidLevel));
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  tc->pyramidImages->levels[i].img2 = (pyramidLevel*)malloc(sizeof(pyramidLevel));
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	}
+    }
+}
+
+void			cam_keypoints_tracking2_convolve_horiz(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
+{
+  float			*ptrrow;
+  register float	*ptrout;
+  register float	*ppp;
+  register float	sum;
+  register int		radius;
+  register int		ncols;
+  register int		nrows;
+  register int		i, j, k;
+
+  ptrrow = imgin->data;
+  ptrout = imgout->data;
+  radius = kernel->width / 2;
+  ncols = imgin->ncols;
+  nrows = imgin->nrows;
+  for (j = 0 ; j < nrows ; j++)
+    {
+      
+      for (i = 0 ; i < radius ; i++)
+	*ptrout++ = 0.0;
+      
+      for ( ; i < ncols - radius ; i++)
+	{
+	  ppp = ptrrow + i - radius;
+	  sum = 0.0;
+	  for (k = kernel->width-1 ; k >= 0 ; k--)
+	    sum += *ppp++ * kernel->data[k];
+	  *ptrout++ = sum;
+	}
+
+      for ( ; i < ncols ; i++)
+	*ptrout++ = 0.0;
+      
+      ptrrow += ncols;
+    }
+}
+
+void			cam_keypoints_tracking2_convolve_vert(CamFloatImage *imgin, CamConvolutionKernel *kernel, CamFloatImage *imgout)
+{
+  float			*ptrcol;
+  register float	*ptrout;
+  register float	*ppp;
+  register float	sum;
+  register int		radius;
+  register int		ncols;
+  register int		nrows;
+  register int		i, j, k;
+
+  ptrcol = imgin->data;
+  ptrout = imgout->data;
+  radius = kernel->width / 2;
+  ncols = imgin->ncols;
+  nrows = imgin->nrows;
+  for (i = 0 ; i < ncols ; i++)
+    {
+      
+      for (j = 0 ; j < radius ; j++)
+	{
+	  *ptrout = 0.0;
+	  ptrout += ncols;
+	}
+      
+      for ( ; j < nrows - radius ; j++)
+	{
+	  ppp = ptrcol + ncols * (j - radius);
+	  sum = 0.0;
+	  for (k = kernel->width-1 ; k >= 0 ; k--)
+	    {
+	      sum += *ppp * kernel->data[k];
+	      ppp += ncols;
+	    }
+	  *ptrout = sum;
+	  ptrout += ncols;
+	}
+      
+      for ( ; j < nrows ; j++)
+	{
+	  *ptrout = 0.0;
+	  ptrout += ncols;
+	}
+
+      ptrcol++;
+      ptrout -= nrows * ncols - 1;
+    }
+}
+
+void		cam_keypoints_tracking2_convolve_separate(CamFloatImage *imgin, CamConvolutionKernel *horiz_kernel, CamConvolutionKernel *vert_kernel, CamFloatImage *imgout)
+{
+  CamFloatImage	tmpimg;
+
+  CamAllocateFloatImage(&tmpimg, imgin->ncols, imgin->nrows);
+  cam_keypoints_tracking2_convolve_horiz(imgin, horiz_kernel, &tmpimg);
+  cam_keypoints_tracking2_convolve_vert(&tmpimg, vert_kernel, imgout);
+  CamDisallocateFloatImage(&tmpimg);
+}
+
+void	cam_keypoints_tracking2_compute_gradients(CamFloatImage *img, CamFloatImage *gradx, CamFloatImage *grady, CamConvolutionKernel *gauss_kernel, CamConvolutionKernel *gaussderiv_kernel)
+{
+  cam_keypoints_tracking2_convolve_separate(img, gaussderiv_kernel, gauss_kernel, gradx);
+  cam_keypoints_tracking2_convolve_separate(img, gauss_kernel, gaussderiv_kernel, grady);
+}
+
+void			cam_keypoints_tracking2_copy_image_to_float_image(CamFloatImage *dst, CamImage *src, int scale)
+{
+  register unsigned int	i;
+
+  for (i = 0 ; i < dst->ncols * dst->nrows ; ++i)
+    dst->data[i] = (float)src->imageData[i];
+}
+
+float	cam_keypoints_tracking2_min_eigen_value(float gxx, float gxy, float gyy)
+{
+  return ((gxx + gyy - sqrt((gxx - gyy) * (gxx - gyy) + 4 * gxy* gxy)) / 2.0f);
+}
+
+void			cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamImage *image)
+{
+  float			val;
+  int			x;
+  int			y;
+  int			*pointsList;
+  int			window_hh;
+  int			window_hw;
+  int			nbPoints;
+  int			nrows;
+  int			ncols;
+  register int		*ptr;
+  register int		xx;
+  register int		yy;
+  register float	gx;
+  register float	gy;
+  register float	gxx;
+  register float	gxy;
+  register float	gyy;
+
+  window_hh = tc->rw.height / 2;
+  window_hw = tc->rw.width / 2;
+  ncols = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.ncols;
+  nrows = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.nrows;
+  pointsList = (int *)malloc(3 * image->height * image->width * sizeof(int));
+  ptr = pointsList;
+  for (y = tc->b.borderY ; y < nrows - tc->b.borderY ; ++y)
+    {
+      for (x = tc->b.borderX ; x < ncols - tc->b.borderX ; ++x)
+	{
+	  gxx = 0;
+	  gxy = 0;
+	  gyy = 0;
+	  for (yy = y - window_hh ; yy <= y + window_hh ; ++yy)
+	    {
+	      for (xx = x - window_hw ; xx <= x + window_hw ; ++xx)
+		{
+		  gx = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradX.data + ncols * yy + xx);
+		  gy = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradY.data + ncols * yy + xx);
+		  gxx += gx * gx;
+		  gxy += gx * gy;
+		  gyy += gy * gy;
+		}
+	    }
+	  *ptr++ = x;
+	  *ptr++ = y;
+	  val = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
+	  if (val > (float)INT_MAX)
+	    val = (float)INT_MAX;
+	  *ptr++ = (int)val;
+	  nbPoints++;
+	}
+    }
+
+  
+
+  free(pointsList);
+}
+
+CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *image, int options)
+{
+  register int		i;
+
+  if (!tc->previousImage)
+    {
+      for (i = 0 ; i < tc->pyramidImages->nbLevels ; ++i)
+	{
+	  cam_keypoints_tracking2_copy_image_to_float_image(&tc->pyramidImages->levels[i].img1->image, image, tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_compute_gradients(&tc->pyramidImages->levels[i].img1->image, &tc->pyramidImages->levels[i].img1->gradX, &tc->pyramidImages->levels[i].img1->gradY, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
+	}
+      cam_keypoints_tracking2_select_good_features(tc, image);
+    }
+  else
+    {
+      for (i = 0 ; i < tc->pyramidImages->nbLevels ; ++i)
+	{
+	  cam_keypoints_tracking2_copy_image_to_float_image(&tc->pyramidImages->levels[i].img2->image, image, tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_compute_gradients(&tc->pyramidImages->levels[i].img2->image, &tc->pyramidImages->levels[i].img2->gradX, &tc->pyramidImages->levels[i].img2->gradY, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
+	}
+    }
+}
+
+void			test_cam_keypoints_tracking2()
+{
+  CamImage		modelImage;
+  CamImage		firstImage;
+  CamImage		secondImage;
+  CamList		*scales;
+  CamTrackingContext	tc;
+  CamKeypointsMatches	*track;
+  char			img1[] = "./resources/klt/img0.bmp";
+  char			img2[] = "./resources/klt/img2.bmp";
+#ifdef CAM_TRACKING2_TIMINGS
+  int			t1;
+  int			t2;
+  int			t3;
+#endif
+
+  modelImage.imageData = NULL;
+  camLoadBMP(&modelImage, img1);
+  camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
+  camRGB2YUV(&modelImage, &firstImage);
+  camDeallocateImage(&modelImage);
+  camLoadBMP(&modelImage, img2);
+  camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
+  camRGB2YUV(&modelImage, &secondImage);
+  camDeallocateImage(&modelImage);
+
+  scales = NULL;
+  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)2);
+  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)4);
+  
+  cam_keypoint_tracking2_configure_context(&tc, 100, 7, 7, 3, 3, 3, scales, &firstImage);
+  cam_keypoints_tracking_free_linked_list(scales);
+
+#ifdef CAM_TRACKING2_TIMINGS
+  t1 = camGetTimeMs();
+#endif
+  track = cam_keypoints_tracking2(&tc, &firstImage, CAM_UPRIGHT);
+  tc.previousImage = &firstImage;
+#ifdef CAM_TRACKING2_TIMINGS
+  t2 = camGetTimeMs();
+  printf("initial detection : %ims\n", t2 - t1);
+#endif
+  track = cam_keypoints_tracking2(&tc, &secondImage, CAM_UPRIGHT);
+#ifdef CAM_TRACKING2_TIMINGS
+  t3 = camGetTimeMs();
+  printf("tracking : %ims\n", t3 - t2);
+#endif
+
+  cam_keypoints_tracking_free_context(&tc);
+  camDeallocateImage(&secondImage);
+}
