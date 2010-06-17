@@ -53,6 +53,7 @@
 #include <stdio.h>	// printf
 #include <math.h>	// fabs, exp
 #include <emmintrin.h>	// _mm_malloc
+#include <stdlib.h>	// malloc, qsort
 #include <limits.h>
 #include "camellia.h"
 
@@ -441,32 +442,35 @@ float	cam_keypoints_tracking2_min_eigen_value(float gxx, float gxy, float gyy)
   return ((gxx + gyy - sqrt((gxx - gyy) * (gxx - gyy) + 4 * gxy* gxy)) / 2.0f);
 }
 
-void			cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamImage *image)
+int	camSortKeypointsShort(const void *p1x, const void *p2x);
+
+void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamImage *image)
 {
-  float			val;
-  int			x;
-  int			y;
-  int			*pointsList;
-  int			window_hh;
-  int			window_hw;
-  int			nbPoints;
-  int			nrows;
-  int			ncols;
-  register int		*ptr;
-  register int		xx;
-  register int		yy;
-  register float	gx;
-  register float	gy;
-  register float	gxx;
-  register float	gxy;
-  register float	gyy;
+  float				val;
+  int				x;
+  int				y;
+  CamKeypointShort		*pointsList;
+  int				window_hh;
+  int				window_hw;
+  int				nbPoints;
+  int				nrows;
+  int				ncols;
+  register CamKeypointShort	*ptr;
+  register int			xx;
+  register int			yy;
+  register float		gx;
+  register float		gy;
+  register float		gxx;
+  register float		gxy;
+  register float		gyy;
 
   window_hh = tc->rw.height / 2;
   window_hw = tc->rw.width / 2;
   ncols = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.ncols;
   nrows = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.nrows;
-  pointsList = (int *)malloc(3 * image->height * image->width * sizeof(int));
+  pointsList = (CamKeypointShort *)malloc(nrows * ncols * sizeof(CamKeypointShort));
   ptr = pointsList;
+  nbPoints = 0;
   for (y = tc->b.borderY ; y < nrows - tc->b.borderY ; ++y)
     {
       for (x = tc->b.borderX ; x < ncols - tc->b.borderX ; ++x)
@@ -485,18 +489,17 @@ void			cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamI
 		  gyy += gy * gy;
 		}
 	    }
-	  *ptr++ = x;
-	  *ptr++ = y;
+	  ptr->x = x;
+	  ptr->y = y;
 	  val = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
 	  if (val > (float)INT_MAX)
 	    val = (float)INT_MAX;
-	  *ptr++ = (int)val;
+	  ptr->value = (int)val;
+	  ++ptr;
 	  nbPoints++;
 	}
     }
-
-  
-
+  qsort(pointsList, nbPoints, sizeof(CamKeypointShort), camSortKeypointsShort);
   free(pointsList);
 }
 
