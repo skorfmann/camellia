@@ -569,274 +569,10 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
   free(pointsList);
 }
 
-float	cam_keypoints_tracking2_interpolate(float x, float y, CamFloatImage *img)
-{
-  int	xt;
-  int	yt;
-  float	ax;
-  float	ay;
-  float	*ptr;
-
-  xt = (int) x;
-  yt = (int) y;
-  ax = x - xt;
-  ay = y - yt;
-  ptr = img->data + (img->ncols*yt) + xt;
-  return ( (1-ax) * (1-ay) * *ptr +
-           ax   * (1-ay) * *(ptr+1) +
-           (1-ax) *   ay   * *(ptr+(img->ncols)) +
-           ax   *   ay   * *(ptr+(img->ncols)+1) );
-}
-
-void			cam_keypoints_tracking2_compute_intensity_difference(CamFloatImage *img1, CamFloatImage *img2, float x1, float y1, float x2, float y2, int width, int height, CamFloatImage *imgdiff)
-{
-  register int		hw;
-  register int		hh;
-  float			g1;
-  float			g2;
-  register int		i;
-  register int		j;
-  register float	*ptrimgdiff;
-  
-  hw = width / 2;
-  hh = height / 2;
-  ptrimgdiff = imgdiff->data;
-  if (!img1 || !img2)
-    {
-      printf("Dammit !\n");
-    }
-
-  for (j = -hh ; j <= hh ; j++)
-    for (i = -hw ; i <= hw ; i++)
-      {
-	g1 = cam_keypoints_tracking2_interpolate(x1+i, y1+j, img1);
-	g2 = cam_keypoints_tracking2_interpolate(x2+i, y2+j, img2);
-	*ptrimgdiff++ = g1 - g2;
-      }
-}
-
-void		cam_keypoints_tracking2_compute_gradient_sum(CamFloatImage *gradx1, CamFloatImage *grady1, CamFloatImage *gradx2, CamFloatImage *grady2, float x1, float y1, float x2, float y2, int width, int height, CamFloatImage * gradx, CamFloatImage *grady)
-{
-  register int	hw;
-  register int	hh;
-  float		g1;
-  float		g2;
-  register int	i;
-  register int	j;
-  float		*ptrgradx;
-  float		*ptrgrady;
-
-  hw = width/2;
-  hh = height/2;
-  ptrgradx = gradx->data;
-  ptrgrady = grady->data;
-  for (j = -hh ; j <= hh ; j++)
-    {
-      for (i = -hw ; i <= hw ; i++)
-	{
-	  g1 = cam_keypoints_tracking2_interpolate(x1+i, y1+j, gradx1);
-	  g2 = cam_keypoints_tracking2_interpolate(x2+i, y2+j, gradx2);
-	  *ptrgradx++ = g1 + g2;
-	  g1 = cam_keypoints_tracking2_interpolate(x1+i, y1+j, grady1);
-	  g2 = cam_keypoints_tracking2_interpolate(x2+i, y2+j, grady2);
-	  *ptrgrady++ = g1 + g2;
-	}
-    }
-}
-
-void			cam_keypoints_tracking2_compute_2by2_gradient_matrix(CamFloatImage *gradx, CamFloatImage *grady, int width, int height,
-							 float *gxx, float *gxy, float *gyy) 
-
-{
-  register float	gx;
-  register float	gy;
-  register int		i;
-  float			*ptrgradx;
-  float			*ptrgrady;
-
-  ptrgradx = gradx->data;
-  ptrgrady = grady->data;
-  *gxx = 0.0;
-  *gxy = 0.0;
-  *gyy = 0.0;
-  for (i = 0 ; i < width * height ; i++)
-    {
-      gx = *ptrgradx++;
-      gy = *ptrgrady++;
-      *gxx += gx*gx;
-      *gxy += gx*gy;
-      *gyy += gy*gy;
-    }
-}
-
-void			cam_keypoints_tracking2_compute_2by1_error_vector(CamFloatImage *imgdiff, CamFloatImage *gradx, CamFloatImage *grady, int width, int height, float step_factor, float *ex, float *ey)
-{
-  register float	diff;
-  register int		i;
-  float			*ptrgradx;
-  float			*ptrgrady;
-  float			*ptrimgdiff;
-
-  ptrgradx = gradx->data;
-  ptrgrady = grady->data;
-  ptrimgdiff = imgdiff->data;
-  /* Compute values */
-  *ex = 0;  *ey = 0;  
-  for (i = 0 ; i < width * height ; i++)  {
-    diff = *ptrimgdiff++;
-    *ex += diff * (*ptrgradx++);
-    *ey += diff * (*ptrgrady++);
-  }
-  *ex *= step_factor;
-  *ey *= step_factor;
-}
-
-TRACKING_STATUS	cam_keypoints_tracking2_solve_mouvement_equation(float gxx, float gxy, float gyy, float ex, float ey,
-					      float small, float *dx, float *dy)
-{
-  float det;
-
-  det = gxx*gyy - gxy*gxy;
-  if (det < small)
-    return (SMALL_DET);
-  *dx = (gyy*ex - gxy*ey)/det;
-  *dy = (gxx*ey - gxy*ex)/det;
-  return (TRACKED);
-}
-
-TRACKING_STATUS		cam_keypoints_tracking2_compute_local_image_displacement(float x1, float y1, float *x2, float *y2, CamFloatImage *img1, CamFloatImage *gradx1, CamFloatImage *grady1, CamFloatImage *img2, CamFloatImage *gradx2, CamFloatImage *grady2, int width, int height, float step_factor, float small)
-{
-  CamFloatImage		imgdiff;
-  CamFloatImage		gradx;
-  CamFloatImage		grady;
-  float			gxx, gxy, gyy, ex, ey, dx, dy;
-  int			iteration;
-  int			hw;
-  int			hh;
-  int			nc;
-  int			nr;
-  float			one_plus_eps;
-  TRACKING_STATUS	status;
-
-  iteration = 0;
-  hw = width/2;
-  hh = height/2;
-  nc = img1->ncols;
-  nr = img1->nrows;
-  one_plus_eps = 1.001f;
-
-  CamAllocateFloatImage(&imgdiff, width, height);
-  CamAllocateFloatImage(&gradx, width, height);
-  CamAllocateFloatImage(&grady, width, height);
-    
-  do  {
-
-    if (x1-hw < 0.0f || nc-( x1+hw) < one_plus_eps || *x2-hw < 0.0f || nc-(*x2+hw) < one_plus_eps || y1-hh < 0.0f || nr-( y1+hh) < one_plus_eps || *y2-hh < 0.0f || nr-(*y2+hh) < one_plus_eps)
-      break;
-    
-
-    cam_keypoints_tracking2_compute_intensity_difference(img1, img2, x1, y1, *x2, *y2, width, height, &imgdiff);
-    
-    cam_keypoints_tracking2_compute_gradient_sum(gradx1, grady1, gradx2, grady2, x1, y1, *x2, *y2, width, height, &gradx, &grady);
-    
-    cam_keypoints_tracking2_compute_2by2_gradient_matrix(&gradx, &grady, width, height, &gxx, &gxy, &gyy);
-    cam_keypoints_tracking2_compute_2by1_error_vector(&imgdiff, &gradx, &grady, width, height, step_factor, &ex, &ey);
-    
-    dx = 0.0f;
-    dy = 0.0f;
-    status = cam_keypoints_tracking2_solve_mouvement_equation(gxx, gxy, gyy, ex, ey, small, &dx, &dy);
-
-    *x2 += dx;
-    *y2 += dy;
-    iteration++;
-
-  }  while ((fabs(dx)>=0.1f || fabs(dy)>=0.1f) && iteration < 10);
-
-  if (*x2-hw < 0.0f || nc-(*x2+hw) < one_plus_eps || 
-      *y2-hh < 0.0f || nr-(*y2+hh) < one_plus_eps)
-    status = OOB;
-
-  if (iteration == 10)
-    status = MAX_ITERATIONS;
-
-  CamDisallocateFloatImage(&imgdiff);
-  CamDisallocateFloatImage(&gradx);
-  CamDisallocateFloatImage(&grady);
-  return (status);
-}
-
-
-CamKeypointsMatches	*cam_keypoints_tracking_extract_matches(CamTrackingContext *tc, CamKeypoints *currentFeatures)
-{
-  register int		i;
-  register int		j;
-  CamKeypointsMatches	*res;
-  float			x1;
-  float			y1;
-  float			x2;
-  float			y2;
-  TRACKING_STATUS	status;
-
-  res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
-  camAllocateKeypointsMatches(res, tc->nbDetectedFeatures);
-      
-  for (i = 0 ; i < tc->nbDetectedFeatures ; ++i)
-    {
-      x1 = (float)tc->previousFeatures->keypoint[i]->x / tc->pyramidImages->levels[0].scale;
-      y1 = (float)tc->previousFeatures->keypoint[i]->y / tc->pyramidImages->levels[0].scale;
-      x2 = x1;
-      y2 = y1;
-      for (j = 0 ; j < tc->pyramidImages->nbLevels ; ++j)
-	{
-	  status = cam_keypoints_tracking2_compute_local_image_displacement(x1, y1, &x2, &y2,
-									    &tc->pyramidImages->levels[j].img1->image,
-									    &tc->pyramidImages->levels[j].img1->gradX,
-									    &tc->pyramidImages->levels[j].img1->gradY,
-									    &tc->pyramidImages->levels[j].img2->image,
-									    &tc->pyramidImages->levels[j].img2->gradX,
-									    &tc->pyramidImages->levels[j].img2->gradY,
-									    7, 7, 1.0f, 0.01f);
-	  if (j + 1 < tc->pyramidImages->nbLevels)
-	    {
-	      x1 *= tc->pyramidImages->levels[j].scale / tc->pyramidImages->levels[j + 1].scale;
-	      x2 *= tc->pyramidImages->levels[j].scale / tc->pyramidImages->levels[j + 1].scale;
-	      y1 *= tc->pyramidImages->levels[j].scale / tc->pyramidImages->levels[j + 1].scale;
-	      y2 *= tc->pyramidImages->levels[j].scale / tc->pyramidImages->levels[j + 1].scale;
-	    }
-	}
-      x1 *= tc->pyramidImages->levels[j - 1].scale;
-      x2 *= tc->pyramidImages->levels[j - 1].scale;
-      y1 *= tc->pyramidImages->levels[j - 1].scale;
-      y2 *= tc->pyramidImages->levels[j - 1].scale;
-      currentFeatures->keypoint[i] = &currentFeatures->bag[i];
-      currentFeatures->keypoint[i]->x = (int)x2;
-      currentFeatures->keypoint[i]->y = (int)y2;
-      currentFeatures->keypoint[i]->scale = tc->previousFeatures->keypoint[i]->scale;
-      ++currentFeatures->nbPoints;
-      res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
-      memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
-      res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
-      memcpy(res->pairs[i].p2, currentFeatures->keypoint[i], sizeof(CamKeypoint));
-      if (status == TRACKED)
-	{
-	  res->pairs[i].mark = 1;
-	  res->nbMatches++;
-	}
-      else
-	{
-	  res->pairs[i].mark = 0;
-	  res->nbOutliers++;
-	}
-    }
-  printf("matched : %i outliers : %i\n", res->nbMatches, res->nbOutliers);
-  return (res);
-}
-
 CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *image, int options)
 {
   register int		i;
   CamKeypointsMatches	*res;
-  CamKeypoints		*currentFeatures;
 
   if (!tc->previousImage)
     {
@@ -855,19 +591,17 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  cam_keypoints_tracking2_copy_image_to_float_image(&tc->pyramidImages->levels[i].img2->image, image, tc->pyramidImages->levels[i].scale);
 	  cam_keypoints_tracking2_compute_gradients(&tc->pyramidImages->levels[i].img2->image, &tc->pyramidImages->levels[i].img2->gradX, &tc->pyramidImages->levels[i].img2->gradY, &tc->gaussianKernel, &tc->gaussianDerivedKernel);
 	}
-      currentFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
-      camAllocateKeypoints(currentFeatures, tc->nbDetectedFeatures);
-      if (currentFeatures->bag == NULL)
+      res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
+      camAllocateKeypointsMatches(res, tc->nbFeatures);      
+      for (i = 0 ; i < tc->nbDetectedFeatures ; ++i)
 	{
-#ifdef __SSE2__
-	  currentFeatures->bag = (CamKeypoint*)_mm_malloc(sizeof(CamKeypoint) * tc->nbFeatures, 16);
-#else
-	  currentFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
-#endif
+	  res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	  res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	  res->pairs[i].mark = 1;
+	  memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
+	  memcpy(res->pairs[i].p2, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
 	}
-      res = cam_keypoints_tracking_extract_matches(tc, currentFeatures);
-      camFreeKeypoints(currentFeatures);
-      free(currentFeatures);
+      res->nbMatches = tc->nbDetectedFeatures;
       return (res);
     }
 }
@@ -935,7 +669,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img3.bmp";
+  char			img2[] = "./resources/klt/img0.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
   int			t1;
   int			t2;
