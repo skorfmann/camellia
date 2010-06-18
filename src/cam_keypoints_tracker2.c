@@ -804,6 +804,10 @@ CamKeypointsMatches	*cam_keypoints_tracking_extract_matches(CamTrackingContext *
 	      y2 *= tc->pyramidImages->levels[j].scale / tc->pyramidImages->levels[j + 1].scale;
 	    }
 	}
+      x1 *= tc->pyramidImages->levels[j - 1].scale;
+      x2 *= tc->pyramidImages->levels[j - 1].scale;
+      y1 *= tc->pyramidImages->levels[j - 1].scale;
+      y2 *= tc->pyramidImages->levels[j - 1].scale;
       currentFeatures->keypoint[i] = &currentFeatures->bag[i];
       currentFeatures->keypoint[i]->x = (int)x2;
       currentFeatures->keypoint[i]->y = (int)y2;
@@ -931,7 +935,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img2[] = "./resources/klt/img3.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
   int			t1;
   int			t2;
@@ -952,7 +956,7 @@ void			test_cam_keypoints_tracking2()
   scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)1);
   scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)4);
   
-  cam_keypoint_tracking2_configure_context(&tc, 50, 7, 7, 3, 3, 3, scales, &firstImage);
+  cam_keypoint_tracking2_configure_context(&tc, 100, 7, 7, 3, 3, 3, scales, &firstImage);
   cam_keypoints_tracking_free_linked_list(scales);
 
 #ifdef CAM_TRACKING2_TIMINGS
