@@ -552,6 +552,7 @@ inline CamROI::CamROI(const CamImage &image, int _coi) { coi=_coi; xOffset=0; yO
 #define CAM_ARITHM_SUB		    1
 #define CAM_ARITHM_MUL              2
 #define CAM_ARITHM_ABSDIFF	    3
+#define CAM_ARITHM_SAD  	    3
 #define CAM_ARITHM_WEIGHTED_SUM	    4
 #define CAM_ARITHM_INF		    5
 #define CAM_ARITHM_SUP		    6
@@ -684,6 +685,10 @@ int camMul(CamImage *source1, CamImage *source2, CamImage *dest);
 /// Image subtraction
 /** Simple wrapper for camDyadicArithm() */
 int camSub(CamImage *source1, CamImage *source2, CamImage *dest);
+
+/// Image Sum of Absolute Differences
+/** Simple wrapper for camDyadicArithm() */
+int camSAD(CamImage *source1, CamImage *source2, CamImage *dest);
 
 /// Simple threshold function (wrapper for camMonadicArithm() function)
 /** Turn all pixels below (<) the threshold value to 0, and all pixels above (>=) to 255

@@ -155,6 +155,13 @@ int camSub(CamImage *source1, CamImage *source2, CamImage *dest)
     return camDyadicArithm(source1, source2, dest, &params);
 }
 
+int camSAD(CamImage *source1, CamImage *source2, CamImage *dest)
+{
+    CamArithmParams params;
+    params.operation = CAM_ARITHM_ABSDIFF;
+    return camDyadicArithm(source1, source2, dest, &params);
+}
+
 int camDyadicArithm(CamImage *source1, CamImage *source2, CamImage *dest, CamArithmParams *params)
 {
     if ((source1->depth&CAM_DEPTH_MASK)>8) {
