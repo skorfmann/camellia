@@ -561,7 +561,7 @@ int		cam_keypoints_tracking2_position_filter(CamTrackingContext *tc, CamKeypoint
 
 BOOL	cam_keypoints_tracking2_is_in_range(CamImage *image, CamKeypointShort *point)
 {
-  if (point->x - 2 * point->scale >= 0 && point->y - 2 * point->scale && point->x + 2 * point->scale < image->width && point->y + 2 * point->scale < image->height)
+  if (point->x - 2 * point->scale >= 0 && point->y - 2 * point->scale >= 0 && point->x + 2 * point->scale < image->width && point->y + 2 * point->scale < image->height)
     return (TRUE);
   return (FALSE);
 }
@@ -620,6 +620,8 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 	  else
 	    detectorValue2 = 0;
 	  previousIncreasingValue = increasingValue;
+	  printf("%i %i\n", detectorValue1/ (scale * scale), detectorValue2 / (scale * scale));
+	  printf("scale: %i val: %i\n", scale, max(abs(detectorValue1), abs(detectorValue2)) / (scale * scale));
 	  if (max(abs(detectorValue1), abs(detectorValue2)) / (scale * scale) > abs(previousDetectorValue))
 	    increasingValue = TRUE;
 	  else
@@ -639,8 +641,11 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 	    }
 	  ++scale;
 	}
+      keypointMax.angle = 0;
+      keypointMax.scale *= 4;
+      printf("%i %i => %i %i\n", corners->keypoint[i]->x, corners->keypoint[i]->y, keypointMax.x, keypointMax.y);
       memcpy(&features->keypoint[i]->x, &keypointMax, sizeof(CamKeypointShort));
-      printf("finished at scale : %i\n", scale);
+      printf("finished at scale : %i\n", keypointMax.scale);
     }
 }
 
@@ -775,6 +780,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  res->pairs[i].mark = 1;
 	  memcpy(res->pairs[i].p1, tc->previousCorners->keypoint[i], sizeof(CamKeypoint));
 	  memcpy(res->pairs[i].p2, tc->previousCorners->keypoint[i], sizeof(CamKeypoint));
+	  //memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
+	  //memcpy(res->pairs[i].p2, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
 	}
       res->nbMatches = tc->nbDetectedFeatures;
       return (res);
@@ -791,12 +798,12 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
   int		y1;
   int		y2;
   
-  camAllocateRGBImage(&res, img1->width, img1->height * 2);
+  camAllocateRGBImage(&res, img1->width, img1->height);// * 2);
   camSetROI(&roi, 0, 0, img1->height, img1->width, img1->height);
   res.roi = NULL;
   camCopy(img1, &res);
   res.roi = &roi;
-  camCopy(img2, &res);
+  //camCopy(img2, &res);
   res.roi = NULL;
 
   for (i = 0 ; i < matches->nbMatches ; ++i)
@@ -804,13 +811,14 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
       if (!matches->pairs[i].mark)
 	continue ;
       camDrawKeypoint(matches->pairs[i].p1, &res, CAM_RGB(255, 0, 0));
-      x1 = matches->pairs[i].p1->x;
+      /*      x1 = matches->pairs[i].p1->x;
       y1 = matches->pairs[i].p1->y;
       x2 = matches->pairs[i].p2->x;
       y2 = matches->pairs[i].p2->y;
       y2 += img1->height;
-      camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));
+      camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));*/
     }
+  /*
   for (i = 0 ; i < matches->nbMatches ; ++i)
     {
       if (!matches->pairs[i].mark)
@@ -818,6 +826,7 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
       matches->pairs[i].p2->y += img1->height;
       camDrawKeypoint(matches->pairs[i].p2, &res, 128);
     }
+  */
   sprintf(filename, "output/%s.bmp", outfile);
   camSaveBMP(&res, filename);
   camDeallocateImage(&res);
@@ -845,6 +854,8 @@ void			test_cam_keypoints_tracking2()
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
   char			img2[] = "./resources/klt/img0.bmp";
+  //char			img1[] = "./resources/chess.bmp";
+  //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
   int			t1;
   int			t2;
