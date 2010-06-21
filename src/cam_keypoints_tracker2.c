@@ -688,9 +688,9 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
     {
       for (x = borderX ; x < ncols - borderX ; ++x)
 	{
-	  gxx = 0;
-	  gxy = 0;
-	  gyy = 0;
+	  gxx = 0.0f;
+	  gxy = 0.0f;
+	  gyy = 0.0f;
 	  for (yy = y - window_hh ; yy <= y + window_hh ; ++yy)
 	    {
 	      for (xx = x - window_hw ; xx <= x + window_hw ; ++xx)
@@ -872,12 +872,13 @@ TRACKING_STATUS	cam_keypoints_tracking2_solve_mouvement_equation(float gxx, floa
 TRACKING_STATUS		cam_keypoints_tracking2_compute_local_image_displacement(float x1, float y1, float *x2, float *y2,
 										 CamFloatImage *img1, CamFloatImage *gradx1, CamFloatImage *grady1,
 										 CamFloatImage *img2, CamFloatImage *gradx2, CamFloatImage *grady2,
-										 int width, int height, float step_factor, float small)
+										 int width, int height, float step_factor, float small,
+										 float *gxx, float *gxy, float *gyy)
 {
   CamFloatImage		imgdiff;
   CamFloatImage		gradx;
   CamFloatImage		grady;
-  float			gxx, gxy, gyy, ex, ey, dx, dy;
+  float			ex, ey, dx, dy;
   int			iteration;
   int			hw;
   int			hh;
@@ -910,12 +911,12 @@ TRACKING_STATUS		cam_keypoints_tracking2_compute_local_image_displacement(float 
     
     cam_keypoints_tracking2_compute_gradient_sum(gradx1, grady1, gradx2, grady2, x1, y1, *x2, *y2, width, height, &gradx, &grady);
     
-    cam_keypoints_tracking2_compute_2by2_gradient_matrix(&gradx, &grady, width, height, &gxx, &gxy, &gyy);
+    cam_keypoints_tracking2_compute_2by2_gradient_matrix(&gradx, &grady, width, height, gxx, gxy, gyy);
     cam_keypoints_tracking2_compute_2by1_error_vector(&imgdiff, &gradx, &grady, width, height, step_factor, &ex, &ey);
     
     dx = 0.0f;
     dy = 0.0f;
-    status = cam_keypoints_tracking2_solve_mouvement_equation(gxx, gxy, gyy, ex, ey, small, &dx, &dy);
+    status = cam_keypoints_tracking2_solve_mouvement_equation(*gxx, *gxy, *gyy, ex, ey, small, &dx, &dy);
     
     *x2 += dx;
     *y2 += dy;
@@ -949,9 +950,24 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
   register int		scaleIndex;
   TRACKING_STATUS	status;
   int			factor;
+  float			gxx;
+  float			gxy;
+  float			gyy;
+  int			yy;
+  int			xx;
+  float			gx;
+  float			gy;
+  int			window_hh;
+  int			window_hw;
+  int			ncols;
+  int			nrows;
 
   res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
   camAllocateKeypointsMatches(res, tc->nbFeatures);      
+  window_hh = tc->rw.height / 2;
+  window_hw = tc->rw.width / 2;
+  ncols = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.ncols;
+  nrows = tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->image.nrows;
   for (i = 0 ; i < tc->nbDetectedFeatures ; ++i)
     {
       x1 = tc->previousCorners->keypoint[i]->x / tc->pyramidImages->levels[0].scale;
@@ -963,7 +979,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	  status = cam_keypoints_tracking2_compute_local_image_displacement(x1, y1, &x2, &y2,
 									    &tc->pyramidImages->levels[scaleIndex].img1->image, &tc->pyramidImages->levels[scaleIndex].img1->gradX, &tc->pyramidImages->levels[scaleIndex].img1->gradY,
 									    &tc->pyramidImages->levels[scaleIndex].img2->image, &tc->pyramidImages->levels[scaleIndex].img2->gradX, &tc->pyramidImages->levels[scaleIndex].img2->gradY,
-									    7, 7, 1.0f, 0.01f);
+									    7, 7, 1.0f, 0.01f, &gxx, &gxy, &gyy);
 	  if (scaleIndex + 1 != tc->pyramidImages->nbLevels)
 	    factor = tc->pyramidImages->levels[scaleIndex].scale / tc->pyramidImages->levels[scaleIndex + 1].scale;
 	  else
@@ -975,6 +991,20 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	}
       if (status == TRACKED)
 	{
+	  gxx = 0.0f;
+	  gxy = 0.0f;
+	  gyy = 0.0f;
+	  for (yy = (int)y2 - window_hh ; yy <= (int)y2 + window_hh ; ++yy)
+	    {
+	      for (xx = (int)x2 - window_hw ; xx <= (int)x2 + window_hw ; ++xx)
+		{
+		  gx = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradX.data + ncols * yy + xx);
+		  gy = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradY.data + ncols * yy + xx);
+		  gxx += gx * gx;
+		  gxy += gx * gy;
+		  gyy += gy * gy;
+		}
+	    }
 	  tmp.x = x2;
 	  tmp.y = y2;
 	  tmp.scale = tc->previousCorners->keypoint[i]->scale;
@@ -983,11 +1013,16 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	  res->pairs[i].mark = 1;
 	  memcpy(res->pairs[i].p1, tc->previousCorners->keypoint[i], sizeof(CamKeypoint));
 	  memcpy(res->pairs[i].p2, &tmp, sizeof(CamKeypoint));
+	  tmp.angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
+	  printf("%i %i %i %i\n", res->pairs[i].p1->x, res->pairs[i].p1->y, res->pairs[i].p2->x, res->pairs[i].p2->y);
+	  printf("%i %i\n", res->pairs[i].p1->angle, res->pairs[i].p2->angle);
+
 	}
       else
 	res->pairs[i].mark = 0;
     }
   res->nbMatches = tc->nbDetectedFeatures;
+  res->nbOutliers = tc->nbFeatures - tc->nbDetectedFeatures;
 }
 
 CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *image, int options)
@@ -1047,7 +1082,7 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
   camCopy(img2, &res);
   res.roi = NULL;
 
-  for (i = 0 ; i < matches->nbMatches ; ++i)
+  for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (!matches->pairs[i].mark)
 	continue ;
@@ -1059,12 +1094,13 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
       y2 += img1->height;
       camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));
     }
-  for (i = 0 ; i < matches->nbMatches ; ++i)
+  for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (!matches->pairs[i].mark)
 	continue ;
       matches->pairs[i].p2->y += img1->height;
       camDrawKeypoint(matches->pairs[i].p2, &res, 128);
+      matches->pairs[i].p2->y -= img1->height;
     }
   sprintf(filename, "output/%s.bmp", outfile);
   camSaveBMP(&res, filename);
@@ -1095,7 +1131,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img2[] = "./resources/klt/img0.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
