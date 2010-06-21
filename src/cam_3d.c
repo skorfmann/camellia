@@ -264,4 +264,21 @@ camFindHomography(double **H, double x1[], double y1[], double x2[], double y2[]
     return 1;
 }
 
+int
+camMatrixVectorMultiply(double **A, double *b, int M, int N, double *c)
+{
+    int i, j;
+    double sum;
+    CAM_CHECK_ARGS(camMatrixMultiply, A != NULL);
+    CAM_CHECK_ARGS(camMatrixMultiply, b != NULL);
+    CAM_CHECK_ARGS(camMatrixMultiply, c != NULL);
+    for (i = 1; i <= M; i++) {
+        sum = 0;
+        for (j = 1; j <= N; j++) 
+            sum += A[i][j] * b[j];
+        c[i] = sum;
+    }
+    return 1;
+}
+
 
