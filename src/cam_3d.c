@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2006, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -211,6 +211,57 @@ int camUndistortLUT(CamImage *source, CamImage *dest,
 #include "cam_3d_code.c"
 #endif
 
+// Homography computations
+int
+camFindHomography(double **H, double x1[], double y1[], double x2[], double y2[], int nb_points)
+{
+    double **A, **v, *w;
+    int c, smallest;
 
+    // Fill matrix A
+    A = camAllocateMatrix(1, nb_points * 2, 1, 9);
+    for (c = 1; c <= nb_points; c++) {
+        A[c * 2 - 1][1] = -x1[c];
+        A[c * 2 - 1][2] = -y1[c];
+        A[c * 2 - 1][3] = -1;
+        A[c * 2 - 1][4] = 0;
+        A[c * 2 - 1][5] = 0;
+        A[c * 2 - 1][6] = 0;
+        A[c * 2 - 1][7] = x2[c] * x1[c];
+        A[c * 2 - 1][8] = x2[c] * y1[c];
+        A[c * 2 - 1][9] = x2[c];
+        A[c * 2][1] = 0;
+        A[c * 2][2] = 0;
+        A[c * 2][3] = 0;
+        A[c * 2][4] = -x1[c];
+        A[c * 2][5] = -y1[c];
+        A[c * 2][6] = -1;
+        A[c * 2][7] = y2[c] * x1[c];
+        A[c * 2][8] = y2[c] * y1[c];
+        A[c * 2][9] = y2[c];
+    }
+
+    // Use SVD to find the result
+    w = camAllocateVector(1, 9);
+    v = camAllocateMatrix(1, 9, 1, 9);
+    camSVD(A, nb_points * 2, 9, w, v);
+
+    // Find the smallest singular value
+    smallest = 1;
+    for (c = 2; c <= 9; c++)
+        if (w[c] < w[smallest]) smallest = c;
+    {
+        // Put back elements of v to H
+        int x, y;
+        for (y = 1; y <= 3; y++) 
+            for (x = 1; x <= 3; x++) {
+                H[y][x] = v[x + (y - 1) * 3][smallest];
+            }
+    }
+    camFreeMatrix(A, 1, nb_points * 2, 1, 9);
+    camFreeVector(w, 1, 9);
+    camFreeMatrix(v, 1, 9, 1, 9);
+    return 1;
+}
 
 

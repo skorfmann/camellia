@@ -2625,6 +2625,7 @@ double *camAllocateVector(int nl, int nh);
 int camFreeVector(double *v, int nl, int nh);
 double **camAllocateMatrix(int nrl, int nrh, int ncl, int nch);
 int camFreeMatrix(double **m, int nrl, int nrh, int ncl, int nch);
+int camFindHomography(double **H, double x1[], double y1[], double x2[], double y2[], int nb_points);
 
 #endif // SWIG
 
