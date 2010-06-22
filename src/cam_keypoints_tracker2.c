@@ -619,6 +619,7 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 	  else
 	    keypoint2.value = 0;
 	  previousIncreasingValue = increasingValue;
+	  printf("value1: %i value2: %i\n", keypoint1.value / (scale *scale), keypoint2.value/(scale*scale));
 	  if (max(abs(keypoint1.value), abs(keypoint2.value)) / (scale * scale) > abs(previousDetectorValue))
 	    increasingValue = TRUE;
 	  else
