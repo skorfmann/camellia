@@ -2532,6 +2532,7 @@ void camSetErrorFunct(camErrorFunct funct);
 //@{
 int camYUV2RGB(CamImage* source, CamImage *dest); ///< Converts a YUV image to a RGB image
 int camRGB2YUV(CamImage* source, CamImage *dest); ///< Converts a RGB image to a YUV image
+int camRGB2YUVFlip(CamImage* source, CamImage *dest); ///< Converts a RGB image to a YUV image (flip vertically the image)
 int camRGB2Y(CamImage *source, CamImage *dest);   ///< Converts a RGB image to a gray scale image
 int camRGB2HLS(CamImage* source, CamImage *dest); ///< Converts a RGB image to a HLS image
 //@}

@@ -16,7 +16,7 @@
 
   ==========================================================================
 
-    Copyright (c) 2002-2007, Ecole des Mines de Paris - Centre de Robotique
+    Copyright (c) 2002-2010, Ecole des Mines de Paris - Centre de Robotique
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -264,6 +264,90 @@ int camRGB2YUV(CamImage *source, CamImage *dest)
         yx+=dest->widthStep;
         ux+=dest->widthStep;
         vx+=dest->widthStep;
+    }
+    camInternalROIPolicyExit(&iROI);
+    return 1;
+}
+
+int camRGB2YUVFlip(CamImage *source, CamImage *dest)
+{
+    int x,y,width,height;
+    unsigned char *r, *g, *b;
+    unsigned char *rx,*gx,*bx;
+    unsigned char *yy, *u, *v;
+    unsigned char *yx,*ux,*vx;
+    CamInternalROIPolicyStruct iROI;
+    DECLARE_MASK_MANAGEMENT;  
+
+    CAM_CHECK_ARGS2(camRGB2YUV,source->imageData!=NULL,"source image is not allocated");
+    if (dest->imageData==NULL) {
+        // Automatic allocation
+        camAllocateYUVImage(dest,source->width,source->height);
+    }
+    CAM_CHECK(camRGB2YUV,camInternalROIPolicy(source, dest, &iROI, CAM_MASK_SUPPORT | CAM_IGNORE_COI_MISMATCH));
+    CAM_CHECK_ARGS(camRGB2YUV,source->nChannels>=3);
+    CAM_CHECK_ARGS(camRGB2YUV,dest->nChannels==3);
+    CAM_CHECK_ARGS(camRGB2YUV,source->dataOrder==CAM_DATA_ORDER_PIXEL);
+    CAM_CHECK_ARGS(camRGB2YUV,dest->dataOrder==CAM_DATA_ORDER_PLANE);
+    CAM_CHECK_ARGS(camRGB2YUV,source->depth==CAM_DEPTH_8U);
+    CAM_CHECK_ARGS(camRGB2YUV,dest->depth==CAM_DEPTH_8U);
+    CAM_CHECK_ARGS(camRGB2YUV,(*((int*)dest->colorModel)==*((int*)"YUV")));
+    CAM_CHECK_ARGS(camRGB2YUV,(*((int*)source->colorModel)==*((int*)"RGB"))||(*((int*)source->colorModel)==*((int*)"RGBA")));
+    
+    if (VB[0]==-1) camInitLUTRGB2YUV();
+    
+    width=iROI.srcroi.width;
+    height=iROI.srcroi.height;
+
+    INIT_MASK_MANAGEMENT;
+
+    if (*((int*)source->channelSeq)==*((int*)"BGR") || *((int*)source->channelSeq)==*((int*)"BGRA")) {
+        bx=(unsigned char*)iROI.srcptr;
+        gx=bx+1;
+        rx=bx+2;
+    } else if (*((int*)source->channelSeq)==*((int*)"GRB") || *((int*)source->channelSeq)==*((int*)"GRBA")) {
+        gx=(unsigned char*)iROI.srcptr;
+        rx=gx+1;
+        bx=gx+2;
+    } else { /* Assumes RGB */
+        rx=(unsigned char*)iROI.srcptr;
+        gx=rx+1;
+        bx=rx+2;
+    }
+    
+    yx=(unsigned char*)iROI.dstptr + dest->imageSize / 3 - dest->widthStep;
+    ux=yx+dest->imageSize/3;
+    vx=yx+2*dest->imageSize/3;
+    for (y=0;y<height;y++){
+        r=rx;b=bx;g=gx;
+        yy=yx;u=ux;v=vx;
+        
+	BEGIN_MASK_MANAGEMENT(
+	    r=rx+startx*iROI.srcinc;
+            b=bx+startx*iROI.srcinc;
+            g=gx+startx*iROI.srcinc;
+            yy=yx+startx;
+            u=ux+startx;
+            v=vx+startx;
+        )                                        
+
+            for (x=startx;x<endx;x++) {
+                *yy++ = ( YR[*r]  +YG[*g]+YB[*b]+1048576)>>16;
+                *u++  = (-UR[*r]  -UG[*g]+UBVR[*b]+8388608)>>16;
+                *v++  = ( UBVR[*r]-VG[*g]-VB[*b]+8388608)>>16;
+
+                r+=iROI.srcinc;
+                g+=iROI.srcinc;
+                b+=iROI.srcinc;
+            }
+	END_MASK_MANAGEMENT
+
+        rx+=source->widthStep;
+        gx+=source->widthStep;
+        bx+=source->widthStep;
+        yx-=dest->widthStep;
+        ux-=dest->widthStep;
+        vx-=dest->widthStep;
     }
     camInternalROIPolicyExit(&iROI);
     return 1;
