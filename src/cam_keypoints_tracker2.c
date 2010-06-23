@@ -63,7 +63,7 @@
 
 #define MAX_KERNEL_WIDTH	71
 #define NB_DECREASING_POINTS	3
-#define NB_POINTS_TO_TRACK	20
+#define NB_POINTS_TO_TRACK	30
 
 #define CAM_TRACKING2_KEYPOINTS
 #define CAM_TRACKING2_TIMINGS
@@ -602,7 +602,6 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
   for (i = 0 ; i < corners->allocated  ; ++i)
     {
       previousDetectorValue = 0;
-      printf("%i\n", i);
       if (abs(corners->keypoint[i]->angle) > 100)
 	{
 	  incX = 100.0f / (float)corners->keypoint[i]->angle;
@@ -1020,6 +1019,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
       else
 	{
 	  res->pairs[i].mark = 0;
+	  res->pairs[i].p1 = NULL;
+	  res->pairs[i].p2 = NULL;
 	  ++res->nbOutliers;
 	}
     }
@@ -1030,7 +1031,7 @@ void		cam_keypoints_tracking2_release_matches(CamKeypointsMatches *track)
 {
   register int	i;
 
-  for (i = 0 ; i < track->nbMatches ; ++i)
+  for (i = 0 ; i < track->nbMatches + track->nbOutliers ; ++i)
     {
       if (track->pairs[i].mark)
 	{
@@ -1076,23 +1077,24 @@ CamKeypointsMatches	*cam_keypoints_tracking2_associate_corner_matches_to_keypoin
       {
 	if (cornerMatches->pairs[i].mark)
 	  {
-	    res->pairs[j].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
-	    res->pairs[j].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
-	    res->pairs[j].mark = 1;
-	    memcpy(res->pairs[j].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
-	    memcpy(res->pairs[j].p2, features.keypoint[j], sizeof(CamKeypoint));
+	    res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	    res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
+	    res->pairs[i].mark = 1;
+	    memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
+	    memcpy(res->pairs[i].p2, features.keypoint[j], sizeof(CamKeypoint));
 	    ++j;
 	    ++res->nbMatches;
 	  }
 	else
 	  {
-	    res->pairs[j].mark = 0;
+	    res->pairs[i].mark = 0;
 	    ++res->nbOutliers;
 	  }
       }
     camFreeKeypoints(&corners);
     camFreeKeypoints(&features);
     cam_keypoints_tracking2_release_matches(cornerMatches);
+    camFreeKeypointsMatches(cornerMatches);
     free(cornerMatches);
     return (res);
 }
@@ -1203,7 +1205,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img2[] = "./resources/klt/img3.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
