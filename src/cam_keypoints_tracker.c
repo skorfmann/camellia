@@ -71,11 +71,10 @@ extern double camSigmaParam;
 //#define CAM_TRACKING_ONLY_SEEDS
 //#define CAM_TRACKING_MAX_ITER
 
-#ifdef CAM_TRACKING_TIMINGS
+#ifdef LINUX
 #include <sys/time.h>	// gettimeofday
-#endif
-#ifdef CAM_TRACKING_SUBTIMING
-#include <sys/time.h>	// gettimeofday
+#else
+#define inline
 #endif
 
 typedef	struct
@@ -717,9 +716,6 @@ void			cam_keypoints_tracking_compute_2by2_gradient_matrix(CamFloatImage *gradx,
 
   ptrgradx = gradx->data;
   ptrgrady = grady->data;
-  *gxx = 0.0;
-  *gxy = 0.0;
-  *gyy = 0.0;
   for (i = 0 ; i < width * height ; i++)
     {
       gx = *ptrgradx++;
@@ -757,11 +753,13 @@ TRACKING_STATUS	cam_keypoints_tracking_solve_mouvement_equation(float gxx, float
 {
   float det;
 
-  det = gxx*gyy - gxy*gxy;
+  det = 0.0f;
+  det = gxx * gyy - gxy * gxy;
 #ifdef CAM_TRACKING_DEBUG_2
   printf("gxx : %f gxy : %f gyy : %f det : %f\n", gxx, gxy, gyy, det);
 #endif
   if (det < small)
+  //  if (det < small)
     return (SMALL_DET);
   *dx = (gyy*ex - gxy*ey)/det;
   *dy = (gxx*ey - gxy*ex)/det;
@@ -826,6 +824,9 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
 
     cam_keypoints_tracking_compute_gradient_sum(gradx1, grady1, gradx2, grady2, x1, y1, *x2, *y2, width, height, &gradx, &grady);
 
+    gxx = 0.0f;
+    gxy = 0.0f;
+    gyy = 0.0f;
     cam_keypoints_tracking_compute_2by2_gradient_matrix(&gradx, &grady, width, height, &gxx, &gxy, &gyy);
     cam_keypoints_tracking_compute_2by1_error_vector(&imgdiff, &gradx, &grady, width, height, step_factor, &ex, &ey);
     

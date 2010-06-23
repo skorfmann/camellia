@@ -1,5 +1,5 @@
 /***************************************
- *
+SMain( *
  *  Camellia Image Processing Library
  *
 
