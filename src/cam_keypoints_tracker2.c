@@ -63,7 +63,7 @@
 
 #define MAX_KERNEL_WIDTH	71
 #define NB_DECREASING_POINTS	3
-#define NB_POINTS_TO_TRACK	30
+#define NB_POINTS_TO_TRACK	50
 
 #define CAM_TRACKING2_KEYPOINTS
 #define CAM_TRACKING2_TIMINGS
@@ -203,7 +203,7 @@ inline int	cam_keypoints_tracking2_compute_detector(CamImage *integralImage, Cam
   return (res);
 }
 
-void		cam_keypoints_tracking_free_linked_list(CamList *l)
+void		cam_keypoints_tracking2_free_linked_list(CamList *l)
 {
   CamList	*ptr;
 
@@ -216,7 +216,7 @@ void		cam_keypoints_tracking_free_linked_list(CamList *l)
     }
 }
 
-inline CamList	*cam_keypoints_tracking_add_to_linked_list(CamList *l, void *data)
+inline CamList	*cam_keypoints_tracking2_add_to_linked_list(CamList *l, void *data)
 {
   CamList	*head;
 
@@ -230,14 +230,14 @@ inline CamList	*cam_keypoints_tracking_add_to_linked_list(CamList *l, void *data
   return (head);
 }
 
-void	CamAllocateFloatImage(CamFloatImage *res, int ncols, int nrows)
+void	cam_keypoints_tracking2_allocate_float_image(CamFloatImage *res, int ncols, int nrows)
 {
   res->nrows = nrows;
   res->ncols = ncols;
   res->data = (float *)malloc(ncols * nrows * sizeof(float));
 }
 
-void	CamDisallocateFloatImage(CamFloatImage *res)
+void	cam_keypoints_tracking2_disallocate_float_image(CamFloatImage *res)
 {
   res->ncols = 0;
   res->nrows = 0;
@@ -319,13 +319,13 @@ void		cam_keypoints_tracking_free_context(CamTrackingContext *tc)
     {
       for (i = 0 ; i < tc->pyramidImages->nbLevels ; ++i)
 	{
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->gradX);
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->gradY);
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img1->image);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img1->gradX);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img1->gradY);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img1->image);
 	  free(tc->pyramidImages->levels[i].img1);
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->gradX);
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->gradY);
-	  CamDisallocateFloatImage(&tc->pyramidImages->levels[i].img2->image);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img2->gradX);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img2->gradY);
+	  cam_keypoints_tracking2_disallocate_float_image(&tc->pyramidImages->levels[i].img2->image);
 	  free(tc->pyramidImages->levels[i].img2);
 	}
       free(tc->pyramidImages->levels);
@@ -387,13 +387,13 @@ void			cam_keypoint_tracking2_configure_context(CamTrackingContext *tc, int nbFe
 	{
 	  tc->pyramidImages->levels[i].scale = (int)ptr->data;
 	  tc->pyramidImages->levels[i].img1 = (pyramidLevel*)malloc(sizeof(pyramidLevel));
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img1->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img1->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img1->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img1->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
 	  tc->pyramidImages->levels[i].img2 = (pyramidLevel*)malloc(sizeof(pyramidLevel));
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
-	  CamAllocateFloatImage(&tc->pyramidImages->levels[i].img2->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img2->gradX, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img2->gradY, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
+	  cam_keypoints_tracking2_allocate_float_image(&tc->pyramidImages->levels[i].img2->image, image->width / tc->pyramidImages->levels[i].scale, image->height / tc->pyramidImages->levels[i].scale);
 	}
     }
 }
@@ -489,10 +489,10 @@ void		cam_keypoints_tracking2_convolve_separate(CamFloatImage *imgin, CamConvolu
 {
   CamFloatImage	tmpimg;
 
-  CamAllocateFloatImage(&tmpimg, imgin->ncols, imgin->nrows);
+  cam_keypoints_tracking2_allocate_float_image(&tmpimg, imgin->ncols, imgin->nrows);
   cam_keypoints_tracking2_convolve_horiz(imgin, horiz_kernel, &tmpimg);
   cam_keypoints_tracking2_convolve_vert(&tmpimg, vert_kernel, imgout);
-  CamDisallocateFloatImage(&tmpimg);
+  cam_keypoints_tracking2_disallocate_float_image(&tmpimg);
 }
 
 void	cam_keypoints_tracking2_compute_gradients(CamFloatImage *img, CamFloatImage *gradx, CamFloatImage *grady, CamConvolutionKernel *gauss_kernel, CamConvolutionKernel *gaussderiv_kernel)
@@ -904,9 +904,9 @@ TRACKING_STATUS		cam_keypoints_tracking2_compute_local_image_displacement(float 
   nr = img1->nrows;
   one_plus_eps = 1.001f;
 
-  CamAllocateFloatImage(&imgdiff, width, height);
-  CamAllocateFloatImage(&gradx, width, height);
-  CamAllocateFloatImage(&grady, width, height);
+  cam_keypoints_tracking2_allocate_float_image(&imgdiff, width, height);
+  cam_keypoints_tracking2_allocate_float_image(&gradx, width, height);
+  cam_keypoints_tracking2_allocate_float_image(&grady, width, height);
     
   do  {
 
@@ -943,9 +943,9 @@ TRACKING_STATUS		cam_keypoints_tracking2_compute_local_image_displacement(float 
   if (iteration == 10)
     status = MAX_ITERATIONS;
 
-  CamDisallocateFloatImage(&imgdiff);
-  CamDisallocateFloatImage(&gradx);
-  CamDisallocateFloatImage(&grady);
+  cam_keypoints_tracking2_disallocate_float_image(&imgdiff);
+  cam_keypoints_tracking2_disallocate_float_image(&gradx);
+  cam_keypoints_tracking2_disallocate_float_image(&grady);
   return (status);
 }
 
@@ -1205,7 +1205,7 @@ void			test_cam_keypoints_tracking2()
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img3.bmp";
+  char			img2[] = "./resources/klt/img2.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS
@@ -1225,11 +1225,11 @@ void			test_cam_keypoints_tracking2()
   camDeallocateImage(&modelImage);
 
   scales = NULL;
-  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)1);
-  scales = cam_keypoints_tracking_add_to_linked_list(scales, (void*)4);
+  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)1);
+  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)4);
   
   cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, 7, 7, 3, 3, 3, scales, &firstImage);
-  cam_keypoints_tracking_free_linked_list(scales);
+  cam_keypoints_tracking2_free_linked_list(scales);
 
 #ifdef CAM_TRACKING2_TIMINGS
   t1 = camGetTimeMs();
