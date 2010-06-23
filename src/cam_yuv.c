@@ -279,7 +279,7 @@ int camRGB2YUVFlip(CamImage *source, CamImage *dest)
     CamInternalROIPolicyStruct iROI;
     DECLARE_MASK_MANAGEMENT;  
 
-    CAM_CHECK_ARGS2(camRGB2YUV,source->imageData!=NULL,"source image is not allocated");
+    CAM_CHECK_ARGS2(camRGB2YUVFlip,source->imageData!=NULL,"source image is not allocated");
     if (dest->imageData==NULL) {
         // Automatic allocation
         camAllocateYUVImage(dest,source->width,source->height);
