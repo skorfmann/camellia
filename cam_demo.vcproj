@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="cam_demo"
-	ProjectGUID="{AB39C584-9CA4-4DF3-817C-6E558E45818F}"
+	ProjectGUID="{2D5DB43C-81DB-48A4-8E28-7D79E239E0F2}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -21,7 +21,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions=" /Zm1000"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				BasicRuntimeChecks="3"
 				CompileAs="2"
 				DebugInformationFormat="3"
@@ -34,13 +34,13 @@
 				PreprocessorDefinitions="WIN32,_WINDOWS,_DEBUG,CMAKE_INTDIR=\&quot;Debug\&quot;"
 				AssemblerListingLocation="Debug"
 				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/Debug/cam_demo.pdb"
+				ProgramDataBaseFileName="F:/Workspace/camellia/trunk/Debug/cam_demo.pdb"
 />
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				PreprocessorDefinitions="WIN32,_WINDOWS,_DEBUG,CMAKE_INTDIR=\&quot;Debug\&quot;"/>
 			<Tool
 				Name="VCMIDLTool"
@@ -65,14 +65,14 @@
 				LinkLibraryDependencies="false"
 				AdditionalOptions=" /STACK:10000000 /machine:I386 /debug"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\Debug\camellia.lib winmm.lib "
-				OutputFile="C:\home\steux\CamelliaLib-2.8.0\Debug\cam_demo.exe"
+				OutputFile="F:\Workspace\camellia\trunk\Debug\cam_demo.exe"
 				Version="0.0"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
-				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/Debug/cam_demo.pdb"
+				ProgramDataBaseFile="F:/Workspace/camellia/trunk/Debug/cam_demo.pdb"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"
-				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\Debug\cam_demo.lib"/>
+				ImportLibrary="F:\Workspace\camellia\trunk\Debug\cam_demo.lib"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -85,7 +85,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions=" /Zm1000"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				CompileAs="2"
 				ExceptionHandling="1"
 				InlineFunctionExpansion="2"
@@ -96,13 +96,13 @@
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;Release\&quot;"
 				AssemblerListingLocation="Release"
 				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/Release/cam_demo.pdb"
+				ProgramDataBaseFileName="F:/Workspace/camellia/trunk/Release/cam_demo.pdb"
 />
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;Release\&quot;"/>
 			<Tool
 				Name="VCMIDLTool"
@@ -127,13 +127,13 @@
 				LinkLibraryDependencies="false"
 				AdditionalOptions=" /STACK:10000000 /machine:I386"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\Release\camellia.lib winmm.lib "
-				OutputFile="C:\home\steux\CamelliaLib-2.8.0\Release\cam_demo.exe"
+				OutputFile="F:\Workspace\camellia\trunk\Release\cam_demo.exe"
 				Version="0.0"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=""
-				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/Release/cam_demo.pdb"
+				ProgramDataBaseFile="F:/Workspace/camellia/trunk/Release/cam_demo.pdb"
 				SubSystem="1"
-				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\Release\cam_demo.lib"/>
+				ImportLibrary="F:\Workspace\camellia\trunk\Release\cam_demo.lib"/>
 		</Configuration>
 		<Configuration
 			Name="MinSizeRel|Win32"
@@ -146,7 +146,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions=" /Zm1000"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				CompileAs="2"
 				ExceptionHandling="1"
 				InlineFunctionExpansion="1"
@@ -157,13 +157,13 @@
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"
 				AssemblerListingLocation="MinSizeRel"
 				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/MinSizeRel/cam_demo.pdb"
+				ProgramDataBaseFileName="F:/Workspace/camellia/trunk/MinSizeRel/cam_demo.pdb"
 />
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;MinSizeRel\&quot;"/>
 			<Tool
 				Name="VCMIDLTool"
@@ -188,13 +188,13 @@
 				LinkLibraryDependencies="false"
 				AdditionalOptions=" /STACK:10000000 /machine:I386"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\MinSizeRel\camellia.lib winmm.lib "
-				OutputFile="C:\home\steux\CamelliaLib-2.8.0\MinSizeRel\cam_demo.exe"
+				OutputFile="F:\Workspace\camellia\trunk\MinSizeRel\cam_demo.exe"
 				Version="0.0"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=""
-				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/MinSizeRel/cam_demo.pdb"
+				ProgramDataBaseFile="F:/Workspace/camellia/trunk/MinSizeRel/cam_demo.pdb"
 				SubSystem="1"
-				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\MinSizeRel\cam_demo.lib"/>
+				ImportLibrary="F:\Workspace\camellia\trunk\MinSizeRel\cam_demo.lib"/>
 		</Configuration>
 		<Configuration
 			Name="RelWithDebInfo|Win32"
@@ -207,7 +207,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions=" /Zm1000"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				CompileAs="2"
 				DebugInformationFormat="3"
 				ExceptionHandling="1"
@@ -219,13 +219,13 @@
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"
 				AssemblerListingLocation="RelWithDebInfo"
 				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="C:/home/steux/CamelliaLib-2.8.0/RelWithDebInfo/cam_demo.pdb"
+				ProgramDataBaseFileName="F:/Workspace/camellia/trunk/RelWithDebInfo/cam_demo.pdb"
 />
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				AdditionalIncludeDirectories="C:\home\steux\CamelliaLib-2.8.0\inc;"
+				AdditionalIncludeDirectories="F:\Workspace\camellia\trunk\inc;"
 				PreprocessorDefinitions="WIN32,_WINDOWS,NDEBUG,CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;"/>
 			<Tool
 				Name="VCMIDLTool"
@@ -250,53 +250,53 @@
 				LinkLibraryDependencies="false"
 				AdditionalOptions=" /STACK:10000000 /machine:I386 /debug"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  src\RelWithDebInfo\camellia.lib winmm.lib "
-				OutputFile="C:\home\steux\CamelliaLib-2.8.0\RelWithDebInfo\cam_demo.exe"
+				OutputFile="F:\Workspace\camellia\trunk\RelWithDebInfo\cam_demo.exe"
 				Version="0.0"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
-				ProgramDataBaseFile="C:/home/steux/CamelliaLib-2.8.0/RelWithDebInfo/cam_demo.pdb"
+				ProgramDataBaseFile="F:/Workspace/camellia/trunk/RelWithDebInfo/cam_demo.pdb"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"
-				ImportLibrary="C:\home\steux\CamelliaLib-2.8.0\RelWithDebInfo\cam_demo.lib"/>
+				ImportLibrary="F:\Workspace\camellia\trunk\RelWithDebInfo\cam_demo.lib"/>
 		</Configuration>
 	</Configurations>
 	<Files>
 			<File
-				RelativePath="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt">
+				RelativePath="F:\Workspace\camellia\trunk\CMakeLists.txt">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 					Name="VCCustomBuildTool"
-					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
-					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
-					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Description="Building Custom Rule F:/Workspace/camellia/trunk/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files (x86)\CMake 2.8\bin\cmake.exe&quot; -HF:/Workspace/camellia/trunk -BF:/Workspace/camellia/trunk --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="F:\Workspace\camellia\trunk\CMakeLists.txt;F:\Workspace\camellia\trunk\CMakeFiles\CMakeSystem.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCCompiler.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCPlatform.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;F:\Workspace\camellia\trunk\CMakeLists.txt;"
 					Outputs="CMakeFiles\generate.stamp"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 					Name="VCCustomBuildTool"
-					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
-					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
-					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Description="Building Custom Rule F:/Workspace/camellia/trunk/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files (x86)\CMake 2.8\bin\cmake.exe&quot; -HF:/Workspace/camellia/trunk -BF:/Workspace/camellia/trunk --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="F:\Workspace\camellia\trunk\CMakeLists.txt;F:\Workspace\camellia\trunk\CMakeFiles\CMakeSystem.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCCompiler.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCPlatform.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;F:\Workspace\camellia\trunk\CMakeLists.txt;"
 					Outputs="CMakeFiles\generate.stamp"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="MinSizeRel|Win32">
 					<Tool
 					Name="VCCustomBuildTool"
-					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
-					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
-					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Description="Building Custom Rule F:/Workspace/camellia/trunk/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files (x86)\CMake 2.8\bin\cmake.exe&quot; -HF:/Workspace/camellia/trunk -BF:/Workspace/camellia/trunk --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="F:\Workspace\camellia\trunk\CMakeLists.txt;F:\Workspace\camellia\trunk\CMakeFiles\CMakeSystem.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCCompiler.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCPlatform.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;F:\Workspace\camellia\trunk\CMakeLists.txt;"
 					Outputs="CMakeFiles\generate.stamp"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="RelWithDebInfo|Win32">
 					<Tool
 					Name="VCCustomBuildTool"
-					Description="Building Custom Rule C:/home/steux/CamelliaLib-2.8.0/CMakeLists.txt"
-					CommandLine="&quot;C:\Program Files\CMake 2.8\bin\cmake.exe&quot; -HC:/home/steux/CamelliaLib-2.8.0 -BC:/home/steux/CamelliaLib-2.8.0 --check-stamp-file CMakeFiles/generate.stamp"
-					AdditionalDependencies="C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeSystem.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCCompiler.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCPlatform.cmake;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;C:\home\steux\CamelliaLib-2.8.0\CMakeLists.txt;"
+					Description="Building Custom Rule F:/Workspace/camellia/trunk/CMakeLists.txt"
+					CommandLine="&quot;C:\Program Files (x86)\CMake 2.8\bin\cmake.exe&quot; -HF:/Workspace/camellia/trunk -BF:/Workspace/camellia/trunk --check-stamp-file CMakeFiles/generate.stamp"
+					AdditionalDependencies="F:\Workspace\camellia\trunk\CMakeLists.txt;F:\Workspace\camellia\trunk\CMakeFiles\CMakeSystem.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCCompiler.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeSystemSpecificInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeGenericSystem.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\gcc.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\WindowsPaths.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\Windows-cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCPlatform.cmake;F:\Workspace\camellia\trunk\CMakeFiles\CMakeCXXPlatform.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\Platform\cl.cmake&quot;;F:\Workspace\camellia\trunk\CMakeFiles\CMakeRCCompiler.cmake;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeRCInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCXXInformation.cmake&quot;;&quot;C:\Program Files (x86)\CMake 2.8\share\cmake-2.8\Modules\CMakeCommonLanguageInclude.cmake&quot;;F:\Workspace\camellia\trunk\CMakeLists.txt;"
 					Outputs="CMakeFiles\generate.stamp"/>
 				</FileConfiguration>
 			</File>
@@ -304,7 +304,7 @@
 			Name="Source Files"
 			Filter="">
 			<File
-				RelativePath="C:\home\steux\CamelliaLib-2.8.0\cam_demo.c">
+				RelativePath="F:\Workspace\camellia\trunk\cam_demo.c">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -335,7 +335,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="C:\home\steux\CamelliaLib-2.8.0\cam_demo_cpp.cpp">
+				RelativePath="F:\Workspace\camellia\trunk\cam_demo_cpp.cpp">
 			</File>
 		</Filter>
 	</Files>

@@ -1042,8 +1042,8 @@ void example_keypoints()
     int i;
     int c, t1, t2;
     const int x = 8;
-    char str[256];
-    FILE *handle;
+//    char str[256];
+//    FILE *handle;
     int angle;
     double costheta;
     double sintheta;
@@ -1329,6 +1329,82 @@ void example_recursive_keypoints()
     camFreeKeypoints(&points2);
 }
 
+#define strElmnt_size 5
+void example_dilation(){
+    CamImage source, decode_dilated_rle, str, source_binary;
+    CamRLEImage encoded, dilated, strElmnt;
+	CamArithmParams arithm_params;
+    int x, y;
+	//pointer on str elements
+	char* ptr;
+	CamTable lut;
+	
+	char structElt[strElmnt_size][strElmnt_size];
+
+	for(x=0;x<strElmnt_size;x++){
+		for(y=0;y<strElmnt_size;y++){
+			structElt[x][y] = 1;
+		}
+	}
+	lut.t[0]=0; 
+	lut.t[1]=255;
+	lut.size = 2;
+	//load test image
+	camLoadPGM(&source,"resources/test_lettres.pgm");
+    camAllocateImage(&source_binary,source.width,source.height,CAM_DEPTH_1U);
+    arithm_params.operation=CAM_ARITHM_THRESHOLD;
+    arithm_params.c1=55;
+    arithm_params.c2=0;
+    arithm_params.c3=255;
+    camMonadicArithm(&source,&source_binary,&arithm_params);
+    //camSavePGM(&source_binary,"output/lettres_binary.pgm");
+	//allocate needed RLE images
+	camRLEAllocate(&encoded,source.width*source.height);
+	camRLEAllocate(&dilated,source.width*source.height);
+	camRLEAllocate(&strElmnt, strElmnt_size*strElmnt_size);
+	//allocate needed images
+	camAllocateImage(&str, strElmnt_size, strElmnt_size, CAM_DEPTH_1U);
+	camAllocateImage(&decode_dilated_rle, source.width, source.height, CAM_DEPTH_8U);
+	//create structurine element
+	str.nChannels = 1;
+	for(x=0; x<strElmnt_size; x++){
+		for(y=0; y<strElmnt_size; y++){
+			ptr = str.imageData + y*str.widthStep + x;
+			*ptr = 255*structElt[x][y];
+		}
+	}
+	//encode images in RLE
+	camRLEEncode(&source_binary,&encoded);
+	camRLEEncode(&source_binary,&dilated);
+	camRLEEncode(&str, &strElmnt);
+	//printf("strElement nbRuns : %d\n", strElmnt.nbRuns);
+	
+	//dilation
+	camRLEDilate(&encoded, &dilated, &strElmnt);
+	//camRLEDecode(&encoded, &decode_dilated_rle, &lut);
+	//camSavePGM(&decode_dilated_rle, "output/source_rle.pgm");
+	//decoding and saving images
+	printf("nbRuns encoded : %d\n", encoded.nbRuns);
+	printf("nbRuns dilated : %d\n", dilated.nbRuns);
+	printf("nbRuns strElmnt : %d\n", strElmnt.nbRuns);
+	//printf("dilated.width : %d\n", dilated.width);
+
+	
+	camRLEDecode(&dilated, &decode_dilated_rle, &lut);
+	camSavePGM(&decode_dilated_rle, "output/dilated.pgm");
+	//camSavePGM(&str, "output/structElt.pgm");
+	camClone(&source, &decode_dilated_rle);
+	//deallocate images and RLE images
+    camRLEDeallocate(&encoded);
+	camRLEDeallocate(&dilated);
+	camRLEDeallocate(&strElmnt);
+    camDeallocateImage(&source);
+	camDeallocateImage(&str);
+	camDeallocateImage(&decode_dilated_rle);
+	camDeallocateImage(&source_binary);
+	printf("Quit!!\n");
+}
+
 void cpp_example_erosion();
 void cpp_example_mask();
 void cpp_example_labeling();
@@ -1347,17 +1423,19 @@ int main()
 {
     camInitBenchmark();
 
-    // Tracking examples
-    test_cam_keypoints_tracking();
+	// Tracking examples
+    //test_cam_keypoints_tracking();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();
-    
+    //example_morpho();
+	example_dilation();
+	//example_binary();
     // Legacy examples
     /*
     example_filters();
     example_warping();
-    example_binary();
+ 
     example_morpho();
     example_draw();
     example_watershed();
@@ -1379,7 +1457,8 @@ int main()
     example_capture();
     example_bmp();
     example_jpeg();*/
-
+	*/
+/*
     // C++ reference examples
     /*    cpp_example_mask();
     cpp_example_erosion();

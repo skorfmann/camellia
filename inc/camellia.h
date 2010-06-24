@@ -1021,7 +1021,7 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 typedef struct {
     CAM_RLE_INT_TYPE x;		///< The starting position of the run (the line number when length is 0)
     CAM_RLE_INT_TYPE length;    ///< The length of the run (in pixels)
-    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents     
+    CAM_RLE_INT_TYPE value;	///< Which color(s) this run represents 
     CAM_RLE_INT_TYPE blob;	///< Run's parent in the connected components tree, which becomes the blob number after labeling
 } CamRun;
 
@@ -1340,6 +1340,15 @@ int camRLEErode3x3(CamRLEImage *image, CamRLEImage *result);
  *  \return	    0 (false) if an error occurs.
  */
 int camRLEErode3x2(CamRLEImage *image, CamRLEImage *result);
+
+/// RLE image dilation
+/**
+ *  \param source    The source ::CamRLEImage.
+ *  \param dest   The destination ::CamRLEImage
+ *  \param strElement   The structural element ::CamRLEImage
+ *  \return	    0 (false) if an error occurs.
+ */
+int camRLEDilate(CamRLEImage *source, CamRLEImage *dest, CamRLEImage *strElement);
 
 //@}
 
@@ -2636,4 +2645,3 @@ int camMatrixVectorMultiply(double **A, double *b, int M, int N, double *c);
 #endif
 
 #endif
-

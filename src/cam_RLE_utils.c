@@ -162,7 +162,7 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     int nbRuns=src->nbRuns;
     int width, height, value;
     CamInternalROIPolicyStruct iROI;
-
+	//printf("src.width : %d, dest.width : %d\n", src->width, dest->width);
     CAM_CHECK_ARGS(camRLEDecode, src != NULL);
     CAM_CHECK_ARGS(camRLEDecode, dest != NULL);
     if ((src->runs == NULL)||(src->nbRuns == 0)) return 0;
@@ -170,8 +170,9 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     if (dest->imageData==NULL) {
         if (!camAllocateImage(dest,src->width,src->height,CAM_DEPTH_8U)) return 0;
     }
-
+	
     // ROI (Region Of Interest) management
+
     CAM_CHECK(camRLEDecode, camInternalROIPolicy(dest, NULL, &iROI, 0));
     CAM_CHECK_ARGS(camRLEDecode, ((dest->depth&CAM_DEPTH_MASK)==(sizeof(CAM_PIXEL)*8)));
     width=iROI.srcroi.width;
@@ -179,30 +180,33 @@ int camRLEDecode(CamRLEImage *src, CamImage *dest, CamLUT *LUT)
     if (iROI.nChannels!=1) {
         CAM_CHECK_ARGS(camRLEDecode, (dest->dataOrder==CAM_DATA_ORDER_PIXEL));
     }
+	
     CAM_CHECK_ARGS(camRLEDecode, src->width==width);
     CAM_CHECK_ARGS(camRLEDecode, src->height==height);
-
     ptr=(CAM_PIXEL*)iROI.srcptr;
     for (i=1,l=0,k=0;i<nbRuns;i++,in++) {
-	if (LUT) {
-	    if (in->value<CAM_TABLE_SIZE) {
-		value=LUT->t[in->value];
-	    } else value=0;
-	} else {
-	    value=in->value;
-	}
-        for (j=0;j<in->length;j++) {
-            for (m=0;m<iROI.nChannels;m++) {
-                ptr[k+m]=(value>>(m<<3));
-            }
-            k+=iROI.srcinc;
-        }
-        l+=in->length;
-        if (l==src->width) {
-            l=0;
-            k=0;
-            ptr+=iROI.srclinc;
-        }
+		if (LUT) {
+			if (in->value<CAM_TABLE_SIZE) {
+			value=LUT->t[in->value];
+			} 
+			else value=0;
+		} 
+		else {
+			value=in->value;
+		}
+		
+		for (j=0;j<in->length;j++) {
+			for (m=0;m<iROI.nChannels;m++) {
+				  ptr[k+m]=(value>>(m<<3));
+			}
+			k+=iROI.srcinc;
+		}
+		l+=in->length;
+		if (l==src->width) {
+			l=0;
+			k=0;
+			ptr+=iROI.srclinc;
+		}
     }
 
     return 1;
