@@ -62,10 +62,25 @@
 #define min(a, b) (a > b ? b : a)
 
 #define MAX_KERNEL_WIDTH	71
+
+/* nombre de points successivement décroissant pour la recherche du maximum local en échelle */
 #define NB_DECREASING_POINTS	3
+
+/* nombre de points à tracker */
 #define NB_POINTS_TO_TRACK	50
 
-//#define CAM_TRACKING2_KEYPOINTS
+/* taille de la fenetre sur laquelle les gradients sont calculés */
+#define RESARCH_WINDOW_HEIGHT	5
+#define RESARCH_WINDOW_WIDTH	5
+
+/* échelle (par rapport à l'échele la plus élevée) à laquelle la recherche de la position du keypoint est faite */
+#define	CORNER_SEARCH_SCALE	1
+
+/* recherche de l'échelle ou non des corners */
+#define CAM_TRACKING2_KEYPOINTS
+
+/* timing level of details */
+#define CAM_TRACKING2_TIMINGS2
 #define CAM_TRACKING2_TIMINGS
 
 typedef enum
@@ -538,33 +553,33 @@ int		cam_keypoints_tracking2_position_filter(CamTrackingContext *tc, CamKeypoint
   register int	i;
   int		ncols;
   int		nrows;
-  int		found;
+  int		nbFound;
   int		borderX;
   int		borderY;
 
   ncols = tc->pyramidImages->levels[scaleIndex].img1->image.ncols;
   nrows = tc->pyramidImages->levels[scaleIndex].img1->image.nrows;
-  found = 0;
+  nbFound = 0;
   borderX = tc->b.borderX / tc->pyramidImages->levels[scaleIndex].scale;
   borderY = tc->b.borderY / tc->pyramidImages->levels[scaleIndex].scale;
   minDistance /= tc->pyramidImages->levels[scaleIndex].scale;
-  for (i = 0 ; i < (ncols - 2 * borderX) * (nrows - 2 * borderY) && found < tc->nbFeatures ; ++i)
+  for (i = 0 ; i < (ncols - 2 * borderX) * (nrows - 2 * borderY) / (CORNER_SEARCH_SCALE * CORNER_SEARCH_SCALE) && nbFound < tc->nbFeatures ; ++i)
     {
-      if (!pointsList[(sortedPointsList[i].y - borderY) * (ncols- 2 * borderX) + (sortedPointsList[i].x - borderX)].value)
+      if (!pointsList[((sortedPointsList[i].y - borderY) / CORNER_SEARCH_SCALE) * ((ncols - 2 * borderX) / CORNER_SEARCH_SCALE) + (sortedPointsList[i].x - borderX) / CORNER_SEARCH_SCALE].value)
 	{
 	  sortedPointsList[i].value = 0;
 	  continue ;
 	}
       for (y = max(borderY, sortedPointsList[i].y - minDistance / 2) ; y < min(nrows - borderY, sortedPointsList[i].y + 1 + minDistance / 2) ; ++y)
 	{
-	  for (x = max(borderX, sortedPointsList[i].x - minDistance / 2) ; x < min(ncols - borderX, sortedPointsList[i].x + 1 + minDistance / 2) ; ++x)
+	  for (x = max(borderX, (sortedPointsList[i].x - minDistance / 2)) ; x < min(ncols - borderX, sortedPointsList[i].x + 1 + minDistance / 2) ; ++x)
 	    {
-	      pointsList[(y - borderY) * (ncols - 2 * borderX) + (x - borderX)].value = 0;
+	      pointsList[((y - borderY) / CORNER_SEARCH_SCALE) * ((ncols - 2 * borderX) / CORNER_SEARCH_SCALE) + ((x - borderX) / CORNER_SEARCH_SCALE)].value = 0;
 	    }
 	}
-      ++found;
+      ++nbFound;
     }
-  return (found);
+  return (nbFound);
 }
 
 inline BOOL	cam_keypoints_tracking2_is_in_range(CamImage *image, CamKeypointShort *point)
@@ -690,21 +705,29 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
   register int			i;
   register int			j;
   int				scaleIndex;
+#ifdef CAM_TRACKING2_TIMINGS2
+  int				t1;
+  int				t2;
+  int				t3;
+#endif
 
-  scaleIndex = 1;//tc->pyramidImages->nbLevels - 1;
+  scaleIndex = tc->pyramidImages->nbLevels - 1;
   borderX = tc->b.borderX / tc->pyramidImages->levels[scaleIndex].scale;
   borderY = tc->b.borderY / tc->pyramidImages->levels[scaleIndex].scale;
   window_hh = tc->rw.height / 2;
   window_hw = tc->rw.width / 2;
   ncols = tc->pyramidImages->levels[scaleIndex].img1->image.ncols;
   nrows = tc->pyramidImages->levels[scaleIndex].img1->image.nrows;
-  pointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) * sizeof(CamKeypointShort));
-  sortedPointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) * sizeof(CamKeypointShort));
+  pointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) / (CORNER_SEARCH_SCALE * CORNER_SEARCH_SCALE) * sizeof(CamKeypointShort));
+  sortedPointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) / (CORNER_SEARCH_SCALE * CORNER_SEARCH_SCALE) * sizeof(CamKeypointShort));
   ptr = pointsList;
   nbPoints = 0;
-  for (y = borderY ; y < nrows - borderY ; ++y)
+#ifdef CAM_TRACKING2_TIMINGS2
+  t1 = camGetTimeMs();
+#endif
+  for (y = borderY ; y < nrows - borderY ; y += CORNER_SEARCH_SCALE)
     {
-      for (x = borderX ; x < ncols - borderX ; ++x)
+      for (x = borderX ; x < ncols - borderX ; x += CORNER_SEARCH_SCALE)
 	{
 	  gxx = 0.0f;
 	  gxy = 0.0f;
@@ -720,11 +743,11 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
 		  gyy += gy * gy;
 		}
 	    }
-	  ptr->x = x;
-	  ptr->y = y;
 	  val = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
 	  if (val > (float)INT_MAX)
 	    val = (float)INT_MAX;
+	  ptr->x = x;
+	  ptr->y = y;
 	  ptr->value = (int)val;
 	  ptr->scale = 4;
 	  ptr->angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
@@ -733,7 +756,21 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
 	}
     }
   memcpy(sortedPointsList, pointsList, nbPoints * sizeof(CamKeypointShort));
+#ifdef CAM_TRACKING2_TIMINGS2
+  t2 = camGetTimeMs();
+  printf("Eigen values : %ims\n", t2 - t1);
+#endif
   qsort(sortedPointsList, nbPoints, sizeof(CamKeypointShort), camSortKeypointsShort);
+#ifdef CAM_TRACKING2_TIMINGS2
+  t3 = camGetTimeMs();
+  printf("Qsort : %ims\n", t3 - t2);
+#endif
+  printf("%i\n", nbPoints);
+  for (i = 0 ; i < 100 ; ++i)
+    {
+      printf("%i %i %i\n", sortedPointsList[i].x, sortedPointsList[i].y, sortedPointsList[i].value);
+    }
+  printf("=========================\n");
   nbFound = cam_keypoints_tracking2_position_filter(tc, pointsList, sortedPointsList, nbPoints, 29, scaleIndex);
   for (i = 0 , j = 0 ; j < min(nbFound, tc->nbFeatures) ; ++i)
     {
@@ -742,6 +779,7 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
 	  tc->previousCorners->keypoint[j] = &tc->previousCorners->bag[j];
 	  sortedPointsList[i].x *= tc->pyramidImages->levels[scaleIndex].scale;
 	  sortedPointsList[i].y *= tc->pyramidImages->levels[scaleIndex].scale;
+	  //printf("%i %i %i\n", sortedPointsList[i].x, sortedPointsList[i].y, sortedPointsList[i].value);
 	  memcpy(&tc->previousCorners->keypoint[j]->x, &sortedPointsList[i], sizeof(CamKeypointShort));
 	  ++j;
 	}
@@ -1097,6 +1135,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2_associate_corner_matches_to_keypoin
       }
     camFreeKeypoints(&corners);
     camFreeKeypoints(&features);
+    /* insert em in the context ! */
     cam_keypoints_tracking2_release_matches(cornerMatches);
     camFreeKeypointsMatches(cornerMatches);
     free(cornerMatches);
@@ -1240,10 +1279,10 @@ void			test_cam_keypoints_tracking2()
   camDeallocateImage(&modelImage);
 
   scales = NULL;
-  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)2);
+  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)1);
   scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)4);
   
-  cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, 7, 7, 3, 3, 3, scales, &firstImage);
+  cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, RESARCH_WINDOW_HEIGHT, RESARCH_WINDOW_WIDTH, 3, 3, 3, scales, &firstImage);
   cam_keypoints_tracking2_free_linked_list(scales);
 
 #ifdef CAM_TRACKING2_TIMINGS
