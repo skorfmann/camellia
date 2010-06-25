@@ -1424,12 +1424,12 @@ int main()
     camInitBenchmark();
 
 	// Tracking examples
-    //test_cam_keypoints_tracking();
+    test_cam_keypoints_tracking2();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();
     //example_morpho();
-	example_dilation();
+    //example_dilation();
 	//example_binary();
     // Legacy examples
     /*
@@ -1457,7 +1457,6 @@ int main()
     example_capture();
     example_bmp();
     example_jpeg();*/
-	*/
 /*
     // C++ reference examples
     /*    cpp_example_mask();

@@ -65,7 +65,7 @@ extern double camSigmaParam;
 #define MAX_KERNEL_WIDTH 71
 
 //#define CAM_TRACKING_SUBTIMING
-//#define CAM_TRACKING_TIMINGS
+#define CAM_TRACKING_TIMINGS
 //#define	CAM_TRACKING_DEBUG_4
 //#define	CAM_TRACKING_DEBUG_3
 ///#define	CAM_TRACKING_DEBUG_2
