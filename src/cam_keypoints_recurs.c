@@ -25,7 +25,8 @@ int camKeypointOrientation(CamImage *source, CamKeypointShort *point, CamImage *
 int camSortKeypointsShort(const void *p1x, const void *p2x);
 int camBuildGaussianFilter(CamImage *image, double sigma);
 
-int camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options)
+int
+camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options)
 {
     CamImage filter;
     CamInternalROIPolicyStruct iROI;

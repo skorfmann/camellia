@@ -670,7 +670,7 @@ int camDecompressJPEG(char *jpeg, CamImage *dest, int jpeg_size)
 
     jpeg_memory_src(&_dcinfo, &mySourceMgr, jpeg, jpeg_size);
     jpeg_read_header(&_dcinfo, TRUE);
-    _dcinfo.scale_denom = 1;
+    //_dcinfo.scale_denom = 1;
     _dcinfo.out_color_space = JCS_RGB;
     
     // We can ignore the return value from jpeg_read_header since
@@ -732,7 +732,7 @@ int camLoadJPEG(CamImage* image, char *filename)
 
     jpeg_stdio_src(&_dcinfo, infile);   
     jpeg_read_header(&_dcinfo, TRUE);
-    _dcinfo.scale_denom = 1;
+    //_dcinfo.scale_denom = 1;
     _dcinfo.out_color_space = JCS_RGB;
     
     // We can ignore the return value from jpeg_read_header since
@@ -788,7 +788,7 @@ int camDecompressJPEG2YUV(char *jpeg, CamImage *dest, int jpeg_size)
 
     jpeg_memory_src(&_dcinfo, &mySourceMgr, jpeg, jpeg_size);
     jpeg_read_header(&_dcinfo, TRUE);
-    _dcinfo.scale_denom = 1;
+    //_dcinfo.scale_denom = 1;
     _dcinfo.out_color_space = JCS_YCbCr;
     
     // We can ignore the return value from jpeg_read_header since
@@ -859,7 +859,7 @@ int camLoadJPEG2YUV(CamImage* image, char *filename)
 
     jpeg_stdio_src(&_dcinfo, infile);   
     jpeg_read_header(&_dcinfo, TRUE);
-    _dcinfo.scale_denom = 1;
+    //_dcinfo.scale_denom = 1;
     _dcinfo.out_color_space = JCS_YCbCr;
     
     // We can ignore the return value from jpeg_read_header since

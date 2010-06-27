@@ -52,9 +52,8 @@
 #include <time.h>
 #include "camellia.h"
 
-#define CAM_TEST_RECURSIVE
+//#define CAM_TEST_RECURSIVE
 #ifdef CAM_TEST_RECURSIVE
-int camKeypointsRecursiveDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
 #define camFastHessianDetector camKeypointsRecursiveDetector
 #endif
 

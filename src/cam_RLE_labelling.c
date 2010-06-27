@@ -69,7 +69,8 @@
 
 #define CAM_PIXEL unsigned char
 
-int camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clusters)
+int
+camRLEEncodeColorYUV422(CamImage *source, CamRLEImage *dest, CamTable *clusters)
 {
     int x,y,i,j,nbRuns,l;
     int width,height;

@@ -1004,7 +1004,7 @@ int camDilateSquare3(CamImage *source, CamImage *dest); ///< Dilation (3x3 squar
 #define camLabelling2ndScan camLabeling2ndScan
 #define camRLELabelling camRLELabeling
 
-#define CAM_LABEL_MAX_BLOBS 1024
+#define CAM_LABEL_MAX_BLOBS 4096
 
 #endif // SWIG
 
@@ -2234,6 +2234,9 @@ int camFastApproxHessianDetectorFixedScale(CamImage *integral, CamImage *dest, i
 
 /// Fast Hessian Detection (for all scales)
 int camFastHessianDetector(CamImage *source, CamKeypoints *points, int nb_max_keypoints, int options);
+
+/// Keypoints Recursive Detector (new!)
+int camKeypointsRecursiveDetector(CamImage *source, CamImage *integral, CamKeypoints *points, int nb_max_keypoints, int options);
 
 /// Compute the descriptors for the given set of keypoints
 int camKeypointsDescriptor(CamKeypoints *points, CamImage *source, int options);

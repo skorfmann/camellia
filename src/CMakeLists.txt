@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 INCLUDE_DIRECTORIES(. ../inc)
 
+FIND_LIBRARY(JPEG NAMES jpeg)
+
 SET(files 
     camellia.cpp 
     cam_3d.c 
@@ -38,7 +40,9 @@ SET(files
     cam_error.c
 )
 
+ADD_DEFINITIONS(-DHAVE_LIBJPEG)
 ADD_LIBRARY(camellia ${files})
+TARGET_LINK_LIBRARIES(camellia ${JPEG})
 #ADD_LIBRARY(camellia SHARED ${files})
 
 INSTALL(TARGETS camellia ARCHIVE DESTINATION lib
