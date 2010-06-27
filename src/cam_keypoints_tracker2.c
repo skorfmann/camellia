@@ -64,24 +64,30 @@
 #define MAX_KERNEL_WIDTH	71
 
 /* nombre de points successivement décroissant pour la recherche du maximum local en échelle */
-#define NB_DECREASING_POINTS	3
+#define NB_DECREASING_POINTS	4
 
 /* nombre de points à tracker */
 #define NB_POINTS_TO_TRACK	50
 
-/* taille de la fenetre sur laquelle les gradients sont calculés */
+/* taille de la fenetre sur laquelle les gradients sont calculés, augmenter augmente la robustesse et le temps de calcul (utiliser 5 ou 7) */
 #define RESARCH_WINDOW_HEIGHT	5
 #define RESARCH_WINDOW_WIDTH	5
 
 /* échelle (par rapport à l'échele la plus élevée) à laquelle la recherche de la position du keypoint est faite */
 #define	CORNER_SEARCH_SCALE	2
 
-/* recherche de l'échelle ou non des corners */
+/* Augmentation de l'aire de recherche autour du corner considéré; 1 semble donner de meilleurs résultats */
+#define SEARCH_AMPLIFICATION_FACTOR	1
+
+/* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
 #define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
-//#define CAM_TRACKING2_TIMINGS2
-#define CAM_TRACKING2_TIMINGS
+#define CAM_TRACKING2_TIMINGS2
+#define CAM_TRACKING2_TIMINGS1
+
+/* debug levels */
+//#define CAM_TRACKING2_DEBUG1
 
 typedef enum
   {
@@ -625,42 +631,99 @@ inline BOOL	notAllDecreasing(BOOL *increase, int nbDecreasingValues)
   return (FALSE);
 }
 
-CamKeypointShort	cam_keypoints_tracking2_locate_keypoint_in_one_direction(float incX, float incY)
+inline CamKeypointShort	cam_keypoints_tracking2_locate_keypoint_in_one_direction(CamTrackingContext *tc, CamKeypoints *corners, CamKeypoints *features, CamImage *integralImage, int nbDecreasingValues, float incX, float incY, int i)
 {
-  CamKeypointShort res;
+  register int		j;
+  CamKeypointShort	keypointMax;
+  CamList		*scaleShifts;
+  CamList		*curScaleShift;
+  int			scale;
+  int			shift;
+  int			previousDetectorValue;
+  int			localMaxDetectorValue;
+  CamKeypointShort	keypoint;
+  BOOL			*increase;
+  CamKeypointShort	localKeypointMax;
 
-  return (res);
+
+  scaleShifts = NULL;
+  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
+  ((keypointAtScale*)scaleShifts->data)->scale = 0;
+  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
+  ((keypointAtScale*)scaleShifts->data)->scale = 1;
+  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
+  ((keypointAtScale*)scaleShifts->data)->scale = 2;
+  increase = (BOOL *)malloc(nbDecreasingValues * sizeof(BOOL));
+
+  scale = 0;
+  previousDetectorValue = 0;
+  j = 0;
+  memcpy(&keypointMax, &corners->keypoint[i]->x, sizeof(CamKeypointShort));
+  memset(increase, TRUE, nbDecreasingValues * sizeof(BOOL));
+  while (notAllDecreasing(increase, nbDecreasingValues) == TRUE)
+    {
+      for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
+	{
+	  shift = ((keypointAtScale*)curScaleShift->data)->scale;
+	  if (!(scale + shift))
+	    {
+	      ((keypointAtScale*)curScaleShift->data)->keypoint.value = 0;
+	      continue ;
+	    }
+	  keypoint.x = corners->keypoint[i]->x + (int)(incX * (float)j);
+	  keypoint.y = corners->keypoint[i]->y + (int)(incY * (float)j);
+	  keypoint.scale = scale + shift;
+	  if (cam_keypoints_tracking2_is_in_range(tc->previousImage, &keypoint) == TRUE)
+	    keypoint.value = cam_keypoints_tracking2_compute_detector(integralImage, &keypoint);
+	  else
+	    keypoint.value = 0;
+	  keypoint.value /= ((scale + shift)*(scale + shift));
+	  memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypoint, sizeof(CamKeypointShort));
+	}
+      localMaxDetectorValue = 0;
+      for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
+	{
+	  if (abs(((keypointAtScale*)curScaleShift->data)->keypoint.value) > abs(localMaxDetectorValue))
+	    {
+	      localMaxDetectorValue = ((keypointAtScale*)curScaleShift->data)->keypoint.value;
+	      shift = ((keypointAtScale*)curScaleShift->data)->scale;
+	      memcpy(&localKeypointMax, &((keypointAtScale*)curScaleShift->data)->keypoint, sizeof(CamKeypointShort));
+	    }
+	}
+      scale += shift;
+#ifdef CAM_TRACKING2_DEBUG1
+      if (i == NB_POINTS_TO_TRACK - 1)
+	printf("newscale:%i // %i %i // %i %i\n", scale, localKeypointMax.x, localKeypointMax.y, abs(localKeypointMax.value), abs(previousDetectorValue));
+#endif
+      if (abs(localKeypointMax.value) > abs(previousDetectorValue))
+	{
+	  increase[j % nbDecreasingValues] = TRUE;
+	  previousDetectorValue = localKeypointMax.value;
+	  memcpy(&keypointMax, &localKeypointMax, sizeof(CamKeypointShort));
+	}
+      else
+	increase[j % nbDecreasingValues] = FALSE;
+      ++j;
+    }
+#ifdef CAM_TRACKING2_DEBUG1
+  if (i == NB_POINTS_TO_TRACK - 1)
+    printf("Final Point x: %i y: %i value: %i scale: %i\n", keypointMax.x, keypointMax.y, keypointMax.value, keypointMax.scale);
+#endif
+  cam_keypoints_tracking2_disallocate_linked_list(scaleShifts);
+  free (increase);
+  return (keypointMax);
 }
 
 
 void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypoints *corners, CamKeypoints *features, CamImage *integralImage, int nbDecreasingValues, int nbPoints)
 {
   register int		i;
-  register int		j;
-  int			previousDetectorValue;
-  int			localMaxDetectorValue;
-  CamKeypointShort	keypoint1;
-  CamKeypointShort	keypoint2;
-  CamKeypointShort	keypointMax;
-  CamKeypointShort	localKeypointMax;
-  BOOL			*increase;
-  float			shiftX;
-  float			shiftY;
   float			incX;
   float			incY;
-  int			scale;
-  int			shift;
-  CamList		*scaleShifts;
-  CamList		*curScaleShift;
+  CamKeypointShort	keypointMax1;
+  CamKeypointShort	keypointMax2;
+  CamKeypointShort	keypointMax;
 		
-  scaleShifts = NULL;
-  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
-  ((keypointAtScale*)scaleShifts->data)->scale = 2;
-  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
-  ((keypointAtScale*)scaleShifts->data)->scale = 1;
-  scaleShifts = cam_keypoints_tracking2_add_to_linked_list(scaleShifts, (keypointAtScale*)malloc(sizeof(keypointAtScale)));
-  ((keypointAtScale*)scaleShifts->data)->scale = 0;
-  increase = (BOOL *)malloc(nbDecreasingValues * sizeof(BOOL));
   for (i = 0 ; i < nbPoints  ; ++i)
     {
       if (abs(corners->keypoint[i]->angle) > 100)
@@ -673,80 +736,35 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 	  incX = 1.0f;
 	  incY = (float)corners->keypoint[i]->angle / 100.0f;
 	}
-
-  scale = 0;
-  previousDetectorValue = 0;
-  j = 0;
-  memcpy(&keypointMax, &corners->keypoint[i]->x, sizeof(CamKeypointShort));
-  memset(increase, TRUE, nbDecreasingValues * sizeof(BOOL));
-  while (notAllDecreasing(increase, nbDecreasingValues) == TRUE)
-    {
-      for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
+#ifdef CAM_TRACKING2_DEBUG1
+      if (i == NB_POINTS_TO_TRACK - 1)
 	{
-	  shift = ((keypointAtScale*)curScaleShift->data)->scale;
-	      if (!(scale + shift))
-		{
-		  ((keypointAtScale*)curScaleShift->data)->keypoint.value = 0;
-  		  continue ;
-		}
-	      keypoint1.x = corners->keypoint[i]->x + (int)(incX * (float)j);
-	      keypoint1.y = corners->keypoint[i]->y + (int)(incY * (float)j);
-	      keypoint1.scale = scale + shift;
-	      keypoint2.x = corners->keypoint[i]->x - (int)(incX * (float)j);
-	      keypoint2.y = corners->keypoint[i]->y - (int)(incY * (float)j);
-	      keypoint2.scale = scale  + shift;
-	      if (cam_keypoints_tracking2_is_in_range(tc->previousImage, &keypoint1) == TRUE)
-		keypoint1.value = cam_keypoints_tracking2_compute_detector(integralImage, &keypoint1);
-	      else
-		keypoint1.value = 0;
-	      if (cam_keypoints_tracking2_is_in_range(tc->previousImage, &keypoint2) == TRUE)
-		keypoint2.value = cam_keypoints_tracking2_compute_detector(integralImage, &keypoint2);
-	      else
-		keypoint2.value = 0;
-	      if (abs(keypoint1.value) > abs(keypoint2.value))
-		{
-		  keypoint1.value /= ((scale + shift)*(scale + shift));
-		  memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypoint1, sizeof(CamKeypointShort));
-		}
-	      else
-		{
-		  keypoint2.value /= ((scale + shift)*(scale + shift));
-		  memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypoint2, sizeof(CamKeypointShort));
-		}
-	    }
-	  localMaxDetectorValue = 0;
-	  for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
-	    {
-	      if (abs(((keypointAtScale*)curScaleShift->data)->keypoint.value) > abs(localMaxDetectorValue))
-		{
-		  localMaxDetectorValue = ((keypointAtScale*)curScaleShift->data)->keypoint.value;
-		  shift = ((keypointAtScale*)curScaleShift->data)->scale;
-		  memcpy(&localKeypointMax, &((keypointAtScale*)curScaleShift->data)->keypoint, sizeof(CamKeypointShort));
-		}
-	    }
-	  scale += shift;
-	  if (i == 4)
-	    printf("newscale:%i // %i %i // %i %i\n", scale, localKeypointMax.x, localKeypointMax.y, abs(localKeypointMax.value), abs(previousDetectorValue));
-	  if (abs(localKeypointMax.value) > abs(previousDetectorValue))
-	    {
-	      increase[j % nbDecreasingValues] = TRUE;
-	      previousDetectorValue = localKeypointMax.value;
-	      memcpy(&keypointMax, &localKeypointMax, sizeof(CamKeypointShort));
-	    }
-	  else
-	    increase[j % nbDecreasingValues] = FALSE;
-	  ++j;
+	  printf("Angle : %i\n", corners->keypoint[i]->angle);
+	  printf("Direction1\n");
 	}
+#endif
+      keypointMax1 = cam_keypoints_tracking2_locate_keypoint_in_one_direction(tc, corners, features, integralImage, nbDecreasingValues, incX, incY, i);
+#ifdef CAM_TRACKING2_DEBUG1
+      if (i == NB_POINTS_TO_TRACK - 1)
+	printf("Direction2\n");
+#endif
+      keypointMax2 = cam_keypoints_tracking2_locate_keypoint_in_one_direction(tc, corners, features, integralImage, nbDecreasingValues, -1.0f * incX, -1.0f * incY, i);
 
-      if (i == 4)
+      if (abs(keypointMax1.value) > abs(keypointMax2.value))
+	memcpy(&keypointMax, &keypointMax1, sizeof(CamKeypointShort));
+      else
+	memcpy(&keypointMax, &keypointMax2, sizeof(CamKeypointShort));
+
+#ifdef CAM_TRACKING2_DEBUG1
+      if (i == NB_POINTS_TO_TRACK - 1)
 	printf("final scale : %i\n", keypointMax.scale);
+#endif
       keypointMax.angle = 0;
       keypointMax.scale *= 4;
       features->keypoint[i] = &features->bag[i];
       memcpy(&features->keypoint[i]->x, &keypointMax, sizeof(CamKeypointShort));
     }
-  cam_keypoints_tracking2_disallocate_linked_list(scaleShifts);
-  free (increase);
+
 }
 
 void		cam_keypoints_tracking2_locate_relevant_neighbours(CamTrackingContext *tc)
@@ -779,9 +797,9 @@ void		cam_keypoints_tracking2_locate_relevant_neighbours(CamTrackingContext *tc)
       maxVal = 0.0f;
       y = tc->previousCorners->keypoint[i]->y;
       x = tc->previousCorners->keypoint[i]->x;
-      for (dy = y - (CORNER_SEARCH_SCALE - 1) ; dy <= y + (CORNER_SEARCH_SCALE - 1) ; ++dy)
+      for (dy = y - (SEARCH_AMPLIFICATION_FACTOR * CORNER_SEARCH_SCALE - 1) ; dy <= y + (SEARCH_AMPLIFICATION_FACTOR * CORNER_SEARCH_SCALE - 1) ; ++dy)
 	{
-	  for (dx = x - (CORNER_SEARCH_SCALE - 1) ; dx <= x + (CORNER_SEARCH_SCALE - 1) ; ++dx)
+	  for (dx = x - (SEARCH_AMPLIFICATION_FACTOR * CORNER_SEARCH_SCALE - 1) ; dx <= x + (SEARCH_AMPLIFICATION_FACTOR * CORNER_SEARCH_SCALE - 1) ; ++dx)
 	    {
 	      gxx = 0.0f;
 	      gxy = 0.0f;
@@ -798,18 +816,27 @@ void		cam_keypoints_tracking2_locate_relevant_neighbours(CamTrackingContext *tc)
 		    }
 		}
 	      curVal = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
+#ifdef CAM_TRACKING2_DEBUG1
+	      if (i == NB_POINTS_TO_TRACK - 1)
+		printf("%i %i %f\n", dx, dy, curVal);
+#endif
 	      if (curVal > (float)INT_MAX)
 		curVal = (float)INT_MAX;
 	      if (curVal > maxVal)
 		{
 		  tc->previousCorners->keypoint[i]->x = dx;
 		  tc->previousCorners->keypoint[i]->y = dy;
-		  tc->previousCorners->keypoint[i]->value = curVal;		  
+		  tc->previousCorners->keypoint[i]->value = (int)curVal;		  
 		  tc->previousCorners->keypoint[i]->angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
 		  maxVal = curVal;
 		}
 	    }
 	}
+#ifdef CAM_TRACKING2_DEBUG1
+      if (i == NB_POINTS_TO_TRACK - 1)
+	printf("FINAL %i %i %i\n", tc->previousCorners->keypoint[i]->x, tc->previousCorners->keypoint[i]->y, tc->previousCorners->keypoint[i]->value);
+#endif
+
     }
 }
 
@@ -1213,6 +1240,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	  ++res->nbOutliers;
 	}
     }
+  printf("inliers: %i outliers: %i\n", res->nbMatches, res->nbOutliers);
   return (res);
 }
 
@@ -1298,7 +1326,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
   CamImage		*integralImage;
   CamKeypoints		*trackedCorners;
   CamKeypoints		*trackedFeatures;
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
   int			t1;
   int			t2;
 #endif
@@ -1316,11 +1344,11 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       image->roi = &roix;
       camIntegralImage(image, tc->previousIntegralImage);
       tc->previousIntegralImage->roi = &roix;
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
       t1 = camGetTimeMs();
 #endif
       cam_keypoints_tracking2_select_good_features(tc, image);
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
       t2 = camGetTimeMs();
       printf("Features selection : %ims\n", t2 - t1);
 #endif
@@ -1355,7 +1383,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
     }
 }
 
-void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char *outfile, CamKeypointsMatches *matches)
+void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char *outfile, CamKeypointsMatches *matches, int nb)
 {
   CamImage	res;
   CamROI	roi;
@@ -1374,10 +1402,14 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
   camCopy(img2, &res);
   res.roi = NULL;
 
+#ifdef CAM_TRACKING2_DEBUG1
+  i = NB_POINTS_TO_TRACK -1;
+#else
   for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (!matches->pairs[i].mark)
 	continue ;
+#endif
       camDrawKeypoint(matches->pairs[i].p1, &res, CAM_RGB(255, 0, 0));
       x1 = matches->pairs[i].p1->x;
       y1 = matches->pairs[i].p1->y;
@@ -1385,16 +1417,22 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
       y2 = matches->pairs[i].p2->y;
       y2 += img1->height;
       camDrawLine(&res, x1, y1, x2, y2, CAM_RGB(0, 255, 0));
+#ifndef CAM_TRACKING2_DEBUG1
     }
+#endif
+#ifndef CAM_TRACKING2_DEBUG1
   for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (!matches->pairs[i].mark)
 	continue ;
+#endif
       matches->pairs[i].p2->y += img1->height;
       camDrawKeypoint(matches->pairs[i].p2, &res, 128);
       matches->pairs[i].p2->y -= img1->height;
+#ifndef CAM_TRACKING2_DEBUG1
     }
-  sprintf(filename, "output/%s.bmp", outfile);
+#endif
+  sprintf(filename, "output/%s%i.bmp", outfile, nb);
   camSaveBMP(&res, filename);
   camDeallocateImage(&res);
 }
@@ -1407,11 +1445,11 @@ void			test_cam_keypoints_tracking2()
   CamList		*scales;
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
-  char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img1.bmp";
+  char			img1[] = "./resources/klt/img1.bmp";
+  char			img2[] = "./resources/klt/img2.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
   int			t1;
   int			t2;
   int			t3;
@@ -1434,16 +1472,16 @@ void			test_cam_keypoints_tracking2()
   cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, RESARCH_WINDOW_HEIGHT, RESARCH_WINDOW_WIDTH, 3, 3, 3, scales, &firstImage);
   cam_keypoints_tracking2_free_linked_list(scales);
 
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
   t1 = camGetTimeMs();
 #endif
   track = cam_keypoints_tracking2(&tc, &firstImage, CAM_UPRIGHT);
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
   t2 = camGetTimeMs();
   printf("initial detection : %ims\n", t2 - t1);
 #endif
   track = cam_keypoints_tracking2(&tc, &secondImage, CAM_UPRIGHT);
-#ifdef CAM_TRACKING2_TIMINGS
+#ifdef CAM_TRACKING2_TIMINGS1
   t3 = camGetTimeMs();
   printf("tracking : %ims\n", t3 - t2);
 #endif
@@ -1451,7 +1489,7 @@ void			test_cam_keypoints_tracking2()
   
   camLoadBMP(&firstImage, img1);
   camLoadBMP(&secondImage, img2);
-  cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track);
+  cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track, 0);
   camDeallocateImage(&firstImage);
   camDeallocateImage(&secondImage);
   cam_keypoints_tracking2_release_matches(track);
