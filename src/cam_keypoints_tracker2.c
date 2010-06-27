@@ -67,7 +67,7 @@
 #define NB_DECREASING_POINTS	3
 
 /* nombre de points à tracker */
-#define NB_POINTS_TO_TRACK	5
+#define NB_POINTS_TO_TRACK	50
 
 /* taille de la fenetre sur laquelle les gradients sont calculés */
 #define RESARCH_WINDOW_HEIGHT	5
@@ -625,15 +625,24 @@ inline BOOL	notAllDecreasing(BOOL *increase, int nbDecreasingValues)
   return (FALSE);
 }
 
+CamKeypointShort	cam_keypoints_tracking2_locate_keypoint_in_one_direction(float incX, float incY)
+{
+  CamKeypointShort res;
+
+  return (res);
+}
+
+
 void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypoints *corners, CamKeypoints *features, CamImage *integralImage, int nbDecreasingValues, int nbPoints)
 {
   register int		i;
   register int		j;
   int			previousDetectorValue;
-  int			localPreviousDetectorValue;
+  int			localMaxDetectorValue;
   CamKeypointShort	keypoint1;
   CamKeypointShort	keypoint2;
   CamKeypointShort	keypointMax;
+  CamKeypointShort	localKeypointMax;
   BOOL			*increase;
   float			shiftX;
   float			shiftY;
@@ -664,27 +673,27 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 	  incX = 1.0f;
 	  incY = (float)corners->keypoint[i]->angle / 100.0f;
 	}
-      scale = 0;
-      previousDetectorValue = 0;
-      memset(increase, TRUE, nbDecreasingValues * sizeof(BOOL));
-      memcpy(&keypointMax, &corners->keypoint[i]->x, sizeof(CamKeypointShort));
-      j = 0;
-      while (notAllDecreasing(increase, nbDecreasingValues) == TRUE)
+
+  scale = 0;
+  previousDetectorValue = 0;
+  j = 0;
+  memcpy(&keypointMax, &corners->keypoint[i]->x, sizeof(CamKeypointShort));
+  memset(increase, TRUE, nbDecreasingValues * sizeof(BOOL));
+  while (notAllDecreasing(increase, nbDecreasingValues) == TRUE)
+    {
+      for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
 	{
-	  localPreviousDetectorValue = previousDetectorValue;
-	  for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
-	    {
-	      shift = ((keypointAtScale*)curScaleShift->data)->scale;
+	  shift = ((keypointAtScale*)curScaleShift->data)->scale;
 	      if (!(scale + shift))
 		{
 		  ((keypointAtScale*)curScaleShift->data)->keypoint.value = 0;
   		  continue ;
 		}
-	      keypoint1.x = corners->keypoint[i]->x + incX * (scale + shift);
-	      keypoint1.y = corners->keypoint[i]->y + incY * (scale + shift);
+	      keypoint1.x = corners->keypoint[i]->x + (int)(incX * (float)j);
+	      keypoint1.y = corners->keypoint[i]->y + (int)(incY * (float)j);
 	      keypoint1.scale = scale + shift;
-	      keypoint2.x = corners->keypoint[i]->x - incX * (scale + shift);
-	      keypoint2.y = corners->keypoint[i]->y - incY * (scale + shift);
+	      keypoint2.x = corners->keypoint[i]->x - (int)(incX * (float)j);
+	      keypoint2.y = corners->keypoint[i]->y - (int)(incY * (float)j);
 	      keypoint2.scale = scale  + shift;
 	      if (cam_keypoints_tracking2_is_in_range(tc->previousImage, &keypoint1) == TRUE)
 		keypoint1.value = cam_keypoints_tracking2_compute_detector(integralImage, &keypoint1);
@@ -694,41 +703,43 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
 		keypoint2.value = cam_keypoints_tracking2_compute_detector(integralImage, &keypoint2);
 	      else
 		keypoint2.value = 0;
-	      if (max(abs(keypoint1.value), abs(keypoint2.value)) / ((scale + shift)*(scale + shift)) > abs(localPreviousDetectorValue))
-		increase[j % nbDecreasingValues] = TRUE;
-	      else
-		increase[j % nbDecreasingValues] = FALSE;
-	      if (increase[j % nbDecreasingValues] == TRUE)
+	      if (abs(keypoint1.value) > abs(keypoint2.value))
 		{
-		  if (abs(keypoint1.value) > abs(keypoint2.value))
-		    {
-		      keypoint1.value /= ((scale + shift)*(scale + shift));
-		      localPreviousDetectorValue = keypoint1.value;
-		      memcpy(&keypointMax, &keypoint1, sizeof(CamKeypointShort));
-		    }
-		  else
-		    {
-		      keypoint2.value /= ((scale + shift)*(scale + shift));
-		      localPreviousDetectorValue = keypoint2.value;
-		      memcpy(&keypointMax, &keypoint2, sizeof(CamKeypointShort));
-		    }
+		  keypoint1.value /= ((scale + shift)*(scale + shift));
+		  memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypoint1, sizeof(CamKeypointShort));
 		}
-	      previousDetectorValue = localPreviousDetectorValue;
-	      memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypointMax, sizeof(CamKeypointShort));
+	      else
+		{
+		  keypoint2.value /= ((scale + shift)*(scale + shift));
+		  memcpy(&((keypointAtScale*)curScaleShift->data)->keypoint, &keypoint2, sizeof(CamKeypointShort));
+		}
 	    }
-	  localPreviousDetectorValue = 0;
+	  localMaxDetectorValue = 0;
 	  for (curScaleShift = scaleShifts ; curScaleShift != NULL ; curScaleShift = curScaleShift->next)
 	    {
-	      if (abs(((keypointAtScale*)curScaleShift->data)->keypoint.value) > abs(localPreviousDetectorValue))
+	      if (abs(((keypointAtScale*)curScaleShift->data)->keypoint.value) > abs(localMaxDetectorValue))
 		{
-		  localPreviousDetectorValue = ((keypointAtScale*)curScaleShift->data)->keypoint.value;
+		  localMaxDetectorValue = ((keypointAtScale*)curScaleShift->data)->keypoint.value;
 		  shift = ((keypointAtScale*)curScaleShift->data)->scale;
-		  memcpy(&keypointMax, &((keypointAtScale*)curScaleShift->data)->keypoint, sizeof(CamKeypointShort));
+		  memcpy(&localKeypointMax, &((keypointAtScale*)curScaleShift->data)->keypoint, sizeof(CamKeypointShort));
 		}
 	    }
 	  scale += shift;
+	  if (i == 4)
+	    printf("newscale:%i // %i %i // %i %i\n", scale, localKeypointMax.x, localKeypointMax.y, abs(localKeypointMax.value), abs(previousDetectorValue));
+	  if (abs(localKeypointMax.value) > abs(previousDetectorValue))
+	    {
+	      increase[j % nbDecreasingValues] = TRUE;
+	      previousDetectorValue = localKeypointMax.value;
+	      memcpy(&keypointMax, &localKeypointMax, sizeof(CamKeypointShort));
+	    }
+	  else
+	    increase[j % nbDecreasingValues] = FALSE;
 	  ++j;
 	}
+
+      if (i == 4)
+	printf("final scale : %i\n", keypointMax.scale);
       keypointMax.angle = 0;
       keypointMax.scale *= 4;
       features->keypoint[i] = &features->bag[i];
