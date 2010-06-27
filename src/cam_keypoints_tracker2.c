@@ -67,11 +67,11 @@
 #define NB_DECREASING_POINTS	4
 
 /* nombre de points à tracker */
-#define NB_POINTS_TO_TRACK	50
+#define NB_POINTS_TO_TRACK	46
 
 /* taille de la fenetre sur laquelle les gradients sont calculés, augmenter augmente la robustesse et le temps de calcul (utiliser 5 ou 7) */
-#define RESARCH_WINDOW_HEIGHT	5
-#define RESARCH_WINDOW_WIDTH	5
+#define RESARCH_WINDOW_HEIGHT	7
+#define RESARCH_WINDOW_WIDTH	7
 
 /* échelle (par rapport à l'échele la plus élevée) à laquelle la recherche de la position du keypoint est faite */
 #define	CORNER_SEARCH_SCALE	2
@@ -85,6 +85,19 @@
 /* timing level of details */
 #define CAM_TRACKING2_TIMINGS2
 #define CAM_TRACKING2_TIMINGS1
+
+/************************************************/
+/* sort by upper, lower or average eigen values */
+/************************************************/
+/*         in neighbours selection              */
+//#define CAM_NEIGHBOURS_USE_UPPER_EIGEN_VALUE
+#define CAM_NEIGHBOURS_USE_LOWER_EIGEN_VALUE
+//#define CAM_NEIGHBOURS_USE_AVERAGE_EIGEN_VALUE
+/*          in corners selection                */
+//#define CAM_CORNERS_USE_UPPER_EIGEN_VALUE
+#define CAM_CORNERS_USE_LOWER_EIGEN_VALUE
+//#define CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE
+
 
 /* debug levels */
 //#define CAM_TRACKING2_DEBUG1
@@ -779,6 +792,8 @@ void		cam_keypoints_tracking2_locate_relevant_neighbours(CamTrackingContext *tc)
   float		gxx;
   float		gxy;
   float		gyy;
+  float		curMinVal;
+  float		curMaxVal;
   float		curVal;
   float		maxVal;
   int		window_hh;
@@ -815,10 +830,24 @@ void		cam_keypoints_tracking2_locate_relevant_neighbours(CamTrackingContext *tc)
 		      gyy += gy * gy;
 		    }
 		}
-	      curVal = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
-#ifdef CAM_TRACKING2_DEBUG1
+#if defined(CAM_NEIGHBOURS_USE_UPPER_EIGEN_VALUE) || defined(CAM_NEIGHBOURS_USE_AVERAGE_EIGEN_VALUE)
+	      curMaxVal = cam_keypoints_tracking2_max_eigen_value(gxx, gxy, gyy);
+#endif
+#if defined(CAM_NEIGHBOURS_USE_LOWER_EIGEN_VALUE) || defined(CAM_NEIGHBOURS_USE_AVERAGE_EIGEN_VALUE)
+	      curMinVal = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
+#endif
+#ifdef	CAM_TRACKING2_DEBUG1
 	      if (i == NB_POINTS_TO_TRACK - 1)
 		printf("%i %i %f\n", dx, dy, curVal);
+#endif
+#ifdef CAM_NEIGHBOURS_USE_UPPER_EIGEN_VALUE
+	      curVal = curMaxVal;
+#endif
+#ifdef CAM_NEIGHBOURS_USE_LOWER_EIGEN_VALUE
+	      curVal = curMinVal;
+#endif
+#ifdef CAM_NEIGHBOURS_USE_AVERAGE_EIGEN_VALUE
+	      curVal = (curMinVal + curMaxVal) / 2;
 #endif
 	      if (curVal > (float)INT_MAX)
 		curVal = (float)INT_MAX;
@@ -844,7 +873,9 @@ int	camSortKeypointsShort(const void *p1x, const void *p2x);
 
 void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, CamImage *image)
 {
-  float				val;
+  float				curVal;
+  float				curMinVal;
+  float				curMaxVal;
   int				x;
   int				y;
   CamKeypointShort		*pointsList;
@@ -906,12 +937,30 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
 		  gyy += gy * gy;
 		}
 	    }
-	  val = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
-	  if (val > (float)INT_MAX)
-	    val = (float)INT_MAX;
+#if defined(CAM_CORNERS_USE_UPPER_EIGEN_VALUE) || defined(CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE)
+	  curMaxVal = cam_keypoints_tracking2_max_eigen_value(gxx, gxy, gyy);
+#endif
+#if defined(CAM_CORNERS_USE_LOWER_EIGEN_VALUE) || defined(CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE)
+	  curMinVal = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
+#endif
+#ifdef	CAM_TRACKING2_DEBUG1
+	  if (i == NB_POINTS_TO_TRACK - 1)
+	    printf("%i %i %f\n", dx, dy, curVal);
+#endif
+#ifdef CAM_CORNERS_USE_UPPER_EIGEN_VALUE
+	  curVal = curMaxVal;
+#endif
+#ifdef CAM_CORNERS_USE_LOWER_EIGEN_VALUE
+	  curVal = curMinVal;
+#endif
+#ifdef CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE
+	  curVal = (curMinVal + curMaxVal) / 2;
+#endif
+	  if (curVal > (float)INT_MAX)
+	    curVal = (float)INT_MAX;
 	  ptr->x = x;
 	  ptr->y = y;
-	  ptr->value = (int)val;
+	  ptr->value = (int)curVal;
 	  ptr->scale = 4;
 	  ptr->angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
 	  ++ptr;
@@ -1445,8 +1494,8 @@ void			test_cam_keypoints_tracking2()
   CamList		*scales;
   CamTrackingContext	tc;
   CamKeypointsMatches	*track;
-  char			img1[] = "./resources/klt/img1.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img1[] = "./resources/klt/img0.bmp";
+  char			img2[] = "./resources/klt/img1.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS1
