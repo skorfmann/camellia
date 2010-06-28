@@ -84,7 +84,7 @@ extern double camSigmaParam;
 //#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
-#define CAM_TRACKING2_TIMINGS2
+//#define CAM_TRACKING2_TIMINGS2
 #define CAM_TRACKING2_TIMINGS1
 
 /************************************************/
@@ -730,6 +730,7 @@ void			cam_keypoints_tracking2_compute_feature_description(CamKeypoint *keypoint
   camDeallocateImage(&filter);
 }
 
+/* TODO : search neighbours */
 void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypoints *corners, CamKeypoints *features, CamImage *integralImage, int nbDecreasingValues, int nbPoints)
 {
   register int		i;
@@ -1368,7 +1369,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
   CamKeypoints		*trackedFeatures;
   CamKeypoints		*corners;
 
-#ifdef CAM_TRACKING2_TIMINGS1
+#ifdef CAM_TRACKING2_TIMINGS2
   int			t1;
   int			t2;
 #endif
@@ -1391,6 +1392,16 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  camFreeKeypoints(tc->previousFeatures);
 	  free(tc->previousFeatures);
 	}
+      if (tc->previousImage)
+	{
+	  camDeallocateImage(tc->previousImage);
+	  tc->previousImage = NULL;
+	}
+      if (tc->previousIntegralImage)
+	{
+	  camDeallocateImage(tc->previousIntegralImage);
+	  free(tc->previousIntegralImage);
+	}
       tc->previousCorners = (CamKeypoints*)malloc(sizeof(CamKeypoints));
       tc->previousFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
       camAllocateKeypoints(tc->previousCorners, tc->nbFeatures);
@@ -1402,17 +1413,10 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       tc->previousCorners->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
       tc->previousFeatures->bag = (CamKeypoint*)malloc(sizeof(CamKeypoint) * tc->nbFeatures);
 #endif
-      if (tc->previousImage)
-	camDeallocateImage(tc->previousImage);
       tc->previousImage = image;
       camSetMaxROI(&roix, image);
       roix.coi = 1;
       image->roi = &roix;
-      if (tc->previousIntegralImage)
-	{
-	  camDeallocateImage(tc->previousIntegralImage);
-	  free(tc->previousIntegralImage);
-	}
       integralImage = (CamImage *)malloc(sizeof(CamImage));
       integralImage->imageData = NULL;
       camSetMaxROI(&roix, image);
@@ -1421,11 +1425,11 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       camIntegralImage(image, integralImage);
       integralImage->roi = &roix;
       tc->previousIntegralImage = integralImage;
-#ifdef CAM_TRACKING2_TIMINGS1
+#ifdef CAM_TRACKING2_TIMINGS2
       t1 = camGetTimeMs();
 #endif
       cam_keypoints_tracking2_select_good_features(tc, image);
-#ifdef CAM_TRACKING2_TIMINGS1
+#ifdef CAM_TRACKING2_TIMINGS2
       t2 = camGetTimeMs();
       printf("Features selection : %ims\n", t2 - t1);
 #endif
@@ -1576,11 +1580,11 @@ void			test_cam_keypoints_tracking2()
   camAllocateYUVImage(&thirdImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &thirdImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img3);
+  camLoadBMP(&modelImage, img4);
   camAllocateYUVImage(&fourthImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &fourthImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img3);
+  camLoadBMP(&modelImage, img5);
   camAllocateYUVImage(&fifthImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &fifthImage);
   camDeallocateImage(&modelImage);
@@ -1614,7 +1618,7 @@ void			test_cam_keypoints_tracking2()
   track3 = cam_keypoints_tracking2(&tc, &fourthImage, CAM_UPRIGHT);
 #ifdef CAM_TRACKING2_TIMINGS1
   t5 = camGetTimeMs();
-  printf("init tracking : %ims\n", t5 - t4);
+  printf("initial detection : %ims\n", t5 - t4);
 #endif
   track4 = cam_keypoints_tracking2(&tc, &fifthImage, CAM_UPRIGHT);
 #ifdef CAM_TRACKING2_TIMINGS1
@@ -1629,27 +1633,41 @@ void			test_cam_keypoints_tracking2()
   camLoadBMP(&thirdImage, img3);
   camLoadBMP(&fourthImage, img4);
   camLoadBMP(&fifthImage, img5);
-  cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track1, 0);
-  cam_keypoints_tracking2_print_matches(&secondImage, &thirdImage, "track", track2, 1);
-  //cam_keypoints_tracking2_print_matches(&thirdImage, &fourthImage, "track", track3, 2);
-  cam_keypoints_tracking2_print_matches(&fourthImage, &fifthImage, "track", track4, 3);
+  if (track1)
+    cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track1, 0);
+  if (track2)
+    cam_keypoints_tracking2_print_matches(&secondImage, &thirdImage, "track", track2, 1);
+  if (track3)
+    cam_keypoints_tracking2_print_matches(&thirdImage, &fourthImage, "track", track3, 2);
+  if (track4)
+    cam_keypoints_tracking2_print_matches(&fourthImage, &fifthImage, "track", track4, 3);
   camDeallocateImage(&firstImage);
   camDeallocateImage(&secondImage);
   camDeallocateImage(&thirdImage);
   camDeallocateImage(&fourthImage);
   camDeallocateImage(&fifthImage);
-  cam_keypoints_tracking2_release_matches(track1);
-  camFreeKeypointsMatches(track1);
-  free(track1);
-  cam_keypoints_tracking2_release_matches(track2);
-  camFreeKeypointsMatches(track2);
-  free(track2);
-  /*  cam_keypoints_tracking2_release_matches(track3);
-  camFreeKeypointsMatches(track3);
-  free(track3);*/
-  cam_keypoints_tracking2_release_matches(track4);
-  camFreeKeypointsMatches(track4);
-  free(track4);
+  if (track1)
+    {
+      cam_keypoints_tracking2_release_matches(track1);
+      camFreeKeypointsMatches(track1);
+      free(track1);
+    }
+  if (track2)
+    {
+      cam_keypoints_tracking2_release_matches(track2);
+      camFreeKeypointsMatches(track2);
+      free(track2);
+    }
+  if (track3)
+    {
+      cam_keypoints_tracking2_release_matches(track3);
+      camFreeKeypointsMatches(track3);
+      free(track3);
+    }
+  if (track4)
+    {
+      cam_keypoints_tracking2_release_matches(track4);
+      camFreeKeypointsMatches(track4);
+      free(track4);
+    }
 }
-
-/* todo ; virer le corners et features // enlever l'alloc de corner et features du init tc */
