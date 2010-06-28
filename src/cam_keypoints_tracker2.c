@@ -81,7 +81,7 @@ extern double camSigmaParam;
 #define SEARCH_AMPLIFICATION_FACTOR	1
 
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
-//#define CAM_TRACKING2_KEYPOINTS
+#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
 //#define CAM_TRACKING2_TIMINGS2
@@ -1478,6 +1478,15 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       camFreeKeypoints(tc->previousCorners);
       free(tc->previousCorners);
       tc->previousCorners = corners;
+      for (i = 0 ; i < tc->pyramidImages->nbLevels ; ++i)
+	{
+	  memcpy(tc->pyramidImages->levels[i].img1->image.data, tc->pyramidImages->levels[i].img2->image.data,
+		 tc->pyramidImages->levels[i].img2->image.ncols * tc->pyramidImages->levels[i].img2->image.nrows * sizeof(float));
+	  memcpy(tc->pyramidImages->levels[i].img1->gradX.data, tc->pyramidImages->levels[i].img2->gradX.data,
+		 tc->pyramidImages->levels[i].img2->gradX.ncols * tc->pyramidImages->levels[i].img2->gradX.nrows * sizeof(float));
+	  memcpy(tc->pyramidImages->levels[i].img1->gradY.data, tc->pyramidImages->levels[i].img2->gradY.data,
+		 tc->pyramidImages->levels[i].img2->gradY.ncols * tc->pyramidImages->levels[i].img2->gradY.nrows * sizeof(float));
+	}
       return (res);
     }
 }
