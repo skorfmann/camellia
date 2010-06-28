@@ -61,20 +61,21 @@
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
 
+extern double camSigmaParam;
 #define MAX_KERNEL_WIDTH	71
 
 /* nombre de points successivement décroissant pour la recherche du maximum local en échelle */
 #define NB_DECREASING_POINTS	4
 
 /* nombre de points à tracker */
-#define NB_POINTS_TO_TRACK	46
+#define NB_POINTS_TO_TRACK	50
 
 /* taille de la fenetre sur laquelle les gradients sont calculés, augmenter augmente la robustesse et le temps de calcul (utiliser 5 ou 7) */
 #define RESARCH_WINDOW_HEIGHT	7
 #define RESARCH_WINDOW_WIDTH	7
 
 /* échelle (par rapport à l'échele la plus élevée) à laquelle la recherche de la position du keypoint est faite */
-#define	CORNER_SEARCH_SCALE	2
+#define	CORNER_SEARCH_SCALE	4
 
 /* Augmentation de l'aire de recherche autour du corner considéré; 1 semble donner de meilleurs résultats */
 #define SEARCH_AMPLIFICATION_FACTOR	1
@@ -727,6 +728,18 @@ inline CamKeypointShort	cam_keypoints_tracking2_locate_keypoint_in_one_direction
   return (keypointMax);
 }
 
+/* TODO : gerer option */
+void			cam_keypoints_tracking2_compute_feature_description(CamKeypoint *keypoint, CamImage *integralImage, int options)
+{
+  CamImage		filter;  
+
+  camAllocateImage(&filter, 20, 20, CAM_DEPTH_16S);
+  camBuildGaussianFilter(&filter, camSigmaParam);
+  camKeypointsInternalsPrepareDescriptor();
+  camKeypointDescriptor(keypoint, integralImage, &filter, options);
+  keypoint->angle = 0;
+  camDeallocateImage(&filter);
+}
 
 void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypoints *corners, CamKeypoints *features, CamImage *integralImage, int nbDecreasingValues, int nbPoints)
 {
@@ -776,6 +789,7 @@ void			cam_keypoints_tracking2_locate_keypoints(CamTrackingContext *tc, CamKeypo
       keypointMax.scale *= 4;
       features->keypoint[i] = &features->bag[i];
       memcpy(&features->keypoint[i]->x, &keypointMax, sizeof(CamKeypointShort));
+      cam_keypoints_tracking2_compute_feature_description(features->keypoint[i], integralImage, 0);
     }
 
 }
@@ -912,6 +926,7 @@ void				cam_keypoints_tracking2_select_good_features(CamTrackingContext *tc, Cam
   window_hw = tc->rw.width / 2;
   ncols = tc->pyramidImages->levels[scaleIndex].img1->image.ncols;
   nrows = tc->pyramidImages->levels[scaleIndex].img1->image.nrows;
+  /* TODO : fix comments in allocation */
   pointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) / (CORNER_SEARCH_SCALE * CORNER_SEARCH_SCALE) * sizeof(CamKeypointShort));
   sortedPointsList = (CamKeypointShort *)malloc((nrows - 2 * borderY) * (ncols - 2 * borderX) / (CORNER_SEARCH_SCALE * CORNER_SEARCH_SCALE) * sizeof(CamKeypointShort));
   ptr = pointsList;
@@ -1308,7 +1323,7 @@ void		cam_keypoints_tracking2_release_matches(CamKeypointsMatches *track)
     }
 }
 
-CamKeypointsMatches	*cam_keypoints_tracking2_associate_corner_matches_to_keypoints(CamTrackingContext *tc, CamKeypointsMatches *cornerMatches, CamImage *integralImage)
+CamKeypointsMatches	*cam_keypoints_tracking2_associate_corner_matches_to_keypoints(CamTrackingContext *tc, CamKeypointsMatches *cornerMatches, CamImage *integralImage, int options)
 {
     CamKeypointsMatches	*res;
     CamKeypoints	corners;
@@ -1348,7 +1363,6 @@ CamKeypointsMatches	*cam_keypoints_tracking2_associate_corner_matches_to_keypoin
 	    res->pairs[i].mark = 1;
 	    memcpy(res->pairs[i].p1, tc->previousFeatures->keypoint[i], sizeof(CamKeypoint));
 	    memcpy(res->pairs[i].p2, features.keypoint[j], sizeof(CamKeypoint));
-	    /* TODO : signatures */
 	    ++j;
 	    ++res->nbMatches;
 	  }
@@ -1419,7 +1433,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       integralImage->roi = &roix;
       res = cam_keypoints_tracking2_compute_optical_flow(tc, image);
 #ifdef CAM_TRACKING2_KEYPOINTS
-      res = cam_keypoints_tracking2_associate_corner_matches_to_keypoints(tc, res, integralImage);
+      res = cam_keypoints_tracking2_associate_corner_matches_to_keypoints(tc, res, integralImage, options);
       
 #endif
       camDeallocateImage(tc->previousImage);

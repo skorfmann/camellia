@@ -1413,7 +1413,7 @@ void			test_cam_keypoints_tracking()
   //char			img1[] = "./resources/rover/rotation1.bmp";
   //char			img2[] = "./resources/rover/rotation2.bmp";
   char			img1[] = "./resources/klt/img0.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  char			img2[] = "./resources/klt/img1.bmp";
 
   /* begin images building */
   modelImage.imageData = NULL;
