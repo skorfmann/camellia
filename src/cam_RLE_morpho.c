@@ -14,6 +14,7 @@
     It was developped by the Ecole des Mines de Paris (ENSMP), in coordination with
     the other partners of the project.
 
+	
   ==========================================================================
 
     Copyright (c) 2002-2008, Ecole des Mines de Paris - Centre de Robotique
