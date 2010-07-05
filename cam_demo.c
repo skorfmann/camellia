@@ -1,4 +1,5 @@
-/***************************************
+/*
+**************************************
  *
  *  Camellia Image Processing Library
  *
@@ -785,8 +786,8 @@ void example_color_labeling()
     int color[3]={CAM_RGB(0,0,0),CAM_RGB(255,255,255),CAM_RGB(255,0,0)};
 
     printf("\nColor Image Labeling example : \n");    
-
-    camLoadBMP(&source,"resources/alfa156.bmp");
+	camLoadJPEG(&source, "ressources/carotte/image-63.jpg");
+    //camLoadBMP(&source,"resources/carotte/test_balle_4.bmp");
     camAllocateYUVImage(&YUV,source.width,source.height);
     camRGB2YUV(&source,&YUV);
 
@@ -810,7 +811,7 @@ void example_color_labeling()
             results.blobInfo[i].top+results.blobInfo[i].height-1,
             color[results.blobInfo[i].value-1]);
     }
-    camSaveBMP(&source,"output/alfa156_color_labeling.bmp");
+    camSaveBMP(&source,"output/oussama.bmp");
 
     camRLEDeallocate(&encoded);
     camDeallocateImage(&source);
@@ -1350,7 +1351,7 @@ void example_dilation(){
 	lut.t[1]=255;
 	lut.size = 2;
 	//load test image
-	camLoadPGM(&source,"resources/test_lettres.pgm");
+	camLoadPGM(&source,"resources/test_lettres3.pgm");
     camAllocateImage(&source_binary,source.width,source.height,CAM_DEPTH_1U);
     arithm_params.operation=CAM_ARITHM_THRESHOLD;
     arithm_params.c1=55;
@@ -1387,10 +1388,10 @@ void example_dilation(){
 	printf("nbRuns encoded : %d\n", encoded.nbRuns);
 	printf("nbRuns dilated : %d\n", dilated.nbRuns);
 	printf("nbRuns strElmnt : %d\n", strElmnt.nbRuns);
-	//printf("dilated.width : %d\n", dilated.width);
 
 	
 	camRLEDecode(&dilated, &decode_dilated_rle, &lut);
+
 	camSavePGM(&decode_dilated_rle, "output/dilated.pgm");
 	//camSavePGM(&str, "output/structElt.pgm");
 	camClone(&source, &decode_dilated_rle);
@@ -1403,6 +1404,10 @@ void example_dilation(){
 	camDeallocateImage(&decode_dilated_rle);
 	camDeallocateImage(&source_binary);
 	printf("Quit!!\n");
+}
+
+void carotte(){
+	
 }
 
 void cpp_example_erosion();
@@ -1429,8 +1434,11 @@ int main()
     //example_recursive_keypoints();
     //example_keypoints2();
     //example_morpho();
+	//example_dilation();
     //example_dilation();
 	//example_binary();
+	//example_color_labeling();
+	carotte();
     // Legacy examples
     /*
     example_filters();
