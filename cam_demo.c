@@ -1428,8 +1428,10 @@ int main()
 {
     camInitBenchmark();
 
-	// Tracking examples
-    test_cam_keypoints_tracking2();
+    // Tracking examples
+    //test_cam_keypoints_tracking2();
+    // projections example
+    test_cam_project_3d_to_2d();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();

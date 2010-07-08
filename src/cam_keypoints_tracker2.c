@@ -75,13 +75,13 @@ extern double camSigmaParam;
 #define RESARCH_WINDOW_WIDTH	7
 
 /* échelle (par rapport à l'échele la plus élevée) à laquelle la recherche de la position du keypoint est faite */
-#define	CORNER_SEARCH_SCALE	4
+#define	CORNER_SEARCH_SCALE	2
 
 /* Augmentation de l'aire de recherche autour du corner considéré; 1 semble donner de meilleurs résultats */
 #define SEARCH_AMPLIFICATION_FACTOR	1
 
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
-#define CAM_TRACKING2_KEYPOINTS
+//#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
 //#define CAM_TRACKING2_TIMINGS2
@@ -1560,11 +1560,11 @@ void			test_cam_keypoints_tracking2()
   CamKeypointsMatches	*track2;
   CamKeypointsMatches	*track3;
   CamKeypointsMatches	*track4;
-  char			img1[] = "./resources/klt/img3.bmp";
+  char			img1[] = "./resources/klt/img1.bmp";
   char			img2[] = "./resources/klt/img2.bmp";
-  char			img3[] = "./resources/klt/img1.bmp";
-  char			img4[] = "./resources/klt/img3.bmp";
-  char			img5[] = "./resources/klt/img2.bmp";
+  char			img3[] = "./resources/klt/img3.bmp";
+  char			img4[] = "./resources/klt/img2.bmp";
+  char			img5[] = "./resources/klt/img3.bmp";
   //char			img1[] = "./resources/chess.bmp";
   //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS1
