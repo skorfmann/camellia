@@ -47,12 +47,14 @@
 */
 
 #include	<stdio.h>
+#include	<math.h>
 #include	<string.h>
 #include	"camellia.h"
 
 #define PRINT_MATRIX
 #define	PRINT_VECTORS
 #define	POINTS_TYPE	float
+#define PI		3.1415926535897932384626433832795
 
 typedef struct		s_camList
 {
@@ -81,14 +83,14 @@ typedef struct
   int			nbElems;
 }			CamVector;
 
-void	  CamAllocateMatrix(CamMatrix *m, int ncols, int nrows)
+inline void	CamAllocateMatrix(CamMatrix *m, int ncols, int nrows)
 {
   m->ncols = ncols;
   m->nrows = nrows;
   m->data = (POINTS_TYPE *)calloc(nrows * ncols, sizeof(POINTS_TYPE));
 }
 
-void	CamDisallocateMatrix(CamMatrix *m)
+inline void	CamDisallocateMatrix(CamMatrix *m)
 {
   free(m->data);
   m->data = NULL;
@@ -96,13 +98,13 @@ void	CamDisallocateMatrix(CamMatrix *m)
   m->ncols = 0;
 }
 
-void	  CamAllocateVector(CamVector *m, int nbElems)
+inline void	CamAllocateVector(CamVector *m, int nbElems)
 {
   m->nbElems = nbElems;
   m->data = (POINTS_TYPE *)malloc(nbElems * sizeof(POINTS_TYPE));
 }
 
-void	CamDisallocateVector(CamVector *m)
+inline void	CamDisallocateVector(CamVector *m)
 {
   free(m->data);
   m->data = NULL;
@@ -138,7 +140,39 @@ inline POINTS_TYPE	CamVectorGetValue(CamVector *m, int index)
   return (m->data[index]);
 }
 
-void		CamMatrixMultiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
+inline void	CamMatrixAdd(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
+{
+  register int	i;
+  register int	j;
+  
+  if (m1->ncols != m2->ncols || m1->nrows != m2->nrows)
+    camError("CamMatrixAdd", "m1->ncols != m2->cols || m1->nrows != m2->nrows");
+  for (j = 0 ; j < m1->nrows ; ++j)
+    {
+      for (i = 0 ; i < m1->ncols ; ++i)
+	{
+	  CamMatrixSetValue(res, i, j, CamMatrixGetValue(m1, i, j) + CamMatrixGetValue(m2, i, j));
+	}
+    }
+}
+
+inline void	CamMatrixCopy(CamMatrix *dst, CamMatrix *src)
+{
+  register int	i;
+  register int	j;
+
+  if (dst->ncols != src->ncols || dst->nrows != src->nrows)
+    camError("CamMatrixCopy", "m1->ncols != m2->cols || m1->nrows != m2->nrows");
+  for (j = 0 ; j < src->nrows ; ++j)
+    {
+      for (i = 0 ; i < src->ncols ; ++i)
+	{
+	  CamMatrixSetValue(dst, i, j, CamMatrixGetValue(src, i, j));
+	}
+    }
+}
+
+inline void	CamMatrixMultiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
 {
   register int	i;
   register int	j;
@@ -230,6 +264,68 @@ CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamV
 #endif
   CamDisallocateMatrix(&Rt);
   CamDisallocateMatrix(&P);
+  return (res);
+}
+
+CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE rz)
+{
+  CamMatrix	rotx;
+  CamMatrix	roty;
+  CamMatrix	rotz;
+  CamMatrix	*res;
+
+  CamAllocateMatrix(&rotx, 3, 3);
+  CamAllocateMatrix(&roty, 3, 3);
+  CamAllocateMatrix(&rotz, 3, 3);
+  res = (CamMatrix *)malloc(sizeof(CamMatrix));
+  CamAllocateMatrix(res, 3, 3);
+  /* Rx */
+  CamMatrixSetValue(&rotx, 0, 0, (POINTS_TYPE)1.0f);
+  CamMatrixSetValue(&rotx, 1, 0, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotx, 2, 0, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotx, 0, 1, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotx, 1, 1, (POINTS_TYPE)cos(rx));
+  CamMatrixSetValue(&rotx, 2, 1, (POINTS_TYPE)sin(rx));
+  CamMatrixSetValue(&rotx, 0, 2, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotx, 1, 2, (POINTS_TYPE)-sin(rx));
+  CamMatrixSetValue(&rotx, 2, 2, (POINTS_TYPE)cos(rx));
+#ifdef PRINT_MATRIX
+  CamPrintMatrix(&rotx, "Rx");
+#endif
+  /* Ry */
+  CamMatrixSetValue(&roty, 0, 0, (POINTS_TYPE)cos(ry));
+  CamMatrixSetValue(&roty, 1, 0, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&roty, 2, 0, (POINTS_TYPE)-sin(ry));
+  CamMatrixSetValue(&roty, 0, 1, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&roty, 1, 1, (POINTS_TYPE)1.0f);
+  CamMatrixSetValue(&roty, 2, 1, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&roty, 0, 2, (POINTS_TYPE)sin(ry));
+  CamMatrixSetValue(&roty, 1, 2, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&roty, 2, 2, (POINTS_TYPE)cos(ry));
+#ifdef PRINT_MATRIX
+  CamPrintMatrix(&roty, "Ry");
+#endif
+  /* Rz */
+  CamMatrixSetValue(&rotz, 0, 0, (POINTS_TYPE)cos(rz));
+  CamMatrixSetValue(&rotz, 1, 0, (POINTS_TYPE)sin(rz));
+  CamMatrixSetValue(&rotz, 2, 0, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotz, 0, 1, (POINTS_TYPE)-sin(rz));
+  CamMatrixSetValue(&rotz, 1, 1, (POINTS_TYPE)cos(rz));
+  CamMatrixSetValue(&rotz, 2, 1, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotz, 0, 2, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotz, 1, 2, (POINTS_TYPE)0.0f);
+  CamMatrixSetValue(&rotz, 2, 2, (POINTS_TYPE)1.0f);
+#ifdef PRINT_MATRIX
+  CamPrintMatrix(&rotz, "Rz");
+#endif
+
+  CamMatrixCopy(res, &rotx);
+  CamMatrixAdd(res, res, &roty);
+  CamMatrixAdd(res, res, &rotz);
+
+  CamDisallocateMatrix(&rotx);
+  CamDisallocateMatrix(&roty);
+  CamDisallocateMatrix(&rotz);
   return (res);
 }
 
