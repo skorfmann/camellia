@@ -68,20 +68,20 @@ typedef struct
   POINTS_TYPE	x;
   POINTS_TYPE	y;
   POINTS_TYPE	z;
-}			Cam3dPoint;
+}		Cam3dPoint;
 
 typedef struct
 {
   POINTS_TYPE	*data;
-  int			nrows;
-  int			ncols;
-}			CamMatrix;
+  int		nrows;
+  int		ncols;
+}		CamMatrix;
 
 typedef struct
 {
   POINTS_TYPE	*data;
-  int			nbElems;
-}			CamVector;
+  int		nbElems;
+}		CamVector;
 
 inline void	CamAllocateMatrix(CamMatrix *m, int ncols, int nrows)
 {
@@ -332,27 +332,26 @@ CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE r
 void		test_cam_project_3d_to_2d()
 {
   CamMatrix	K;
-  CamMatrix	R;
+  CamMatrix	*R;
   CamVector	t;
   CamList	*points;
   POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
-  POINTS_TYPE	Rdata[9] = {1,0,0,0,1,0,0,0,1};
   POINTS_TYPE	Tdata[3] = {0,0,0};
   CamList	*res;
 
   CamAllocateMatrix(&K, 3, 3);
-  CamAllocateMatrix(&R, 3, 3);
+  R = compute_rotation_matrix(PI / 4, PI / 4, 0.0f);
   CamAllocateVector(&t, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
-  memcpy(R.data, Rdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
   points = NULL;
   points = cam_keypoints_tracking2_add_to_linked_list(points, (void*)1);
   points = cam_keypoints_tracking2_add_to_linked_list(points, (void*)4);
+  res = cam_project_3d_to_2d(points, &K, R, &t);
   cam_keypoints_tracking2_free_linked_list(points);
-  res = cam_project_3d_to_2d(points, &K, &R, &t);
   free(res);
   CamDisallocateVector(&t);
-  CamDisallocateMatrix(&R);
+  CamDisallocateMatrix(R);
   CamDisallocateMatrix(&K);
+  free(R);
 }

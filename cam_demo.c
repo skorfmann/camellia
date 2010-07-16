@@ -1431,7 +1431,8 @@ int main()
     // Tracking examples
     //test_cam_keypoints_tracking2();
     // projections example
-    test_cam_project_3d_to_2d();
+    test_cam_3d_viewer();
+    //    test_cam_project_3d_to_2d();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();

@@ -11,7 +11,7 @@ IF(APPLE)
 ELSE(APPLE)
     IF(CMAKE_HOST_UNIX)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
-	SET(libs m)    
+	SET(libs m glut GL GLU)    
     ENDIF(CMAKE_HOST_UNIX)
 ENDIF(APPLE)    
 
