@@ -108,7 +108,10 @@ static float	fov = 60;
 static float	zNear =	1;
 static float	zFar = 1000;
 static BOOL	drawAxis = FALSE;
+static BOOL	mouseLeftDown = FALSE;
 static CamMatrix currentRotation;
+static int	lastX;
+static int	lastY;
 
 /*************************/
 /* Begin list operations */
@@ -409,7 +412,49 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
     }
 }
 
-void processMouseWheel(int button, int dir, int x, int y)
+void	processMouseKeys(int button, int state, int x, int y)
+{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+  printf("Mouse pos : %i %i\n", x, y);
+#endif
+  if (button == GLUT_LEFT_BUTTON)
+    {
+      if (state == GLUT_DOWN)
+	{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+	  printf("Mouse left down\n");
+#endif
+	  mouseLeftDown = TRUE;
+	}
+      if (state == GLUT_UP)
+	{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+	  printf("Mouse left up\n");
+#endif
+	  mouseLeftDown = FALSE;
+	}
+    }
+  lastX = x;
+  lastY = y;
+}
+
+void	processMouseMotion(int x, int y)
+{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+  printf("Mouse moved to : %i %i\n", x, y);
+#endif
+  if (mouseLeftDown == TRUE)
+    {
+      printf("Before : %f %f\n", rotX, rotY);
+      rotY += (float)(x - lastX) / (float)500;
+      rotX += (float)(y - lastY) / (float)500;
+      printf("After : %f %f\n", rotX, rotY);
+    }
+  lastX = x;
+  lastY = y;
+}
+
+void	processMouseWheel(int button, int dir, int x, int y)
 {
   if (dir > 0)
     {
@@ -427,10 +472,11 @@ void processMouseWheel(int button, int dir, int x, int y)
 #endif
       gluPerspective(fov, ratio, zNear, zFar);
     }
-
+  lastX = x;
+  lastY = y;
 }
 
-void	processMouseMovement(int x, int y)
+void	processMousePassiveMotion(int x, int y)
 {
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
   printf("Mouse pos : %i %i\n", x, y);
@@ -543,8 +589,10 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
 				   unsigned int displayMode, char *windowName,
 				   void (*keyboardFuncCallback)(unsigned char, int, int),
 				   void (*specialFuncCallback)(int, int, int),
+				   void (*mouseFuncCallback)(int, int, int, int),
 				   void (*mouseWheelCallback)(int, int, int , int),
-				   void	(*passiveMotionCallback)(int, int),
+ 				   void	(*motionCallback)(int, int),
+ 				   void	(*passiveMotionCallback)(int, int),
 				   void (*displayCallback)(void),
 				   void (*idleCallback)(void),
 				   void (*reshapeCallback)(int, int))
@@ -570,8 +618,12 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
     glutIdleFunc(idleCallback);
   if (reshapeCallback)
     glutReshapeFunc(reshapeCallback);
+  if (mouseFuncCallback)
+    glutMouseFunc(mouseFuncCallback);
   if (mouseWheelCallback)
     glutMouseWheelFunc(mouseWheelCallback);
+  if (motionCallback)
+    glutMotionFunc(motionCallback);
   if (passiveMotionCallback)
     glutPassiveMotionFunc(passiveMotionCallback);
 }
@@ -657,7 +709,7 @@ void	test_cam_3d_viewer()
   cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
   cam_3d_viewer_init_display(100, 100, 800, 600, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
-			     processKeyboardKeys, processSpecialKeys, processMouseWheel, processMouseMovement,
+			     processKeyboardKeys, processSpecialKeys, processMouseKeys, processMouseWheel, processMouseMotion, processMousePassiveMotion,
 			     renderSparsePoints, renderSparsePoints, changeSize);
   glutMainLoop();
   return ;
