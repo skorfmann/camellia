@@ -91,10 +91,10 @@ typedef enum
 #define ZFAR	1000.0f
 #define POSX	0.0f
 #define	POSY	0.0f
-#define	POSZ	15.0f
+#define	POSZ	0.0f
 #define ROTX	0.0f
 #define ROTY	0.0f
-#define ROTZ	0.0f
+#define ROTZ	PI
 
 /* globals */
 float lastx;
@@ -108,6 +108,7 @@ static float	fov = 60;
 static float	zNear =	1;
 static float	zFar = 1000;
 static BOOL	drawAxis = FALSE;
+static CamMatrix currentRotation;
 
 /*************************/
 /* Begin list operations */
@@ -236,6 +237,22 @@ inline void	cam_3d_viewer_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatr
     }
 }
 
+inline void	cam_3d_viewer_matrix_copy(CamMatrix *dst, CamMatrix *src)
+{
+  register int	i;
+  register int	j;
+
+  if (dst->ncols != src->ncols || dst->nrows != src->nrows)
+    camError("CamMatrixCopy", "m1->ncols != m2->cols || m1->nrows != m2->nrows");
+  for (j = 0 ; j < src->nrows ; ++j)
+    {
+      for (i = 0 ; i < src->ncols ; ++i)
+	{
+	  cam_3d_viewer_matrix_set_value(dst, i, j, cam_3d_viewer_matrix_get_value(src, i, j));
+	}
+    }
+}
+
 /***************************/
 /* End matrix operations */
 /***************************/
@@ -257,9 +274,8 @@ void	camera()
   cam_3d_viewer_allocate_matrix(&tmp2, 3, 3);
   cam_3d_viewer_allocate_matrix(&res, 1, 3);
   cam_3d_viewer_allocate_matrix(&vect, 1, 3);
-  /* Vect (0,0,1) */
-  cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0);
-  cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0);
+  cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+  cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
   cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f);
   /* Rx */
   cam_3d_viewer_matrix_set_value(&rotx, 0, 0, (POINTS_TYPE)1.0f);
@@ -295,9 +311,11 @@ void	camera()
   cam_3d_viewer_matrix_multiply(&tmp1, &rotx, &roty);
 
   cam_3d_viewer_matrix_multiply(&tmp2, &tmp1, &rotz);
-
-  CamMatrixMultiply(&res, &tmp2, &vect);
   
+  cam_3d_viewer_matrix_multiply(&res, &tmp2, &vect);
+
+  cam_3d_viewer_matrix_copy(&currentRotation, &tmp2);
+
   glLoadIdentity();
   gluLookAt(posX, posY, posZ,
 	    posX + cam_3d_viewer_matrix_get_value(&res, 0, 0),
@@ -310,8 +328,8 @@ void	camera()
   cam_3d_viewer_disallocate_matrix(&rotz);
   cam_3d_viewer_disallocate_matrix(&tmp1);
   cam_3d_viewer_disallocate_matrix(&tmp2);
-  cam_3d_viewer_disallocate_matrix(&vect);
   cam_3d_viewer_disallocate_matrix(&res);
+  cam_3d_viewer_disallocate_matrix(&vect);
 }
 
 void	resetView()
@@ -395,17 +413,21 @@ void processMouseWheel(int button, int dir, int x, int y)
 {
   if (dir > 0)
     {
+      fov *= zoomFactor;
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
       printf("Wheel up, fov : %f\n", fov);
 #endif
+      gluPerspective(fov, ratio, zNear, zFar);
     }
   else
     {
+      fov /= zoomFactor;
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
       printf("Wheel down, fov : %f\n", fov);
 #endif
+      gluPerspective(fov, ratio, zNear, zFar);
     }
-  glutPostRedisplay();
+
 }
 
 void	processMouseMovement(int x, int y)
@@ -632,6 +654,7 @@ void	loadAyetPoints(char *file)
 
 void	test_cam_3d_viewer()
 {
+  cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
   cam_3d_viewer_init_display(100, 100, 800, 600, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
 			     processKeyboardKeys, processSpecialKeys, processMouseWheel, processMouseMovement,
