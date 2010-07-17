@@ -447,7 +447,7 @@ void	processMouseMotion(int x, int y)
     {
       printf("Before : %f %f\n", rotX, rotY);
       rotY += (float)(x - lastX) / (float)500;
-      rotX += (float)(y - lastY) / (float)500;
+      rotX -= (float)(y - lastY) / (float)500;
       printf("After : %f %f\n", rotX, rotY);
     }
   lastX = x;
@@ -483,33 +483,67 @@ void	processMousePassiveMotion(int x, int y)
 #endif
 }
 
-void processSpecialKeys(int key, int x, int y)
+void		processSpecialKeys(int key, int x, int y)
 {
+  CamMatrix	vect;
+  CamMatrix	tmp;
+
+  cam_3d_viewer_allocate_matrix(&vect, 1, 3);
+  cam_3d_viewer_allocate_matrix(&tmp, 1, 3);
   switch (key)
     {
     case GLUT_KEY_LEFT :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Left key pressed\n");
 #endif
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)-1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
+      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_RIGHT :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Right key pressed\n");
 #endif
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
+      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_UP :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Up key pressed\n");
 #endif
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f);
+      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
+      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_DOWN :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Down key pressed\n");
 #endif
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)-1.0f);
+      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
+      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
       break;
     default:
       break;
     }
+  cam_3d_viewer_disallocate_matrix(&vect);
 }
 
 /*************************/
