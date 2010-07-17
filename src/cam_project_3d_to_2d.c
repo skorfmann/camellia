@@ -320,8 +320,8 @@ CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE r
 #endif
 
   CamMatrixCopy(res, &rotx);
-  CamMatrixAdd(res, res, &roty);
-  CamMatrixAdd(res, res, &rotz);
+  //  CamMatrixAdd(res, res, &roty);
+  //CamMatrixAdd(res, res, &rotz);
 
   CamDisallocateMatrix(&rotx);
   CamDisallocateMatrix(&roty);
