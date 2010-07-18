@@ -96,17 +96,21 @@ typedef enum
 #define ROTY	0.0f
 #define ROTZ	PI
 
+#define ZOOM_FACTOR 1.03f
+#define TRANSLATION_ACCELERATION 0.3f
+#define ROTATI0N_ACCELERATION 0.3f
+
 /* globals */
 float lastx;
 float lasty;
 static CamList	*pointsList = NULL;
-static float	ratio;
-static float	zoomFactor = 1.03f;
-static float	posX=0.0f, posY=0.0f, posZ=0.0f;
-static float	rotX=0.0f, rotY=0.0f, rotZ= PI;
-static float	fov = 60;
-static float	zNear =	1;
-static float	zFar = 1000;
+static float	width;
+static float	height;
+static float	posX=POSX, posY=POSY, posZ=POSZ;
+static float	rotX=ROTX, rotY=ROTY, rotZ= ROTZ;
+static float	fov = FOV;
+static float	zNear =	ZNEAR;
+static float	zFar = ZFAR;
 static BOOL	drawAxis = FALSE;
 static BOOL	mouseLeftDown = FALSE;
 static CamMatrix currentRotation;
@@ -369,22 +373,22 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
       resetView();
       break;
     case 's':
-      posZ -= 1;
+      posZ -= 1 * TRANSLATION_ACCELERATION;
       break;
     case 'z':
-      posZ += 1;
+      posZ += 1 * TRANSLATION_ACCELERATION;
       break;
     case 'q':
-      posX += 1;
+      posX += 1 * TRANSLATION_ACCELERATION;
       break;
     case 'd':
-      posX -= 1;
+      posX -= 1 * TRANSLATION_ACCELERATION;
       break;
     case 'a':
-      posY += 1;
+      posY += 1 * TRANSLATION_ACCELERATION;
       break;
     case 'e':
-      posY -= 1;
+      posY -= 1 * TRANSLATION_ACCELERATION;
       break;
     case 'i':
       rotZ += 0.1f;
@@ -445,10 +449,8 @@ void	processMouseMotion(int x, int y)
 #endif
   if (mouseLeftDown == TRUE)
     {
-      printf("Before : %f %f\n", rotX, rotY);
-      rotY += (float)(x - lastX) / (float)500;
-      rotX -= (float)(y - lastY) / (float)500;
-      printf("After : %f %f\n", rotX, rotY);
+      rotY += (float)(x - lastX) * ROTATI0N_ACCELERATION / (float)500;
+      rotX -= (float)(y - lastY) * ROTATI0N_ACCELERATION / (float)500;
     }
   lastX = x;
   lastY = y;
@@ -458,19 +460,27 @@ void	processMouseWheel(int button, int dir, int x, int y)
 {
   if (dir > 0)
     {
-      fov *= zoomFactor;
+      fov /= ZOOM_FACTOR;
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
       printf("Wheel up, fov : %f\n", fov);
 #endif
-      gluPerspective(fov, ratio, zNear, zFar);
+      glMatrixMode(GL_PROJECTION);
+      glLoadIdentity();
+      glViewport(0, 0, width, height);
+      gluPerspective(fov, width / height, zNear, zFar);
+      glMatrixMode(GL_MODELVIEW);
     }
   else
     {
-      fov /= zoomFactor;
+      fov *= ZOOM_FACTOR;
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
       printf("Wheel down, fov : %f\n", fov);
 #endif
-      gluPerspective(fov, ratio, zNear, zFar);
+      glMatrixMode(GL_PROJECTION);
+      glLoadIdentity();
+      glViewport(0, 0, width, height);
+      gluPerspective(fov, width / height, zNear, zFar);
+      glMatrixMode(GL_MODELVIEW);
     }
   lastX = x;
   lastY = y;
@@ -496,7 +506,7 @@ void		processSpecialKeys(int key, int x, int y)
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Left key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)-1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
       cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
@@ -508,7 +518,7 @@ void		processSpecialKeys(int key, int x, int y)
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Right key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
       cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
@@ -522,7 +532,7 @@ void		processSpecialKeys(int key, int x, int y)
 #endif
       cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
       cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
       posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
       posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
@@ -534,7 +544,7 @@ void		processSpecialKeys(int key, int x, int y)
 #endif
       cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
       cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)-1.0f);
+      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
       cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
       posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
       posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
@@ -544,6 +554,7 @@ void		processSpecialKeys(int key, int x, int y)
       break;
     }
   cam_3d_viewer_disallocate_matrix(&vect);
+  cam_3d_viewer_disallocate_matrix(&tmp);
 }
 
 /*************************/
@@ -552,30 +563,21 @@ void		processSpecialKeys(int key, int x, int y)
 
 void changeSize(int w, int h)
 {
+  static int toto = 0;
   printf("size changed\n");
   if(h == 0)
     h = 1;
 
-  ratio = 1.0f * w / h;
+  width = (float)w;
+  height = (float)h;
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glViewport(0, 0, w, h);
-  gluPerspective(fov, ratio, zNear, zFar);
+  gluPerspective(fov, w / h, zNear, zFar);
   glMatrixMode(GL_MODELVIEW);
   camera();
+  ++toto;
 }
-
-// Here is the function
-void glutPrint(float x, float y, char* text, float r, float g, float b)
-{
-  glColor3f(r,g,b);
-  glRasterPos2f(x,y);
-  while (*text)
-    {
-      glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_10, *text);
-      text++;
-    }
-}  
 
 void		renderSparsePoints(void)
 {
@@ -583,7 +585,7 @@ void		renderSparsePoints(void)
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   points = pointsList;
-
+  
   if (drawAxis)
     {
       glBegin(GL_LINES);
@@ -612,8 +614,8 @@ void		renderSparsePoints(void)
       points = points->next;
     }
   glEnd();
-  camera();
 
+  camera();
 
   glutSwapBuffers();
   return ;
@@ -742,7 +744,7 @@ void	test_cam_3d_viewer()
 {
   cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
-  cam_3d_viewer_init_display(100, 100, 800, 600, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
+  cam_3d_viewer_init_display(100, 100, 1280, 1024, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
 			     processKeyboardKeys, processSpecialKeys, processMouseKeys, processMouseWheel, processMouseMotion, processMousePassiveMotion,
 			     renderSparsePoints, renderSparsePoints, changeSize);
   glutMainLoop();
