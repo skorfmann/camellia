@@ -51,10 +51,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 
-#define CAM_3D_VIWER_DISPLAY_KEYS
-#define CAM_3D_VIWER_DISPLAY_MOUSE
-#define	CAM_3D_DEBUG
+//#define CAM_3D_VIWER_DISPLAY_KEYS
+//#define CAM_3D_VIWER_DISPLAY_MOUSE
+//#define	CAM_3D_DEBUG
 
 #define	POINTS_TYPE	float
 #define PI		3.1415926535897932384626433832795
@@ -101,9 +102,10 @@ typedef enum
 #define ROTATI0N_ACCELERATION 0.3f
 
 /* globals */
-float lastx;
-float lasty;
+float		lastx;
+float		lasty;
 static CamList	*pointsList = NULL;
+static Cam3dPoint *sortedPointsList;
 static float	width;
 static float	height;
 static float	posX=POSX, posY=POSY, posZ=POSZ;
@@ -113,9 +115,21 @@ static float	zNear =	ZNEAR;
 static float	zFar = ZFAR;
 static BOOL	drawAxis = FALSE;
 static BOOL	mouseLeftDown = FALSE;
+static BOOL	mouseRightDown = FALSE;
+static BOOL	printClosestPoint = FALSE;
 static CamMatrix currentRotation;
+static CamMatrix currentNormal;
 static int	lastX;
 static int	lastY;
+static int	pointIndex = 0;
+static int	rightUpMouseXPos = 0;
+static int	rightUpMouseYPos = 0;
+static int	rightUpMouseZPos = 0;
+
+/* to be deleted*/
+float oldX;
+float oldY;
+float oldZ;
 
 /*************************/
 /* Begin list operations */
@@ -322,6 +336,7 @@ void	camera()
   cam_3d_viewer_matrix_multiply(&res, &tmp2, &vect);
 
   cam_3d_viewer_matrix_copy(&currentRotation, &tmp2);
+  cam_3d_viewer_matrix_copy(&currentNormal, &res);
 
   glLoadIdentity();
   gluLookAt(posX, posY, posZ,
@@ -411,9 +426,52 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
     case 'h':
       drawAxis = (drawAxis + 1) % 2;
       break;
+    case 'c':
+      printClosestPoint = (printClosestPoint + 1) % 2;
+      break;
+    case 'b':
+      pointIndex++;
+      break;
+    case 'n':
+      pointIndex--;
+      if (pointIndex < 0)
+	pointIndex = 0;
+      break;
    default:
       break;
     }
+}
+
+int	camSort3dPoints(const void *p1, const void *p2)
+{
+  float	d1;
+  float	d2;
+  float	dist1;
+  float	dist2;
+  float t1;
+  float t2;
+  float	NX;
+  float	NY;
+  float	NZ;
+
+  NX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
+  NY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
+  NZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
+
+  d1 = NX * ((Cam3dPoint*)p1)->x + NY * ((Cam3dPoint*)p1)->y + NZ * ((Cam3dPoint*)p1)->z;
+  d2 = NX * ((Cam3dPoint*)p2)->x + NY * ((Cam3dPoint*)p2)->y + NZ * ((Cam3dPoint*)p2)->z;
+  t1 = (d1 - NX * posX - NY * posY - NZ * posZ) / (NX * NX + NY * NY + NZ * NZ);
+  t2 = (d1 - NX * posX - NY * posY - NZ * posZ) / (NX * NX + NY * NY + NZ * NZ);
+
+  dist1 = (posX + t1 * NX - ((Cam3dPoint*)p1)->x) * (posX + t1 * NX - ((Cam3dPoint*)p1)->x) +
+    (posY + t1 * NY - ((Cam3dPoint*)p1)->y) * (posY + t1 * NY - ((Cam3dPoint*)p1)->y) +
+    (posZ + t1 * NZ - ((Cam3dPoint*)p1)->z) * (posZ + t1 * NZ - ((Cam3dPoint*)p1)->z);
+
+  dist2 = (posX + t2 * NX - ((Cam3dPoint*)p2)->x) * (posX + t2 * NX - ((Cam3dPoint*)p2)->x) +
+    (posY + t2 * NY - ((Cam3dPoint*)p2)->y) * (posY + t2 * NY - ((Cam3dPoint*)p2)->y) +
+    (posZ + t2 * NZ - ((Cam3dPoint*)p2)->z) * (posZ + t2 * NZ - ((Cam3dPoint*)p2)->z);
+
+  return (dist1 - dist2);
 }
 
 void	processMouseKeys(int button, int state, int x, int y)
@@ -436,6 +494,32 @@ void	processMouseKeys(int button, int state, int x, int y)
 	  printf("Mouse left up\n");
 #endif
 	  mouseLeftDown = FALSE;
+	}
+    }
+  if (button == GLUT_RIGHT_BUTTON)
+    {
+      if (state = GLUT_DOWN)
+	{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+	  printf("Mouse right down\n");
+	  mouseRightDown = TRUE;
+#endif
+	  
+	}
+      if (state = GLUT_UP)
+	{
+#ifdef CAM_3D_VIWER_DISPLAY_MOUSE
+	  printf("Mouse right down\n");
+#endif
+	  mouseRightDown = FALSE;
+	  rightUpMouseXPos = posX;
+	  rightUpMouseYPos = posY;
+	  rightUpMouseZPos = posZ;
+	  /* to be deleted */
+	  oldX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
+	  oldY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
+	  oldZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
+	  qsort(sortedPointsList, pointsList->index, sizeof(Cam3dPoint), camSort3dPoints);
 	}
     }
   lastX = x;
@@ -581,10 +665,9 @@ void changeSize(int w, int h)
 
 void		renderSparsePoints(void)
 {
-  CamList	*points;
+  int		index;
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  points = pointsList;
   
   if (drawAxis)
     {
@@ -605,15 +688,37 @@ void		renderSparsePoints(void)
     }
 
   glBegin(GL_POINTS);
-  while (points)
+  index = 0;
+  while (index < pointsList->index)
     {
       glColor3f(1.0f, 1.0f, 1.0f);
-      glVertex3f(((Cam3dPoint *)points->data)->x,
-		 ((Cam3dPoint *)points->data)->y,
-		 ((Cam3dPoint *)points->data)->z);
-      points = points->next;
+      if (!(printClosestPoint == TRUE && index == pointIndex))
+	glVertex3f(sortedPointsList[index].x,
+		   sortedPointsList[index].y,
+		   sortedPointsList[index].z);
+      ++index;
     }
   glEnd();
+  
+  if (printClosestPoint == TRUE)
+    {
+      glBegin(GL_LINES);
+      glColor3f(0.5f, 1.0f, 0.0f);
+      glVertex3f(rightUpMouseXPos,
+		 rightUpMouseYPos,
+		 rightUpMouseZPos);
+      glVertex3f(sortedPointsList[pointIndex].x,
+		 sortedPointsList[pointIndex].y,
+		 sortedPointsList[pointIndex].z);
+      glColor3f(1.0f, 1.0f, 0.0f);
+      glVertex3f(rightUpMouseXPos,
+		 rightUpMouseYPos,
+		 rightUpMouseZPos);
+      glVertex3f(oldX * 10,
+		 oldY * 10,
+		 oldZ * 10);
+      glEnd();
+    }
 
   camera();
 
@@ -740,10 +845,28 @@ void	loadAyetPoints(char *file)
   fclose(dataFd);
 }
 
+void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
+{
+  CamList	*ptr;
+  int		index;
+
+  ptr = list;
+  index = 0;
+  while (ptr)
+    {
+      memcpy(sortedPointsList + index, ptr->data, sizeof(Cam3dPoint));
+      ptr = ptr->next;
+      ++index;
+    }
+}
+
 void	test_cam_3d_viewer()
 {
   cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
+  cam_3d_viewer_allocate_matrix(&currentNormal, 1, 3);
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
+  sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
+  loadSortedPointsList(pointsList, sortedPointsList);
   cam_3d_viewer_init_display(100, 100, 1280, 1024, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
 			     processKeyboardKeys, processSpecialKeys, processMouseKeys, processMouseWheel, processMouseMotion, processMousePassiveMotion,
 			     renderSparsePoints, renderSparsePoints, changeSize);
