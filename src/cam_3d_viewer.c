@@ -121,6 +121,7 @@ static BOOL	drawAxis = FALSE;
 static BOOL	mouseLeftDown = FALSE;
 static BOOL	mouseRightDown = FALSE;
 static BOOL	printClosestPoint = FALSE;
+static BOOL	printNormale = FALSE;
 static CamMatrix currentRotation;
 static CamMatrix currentNormal;
 static int	lastX;
@@ -350,6 +351,13 @@ void	camera()
 	    posZ + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2),
 	    0.0f, 1.0f, 0.0f);
 
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glViewport(0, 0, width, height);
+  gluPerspective(fov, width / height, zNear, zFar);
+  glMatrixMode(GL_MODELVIEW);
+
+
   cam_3d_viewer_disallocate_matrix(&rotx);
   cam_3d_viewer_disallocate_matrix(&roty);
   cam_3d_viewer_disallocate_matrix(&rotz);
@@ -442,6 +450,9 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
       pointIndex--;
       if (pointIndex < 0)
 	pointIndex = 0;
+      break;
+    case 'v':
+      printNormale = (printNormale + 1) % 2;
       break;
    default:
       break;
@@ -722,17 +733,17 @@ void	renderInfos(void)
 
   glRasterPos2f(10.0f, 10.0f);
   drawstr(10, 10, "Mouse pos :");
-  drawstr(10, 25, "%f", posX);
-  drawstr(10, 40, "%f", posY);
-  drawstr(10, 55, "%f", posZ);
+  drawstr(10, 25, "x: %f", posX);
+  drawstr(10, 40, "y: %f", posY);
+  drawstr(10, 55, "z: %f", posZ);
 
   if (printClosestPoint == TRUE)
     {
       drawstr(10, 85, "Selected point :");
-      drawstr(10, 100, "%f", sortedPointsList[pointIndex].x);
-      drawstr(10, 115, "%f", sortedPointsList[pointIndex].y);
-      drawstr(10, 130, "%f", sortedPointsList[pointIndex].z);
-      drawstr(10, 145, "%f", sortedPointsList[pointIndex].dist);
+      drawstr(10, 100, "x: %f", sortedPointsList[pointIndex].x);
+      drawstr(10, 115, "y: %f", sortedPointsList[pointIndex].y);
+      drawstr(10, 130, "z: %f", sortedPointsList[pointIndex].z);
+      drawstr(10, 145, "distance: %f", sortedPointsList[pointIndex].dist);
     }
 
   glutSwapBuffers();  
@@ -767,10 +778,9 @@ void		renderSparsePoints(void)
   glColor3f(1.0f, 1.0f, 1.0f);
   while (index < pointsList->index)
     {
-      if (!(printClosestPoint == TRUE && index == pointIndex))
-	glVertex3f(sortedPointsList[index].x,
-		   sortedPointsList[index].y,
-		   sortedPointsList[index].z);
+      glVertex3f(sortedPointsList[index].x,
+		 sortedPointsList[index].y,
+		 sortedPointsList[index].z);
       ++index;
     }
   glEnd();
@@ -787,20 +797,18 @@ void		renderSparsePoints(void)
 		 sortedPointsList[pointIndex].y,
 		 sortedPointsList[pointIndex].z);
 
-      glColor3f(1.0f, 1.0f, 0.0f);
-      glVertex3f(rightUpMouseXPos,
-		 rightUpMouseYPos,
-		 rightUpMouseZPos);
+      if (printNormale == TRUE)
+	{
+	  glColor3f(1.0f, 1.0f, 0.0f);
+	  glVertex3f(rightUpMouseXPos,
+		     rightUpMouseYPos,
+		     rightUpMouseZPos);
+	  
+	  glVertex3f(rightUpMouseXPos + oldX * ZFAR,
+		     rightUpMouseYPos + oldY * ZFAR,
+		     rightUpMouseZPos + oldZ * ZFAR);
+	}
 
-      glVertex3f(oldX * 20,
-		 oldY * 20,
-		 oldZ * 20);
-      glEnd();
-      glBegin(GL_POINTS);
-      glColor3f(1.0f, 0.0f, 0.0f);
-      glVertex3f(rightUpMouseXPos,
-		 rightUpMouseYPos,
-		 rightUpMouseZPos);
       glEnd();
     }
 
