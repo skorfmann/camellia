@@ -73,6 +73,7 @@ typedef struct
   POINTS_TYPE	x;
   POINTS_TYPE	y;
   POINTS_TYPE	z;
+  POINTS_TYPE	dist;
 }		Cam3dPoint;
 
 typedef struct
@@ -89,7 +90,7 @@ typedef enum
   }	BOOL;
 
 #define FOV	60.0f
-#define ZNEAR	1.0f
+#define ZNEAR	0.0f
 #define ZFAR	1000.0f
 #define POSX	0.0f
 #define	POSY	0.0f
@@ -125,9 +126,9 @@ static CamMatrix currentNormal;
 static int	lastX;
 static int	lastY;
 static int	pointIndex = 0;
-static int	rightUpMouseXPos = 0;
-static int	rightUpMouseYPos = 0;
-static int	rightUpMouseZPos = 0;
+static float	rightUpMouseXPos = 0.0f;
+static float	rightUpMouseYPos = 0.0f;
+static float	rightUpMouseZPos = 0.0f;
 static int	info, mainWindow;
 
 /* to be deleted*/
@@ -369,6 +370,7 @@ void	resetView()
   rotX = ROTX;
   rotY = ROTY;
   rotZ = ROTZ;
+  pointIndex = 0;
 #ifdef CAM_3D_DEBUG
   printf("Resetting view\n");
 #endif
@@ -448,38 +450,24 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
 
 int	camSort3dPoints(const void *p1, const void *p2)
 {
-  float	d1;
-  float	d2;
-  float	dist1;
-  float	dist2;
-  float t1;
-  float t2;
-  float	NX;
-  float	NY;
-  float	NZ;
-
-  NX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
-  NY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
-  NZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
-
-  d1 = NX * ((Cam3dPoint*)p1)->x + NY * ((Cam3dPoint*)p1)->y + NZ * ((Cam3dPoint*)p1)->z;
-  d2 = NX * ((Cam3dPoint*)p2)->x + NY * ((Cam3dPoint*)p2)->y + NZ * ((Cam3dPoint*)p2)->z;
-  t1 = (d1 - NX * posX - NY * posY - NZ * posZ) / (NX * NX + NY * NY + NZ * NZ);
-  t2 = (d1 - NX * posX - NY * posY - NZ * posZ) / (NX * NX + NY * NY + NZ * NZ);
-
-  dist1 = (posX + t1 * NX - ((Cam3dPoint*)p1)->x) * (posX + t1 * NX - ((Cam3dPoint*)p1)->x) +
-    (posY + t1 * NY - ((Cam3dPoint*)p1)->y) * (posY + t1 * NY - ((Cam3dPoint*)p1)->y) +
-    (posZ + t1 * NZ - ((Cam3dPoint*)p1)->z) * (posZ + t1 * NZ - ((Cam3dPoint*)p1)->z);
-
-  dist2 = (posX + t2 * NX - ((Cam3dPoint*)p2)->x) * (posX + t2 * NX - ((Cam3dPoint*)p2)->x) +
-    (posY + t2 * NY - ((Cam3dPoint*)p2)->y) * (posY + t2 * NY - ((Cam3dPoint*)p2)->y) +
-    (posZ + t2 * NZ - ((Cam3dPoint*)p2)->z) * (posZ + t2 * NZ - ((Cam3dPoint*)p2)->z);
-
-  return (dist1 - dist2);
+  if (((Cam3dPoint*)p1)->dist < ((Cam3dPoint*)p2)->dist)
+    return (-1);
+  if (((Cam3dPoint*)p1)->dist == ((Cam3dPoint*)p2)->dist)
+    return (0);
+  return (1);
+  //return (((Cam3dPoint*)p1)->dist - ((Cam3dPoint*)p2)->dist);
 }
 
 void	processMouseKeys(int button, int state, int x, int y)
 {
+  float	d1;
+  float	dist1;
+  float t1;
+  float	NX;
+  float	NY;
+  float	NZ;
+  int	i;
+
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
   printf("Mouse pos : %i %i\n", x, y);
 #endif
@@ -523,7 +511,29 @@ void	processMouseKeys(int button, int state, int x, int y)
 	  oldX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
 	  oldY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
 	  oldZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
-	  qsort(sortedPointsList, pointsList->index, sizeof(Cam3dPoint), camSort3dPoints);
+
+	  if (printClosestPoint == TRUE)
+	    {
+	      NX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
+	      NY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
+	      NZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
+
+	      i = 0;
+
+	      while (i < pointsList->index)
+		{
+		  d1 = NX * sortedPointsList[i].x + NY * sortedPointsList[i].y + NZ * sortedPointsList[i].z;
+		  t1 = (d1 - NX * posX - NY * posY - NZ * posZ) / (NX * NX + NY * NY + NZ * NZ);
+		  
+		  dist1 = (posX + t1 * NX - sortedPointsList[i].x) * (posX + t1 * NX - sortedPointsList[i].x) +
+		    (posY + t1 * NY - sortedPointsList[i].y) * (posY + t1 * NY - sortedPointsList[i].y) +
+		    (posZ + t1 * NZ - sortedPointsList[i].z) * (posZ + t1 * NZ - sortedPointsList[i].z);
+		  
+		  sortedPointsList[i].dist = dist1;
+		  ++i;
+		}
+	      qsort(sortedPointsList, pointsList->index, sizeof(Cam3dPoint), camSort3dPoints);
+	    }
 	}
     }
   lastX = x;
@@ -722,6 +732,7 @@ void	renderInfos(void)
       drawstr(10, 100, "%f", sortedPointsList[pointIndex].x);
       drawstr(10, 115, "%f", sortedPointsList[pointIndex].y);
       drawstr(10, 130, "%f", sortedPointsList[pointIndex].z);
+      drawstr(10, 145, "%f", sortedPointsList[pointIndex].dist);
     }
 
   glutSwapBuffers();  
@@ -753,9 +764,9 @@ void		renderSparsePoints(void)
 
   glBegin(GL_POINTS);
   index = 0;
+  glColor3f(1.0f, 1.0f, 1.0f);
   while (index < pointsList->index)
     {
-      glColor3f(1.0f, 1.0f, 1.0f);
       if (!(printClosestPoint == TRUE && index == pointIndex))
 	glVertex3f(sortedPointsList[index].x,
 		   sortedPointsList[index].y,
@@ -771,16 +782,19 @@ void		renderSparsePoints(void)
       glVertex3f(rightUpMouseXPos,
 		 rightUpMouseYPos,
 		 rightUpMouseZPos);
+
       glVertex3f(sortedPointsList[pointIndex].x,
 		 sortedPointsList[pointIndex].y,
 		 sortedPointsList[pointIndex].z);
+
       glColor3f(1.0f, 1.0f, 0.0f);
       glVertex3f(rightUpMouseXPos,
 		 rightUpMouseYPos,
 		 rightUpMouseZPos);
-      glVertex3f(oldX * 10,
-		 oldY * 10,
-		 oldZ * 10);
+
+      glVertex3f(oldX * 20,
+		 oldY * 20,
+		 oldZ * 20);
       glEnd();
       glBegin(GL_POINTS);
       glColor3f(1.0f, 0.0f, 0.0f);
