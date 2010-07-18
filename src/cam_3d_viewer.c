@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 
 //#define CAM_3D_VIWER_DISPLAY_KEYS
 //#define CAM_3D_VIWER_DISPLAY_MOUSE
@@ -96,6 +97,8 @@ typedef enum
 #define ROTX	0.0f
 #define ROTY	0.0f
 #define ROTZ	PI
+#define	WIDTH	1024
+#define	HEIGHT	768
 
 #define ZOOM_FACTOR 1.03f
 #define TRANSLATION_ACCELERATION 0.3f
@@ -125,6 +128,7 @@ static int	pointIndex = 0;
 static int	rightUpMouseXPos = 0;
 static int	rightUpMouseYPos = 0;
 static int	rightUpMouseZPos = 0;
+static int	info, mainWindow;
 
 /* to be deleted*/
 float oldX;
@@ -333,16 +337,16 @@ void	camera()
 
   cam_3d_viewer_matrix_multiply(&tmp2, &tmp1, &rotz);
   
-  cam_3d_viewer_matrix_multiply(&res, &tmp2, &vect);
-
   cam_3d_viewer_matrix_copy(&currentRotation, &tmp2);
+  cam_3d_viewer_matrix_multiply(&res, &currentRotation, &vect);
+
   cam_3d_viewer_matrix_copy(&currentNormal, &res);
 
   glLoadIdentity();
   gluLookAt(posX, posY, posZ,
-	    posX + cam_3d_viewer_matrix_get_value(&res, 0, 0),
-	    posY + cam_3d_viewer_matrix_get_value(&res, 0, 1),
-	    posZ + cam_3d_viewer_matrix_get_value(&res, 0, 2),
+	    posX + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0),
+	    posY + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1),
+	    posZ + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2),
 	    0.0f, 1.0f, 0.0f);
 
   cam_3d_viewer_disallocate_matrix(&rotx);
@@ -645,22 +649,82 @@ void		processSpecialKeys(int key, int x, int y)
 /* End events handling */
 /*************************/
 
-void changeSize(int w, int h)
+void	infoChangeSize(int w, int h)
 {
-  static int toto = 0;
-  printf("size changed\n");
-  if(h == 0)
+  glViewport(0, 0, w, h);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(0, w, h, 0);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glClearColor(0.0, 0.0, 0.0, 0.0);
+}
+
+void	changeSize(int w, int h)
+{
+  if (h == 0)
     h = 1;
 
   width = (float)w;
   height = (float)h;
+  gluOrtho2D(0,width,height,0);
+
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glViewport(0, 0, w, h);
-  gluPerspective(fov, w / h, zNear, zFar);
+  gluPerspective(fov, width / height, zNear, zFar);
   glMatrixMode(GL_MODELVIEW);
   camera();
-  ++toto;
+}
+
+
+void	redisplay_all(void)
+{
+  glutSetWindow(info);
+  glutPostRedisplay();
+  glutSetWindow(mainWindow);
+  //  changeSize(WIDTH, HEIGHT);
+  glutPostRedisplay();
+}
+
+
+
+void	drawstr(int x, int y, char* format, ...)
+{
+  va_list args;
+  char buffer[255], *s;
+    
+  va_start(args, format);
+  vsprintf(buffer, format, args);
+  va_end(args);
+    
+  glRasterPos2i(x, y);
+  for (s = buffer; *s; s++)
+    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *s);
+}
+
+void	renderInfos(void)
+{
+  glClearColor(0.2, 0.2, 0.2, 0.0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glColor3f(1.0f, 0.0f, 0.0f);
+
+  glRasterPos2f(10.0f, 10.0f);
+  drawstr(10, 10, "Mouse pos :");
+  drawstr(10, 25, "%f", posX);
+  drawstr(10, 40, "%f", posY);
+  drawstr(10, 55, "%f", posZ);
+
+  if (printClosestPoint == TRUE)
+    {
+      drawstr(10, 85, "Selected point :");
+      drawstr(10, 100, "%f", sortedPointsList[pointIndex].x);
+      drawstr(10, 115, "%f", sortedPointsList[pointIndex].y);
+      drawstr(10, 130, "%f", sortedPointsList[pointIndex].z);
+    }
+
+  glutSwapBuffers();  
 }
 
 void		renderSparsePoints(void)
@@ -718,10 +782,17 @@ void		renderSparsePoints(void)
 		 oldY * 10,
 		 oldZ * 10);
       glEnd();
+      glBegin(GL_POINTS);
+      glColor3f(1.0f, 0.0f, 0.0f);
+      glVertex3f(rightUpMouseXPos,
+		 rightUpMouseYPos,
+		 rightUpMouseZPos);
+      glEnd();
     }
 
   camera();
 
+  redisplay_all();
   glutSwapBuffers();
   return ;
 }
@@ -736,7 +807,10 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
  				   void	(*passiveMotionCallback)(int, int),
 				   void (*displayCallback)(void),
 				   void (*idleCallback)(void),
-				   void (*reshapeCallback)(int, int))
+				   void (*reshapeCallback)(int, int),
+				   int infoWidth, int infoHeight,
+				   void (*infoDisplayCallback)(void),
+				   void (*infoReshapeCallback)(int, int))
 {
   int	ac;
 
@@ -745,10 +819,7 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
   glutInitDisplayMode(displayMode);
   glutInitWindowPosition(xPos, yPos);
   glutInitWindowSize(width, height);
-  glutCreateWindow(windowName);
-
-  glClearColor(0.0,0.0,0.0,0.0);
-  gluOrtho2D(0,width,height,0);
+  mainWindow = glutCreateWindow(windowName);
 
   if (keyboardFuncCallback)
     glutKeyboardFunc(keyboardFuncCallback);
@@ -767,6 +838,13 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
     glutMotionFunc(motionCallback);
   if (passiveMotionCallback)
     glutPassiveMotionFunc(passiveMotionCallback);
+
+  info = glutCreateSubWindow(mainWindow, width - infoWidth, height - infoHeight, infoWidth, infoHeight);
+  if (infoReshapeCallback)
+    glutReshapeFunc(infoReshapeCallback);
+  glutDisplayFunc(infoDisplayCallback);
+  
+  redisplay_all();
 }
 
 POINTS_TYPE	extractNextValue(FILE *fd)
@@ -867,9 +945,11 @@ void	test_cam_3d_viewer()
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
   loadSortedPointsList(pointsList, sortedPointsList);
-  cam_3d_viewer_init_display(100, 100, 1280, 1024, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
+  cam_3d_viewer_init_display(100, 100, WIDTH, HEIGHT, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
 			     processKeyboardKeys, processSpecialKeys, processMouseKeys, processMouseWheel, processMouseMotion, processMousePassiveMotion,
-			     renderSparsePoints, renderSparsePoints, changeSize);
+			     renderSparsePoints, renderSparsePoints, changeSize,
+			     150, 150,
+			     renderInfos, infoChangeSize);
   glutMainLoop();
   return ;
 }
