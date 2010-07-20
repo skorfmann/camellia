@@ -49,6 +49,8 @@
 #ifndef __CAM_MATRIX_H__
 # define __CAM_MATRIX_H__
 
+#include "cam_3d_point.h"
+
 typedef struct
 {
   POINTS_TYPE	*data;
@@ -62,7 +64,7 @@ void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
 POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
 void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
 void		cam_print_matrix(CamMatrix *mat, char *name);
-void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
+void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
 void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
 
 #endif /* __CAM_MATRIX_H__ */

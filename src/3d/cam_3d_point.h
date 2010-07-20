@@ -46,8 +46,8 @@
   ==========================================================================
 */
 
-#ifndef __CAM_3D_POINt_H__
-# define __CAM_3D_POINt_H__
+#ifndef __CAM_3D_POINT_H__
+# define __CAM_3D_POINT_H__
 
 #define	POINTS_TYPE	float
 
@@ -59,4 +59,4 @@ typedef struct
   POINTS_TYPE	dist;
 }		Cam3dPoint;
 
-#endif /* __CAM_3D_POINt_H__ */
+#endif /* __CAM_3D_POINT_H__ */

@@ -53,12 +53,13 @@
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
+
 #include "cam_list.h"
 #include "cam_matrix.h"
 
-//#define CAM_3D_VIWER_DISPLAY_KEYS
-//#define CAM_3D_VIWER_DISPLAY_MOUSE
-//#define	CAM_3D_DEBUG
+/* #define CAM_3D_VIWER_DISPLAY_KEYS
+#define CAM_3D_VIWER_DISPLAY_MOUSE
+#define	CAM_3D_DEBUG */
 
 #define PI		3.1415926535897932384626433832795
 
@@ -537,7 +538,6 @@ void	redisplay_all(void)
   glutSetWindow(info);
   glutPostRedisplay();
   glutSetWindow(mainWindow);
-  //  changeSize(WIDTH, HEIGHT);
   glutPostRedisplay();
 }
 
@@ -591,15 +591,12 @@ void		renderSparsePoints(void)
   if (drawAxis)
     {
       glBegin(GL_LINES);
-      // X axis
       glColor3f(1.0f, 0, 0);
       glVertex3f(0, 0, 0);
       glVertex3f(1.0f, 0, 0);
-      // Y axis
       glColor3f(0, 1.0f, 0);
       glVertex3f(0, 0, 0);
       glVertex3f(0, 1.0f, 0);
-      // Z axis
       glColor3f(0, 0, 1.0f);
       glVertex3f(0, 0, 0);
       glVertex3f(0, 0, 1.0f);
@@ -766,8 +763,8 @@ void	loadAyetPoints(char *file)
       ((Cam3dPoint *)pointsList->data)->x = extractNextValue(dataFd);
       ((Cam3dPoint *)pointsList->data)->y = extractNextValue(dataFd);
       ((Cam3dPoint *)pointsList->data)->z = extractNextValue(dataFd);
-      fgetc(dataFd); // \r
-      fgetc(dataFd); // \n
+      fgetc(dataFd);
+      fgetc(dataFd);
       spacingSymbol = fgetc(dataFd);
       if (spacingSymbol == EOF)
 	break;
@@ -793,12 +790,12 @@ void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
     }
 }
 
-void	test_cam_3d_viewer()
+int	main()
 {
   cam_allocate_matrix(&currentRotation, 3, 3);
   cam_allocate_matrix(&currentNormal, 1, 3);
 
-  loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
+  loadAyetPoints("/home/splin/manny");
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
 
   loadSortedPointsList(pointsList, sortedPointsList);

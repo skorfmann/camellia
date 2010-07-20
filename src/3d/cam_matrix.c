@@ -46,14 +46,18 @@
   ==========================================================================
 */
 
-inline void	cam_allocate_matrix(CamMatrix *m, int ncols, int nrows)
+#include <stdlib.h>
+#include <stdio.h>
+#include "cam_matrix.h"
+
+void	cam_allocate_matrix(CamMatrix *m, int ncols, int nrows)
 {
   m->ncols = ncols;
   m->nrows = nrows;
   m->data = (POINTS_TYPE *)calloc(nrows * ncols, sizeof(POINTS_TYPE));
 }
 
-inline void	cam_disallocate_matrix(CamMatrix *m)
+void	cam_disallocate_matrix(CamMatrix *m)
 {
   free(m->data);
   m->data = NULL;
@@ -61,18 +65,18 @@ inline void	cam_disallocate_matrix(CamMatrix *m)
   m->ncols = 0;
 }
 
-inline void	cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
+void	cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
 {
   m->data[y * m->ncols + x] = value;
   return ;
 }
 
-inline POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y)
+POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y)
 {
   return (m->data[y * m->ncols + x]);
 }
 
-inline void	cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
+void	cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
 {
   m->data[y * m->ncols + x] += value;
   return ;
@@ -95,7 +99,7 @@ void		cam_print_matrix(CamMatrix *mat, char *name)
     }
 }
 
-inline void	cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
+void	cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
 {
   register int	i;
   register int	j;
@@ -104,7 +108,10 @@ inline void	cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
   if (!res->data)
     cam_allocate_matrix(res, m1->nrows, m2->ncols);
   if (m1->ncols != m2->nrows)
-    camError("CamMatrixMultiply", "m1->ncols != m2->nrows");
+    {
+      printf("CamMatrixMultiply : m1->ncols != m2->nrows");
+      exit(-1);
+    }
   for (j = 0 ; j < res->nrows ; ++j)
     {
       for (i = 0 ; i < res->ncols ; ++i)
@@ -117,13 +124,16 @@ inline void	cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
     }
 }
 
-inline void	cam_matrix_copy(CamMatrix *dst, CamMatrix *src)
+void	cam_matrix_copy(CamMatrix *dst, CamMatrix *src)
 {
   register int	i;
   register int	j;
 
   if (dst->ncols != src->ncols || dst->nrows != src->nrows)
-    camError("CamMatrixCopy", "m1->ncols != m2->cols || m1->nrows != m2->nrows");
+    {
+      printf("CamMatrixCopy : m1->ncols != m2->cols || m1->nrows != m2->nrows");
+      exit (-1);
+    }
   for (j = 0 ; j < src->nrows ; ++j)
     {
       for (i = 0 ; i < src->ncols ; ++i)
