@@ -53,6 +53,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
+#include "cam_list.h"
 
 //#define CAM_3D_VIWER_DISPLAY_KEYS
 //#define CAM_3D_VIWER_DISPLAY_MOUSE
@@ -60,13 +61,6 @@
 
 #define	POINTS_TYPE	float
 #define PI		3.1415926535897932384626433832795
-
-typedef struct		s_camList
-{
-  void			*data;
-  struct s_camList	*next;
-  int			index;
-}			CamList;
 
 typedef struct
 {
@@ -136,59 +130,6 @@ static int	info, mainWindow;
 float oldX;
 float oldY;
 float oldZ;
-
-/*************************/
-/* Begin list operations */
-/*************************/
-
-inline CamList	*cam_3d_viewer_add_to_linked_list(CamList *l, void *data)
-{
-  CamList	*head;
-
-  head = (CamList*)malloc(sizeof(CamList));
-  head->data = data;
-  head->next = l;
-  if (l)
-    head->index = l->index + 1;
-  else
-    head->index = 1;
-  return (head);
-}
-
-void		cam_3d_viewer_free_linked_list(CamList *l)
-{
-  CamList	*ptr;
-
-  ptr = l;
-  while (ptr)
-    {
-      l = l->next;
-      free (ptr);
-      ptr = l;
-    }
-}
-
-void		cam_3d_viewer_free_data_in_linked_list(CamList *l)
-{
-  CamList	*ptr;
-
-  ptr = l;
-  while (ptr)
-    {
-      free (ptr->data);
-      ptr = ptr->next;
-    }
-}
-
-void	cam_3d_viewer_disallocate_linked_list(CamList *l)
-{
-  cam_3d_viewer_free_data_in_linked_list(l);
-  cam_3d_viewer_free_linked_list(l);
-}
-
-/***********************/
-/* End list operations */
-/***********************/
 
 /***************************/
 /* Begin matrix operations */
