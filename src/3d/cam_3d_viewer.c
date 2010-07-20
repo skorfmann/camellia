@@ -98,11 +98,11 @@ typedef enum
 #define ROTX	0.0f
 #define ROTY	0.0f
 #define ROTZ	PI
-#define	WIDTH	1024
-#define	HEIGHT	768
+#define	WIDTH	800
+#define	HEIGHT	600
 
 #define ZOOM_FACTOR 1.03f
-#define TRANSLATION_ACCELERATION 0.3f
+#define TRANSLATION_ACCELERATION 0.2f
 #define ROTATI0N_ACCELERATION 0.3f
 
 /* globals */
@@ -454,6 +454,8 @@ void	processKeyboardKeys(unsigned char key, int x, int y)
     case 'v':
       printNormale = (printNormale + 1) % 2;
       break;
+    case 'j':
+      break;
    default:
       break;
     }
@@ -466,7 +468,6 @@ int	camSort3dPoints(const void *p1, const void *p2)
   if (((Cam3dPoint*)p1)->dist == ((Cam3dPoint*)p2)->dist)
     return (0);
   return (1);
-  //return (((Cam3dPoint*)p1)->dist - ((Cam3dPoint*)p2)->dist);
 }
 
 void	processMouseKeys(int button, int state, int x, int y)
@@ -964,9 +965,12 @@ void	test_cam_3d_viewer()
 {
   cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
   cam_3d_viewer_allocate_matrix(&currentNormal, 1, 3);
+
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
+
   loadSortedPointsList(pointsList, sortedPointsList);
+
   cam_3d_viewer_init_display(100, 100, WIDTH, HEIGHT, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",
 			     processKeyboardKeys, processSpecialKeys, processMouseKeys, processMouseWheel, processMouseMotion, processMousePassiveMotion,
 			     renderSparsePoints, renderSparsePoints, changeSize,

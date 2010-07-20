@@ -52,7 +52,7 @@
 #include	"camellia.h"
 
 #define PRINT_MATRIX
-#define	PRINT_VECTORS
+#define	PRINT_VECTOR
 #define	POINTS_TYPE	float
 #define PI		3.1415926535897932384626433832795
 
@@ -320,13 +320,46 @@ CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE r
 #endif
 
   CamMatrixCopy(res, &rotx);
-  //  CamMatrixAdd(res, res, &roty);
-  //CamMatrixAdd(res, res, &rotz);
+  CamMatrixMultiply(&rotx, res, &roty);
+  CamMatrixMultiply(res, &rotx, &rotz);
 
   CamDisallocateMatrix(&rotx);
   CamDisallocateMatrix(&roty);
   CamDisallocateMatrix(&rotz);
   return (res);
+}
+
+CamList		*loadPoints(char *file)
+{
+  FILE		*dataFd;
+  int		spacingSymbol;
+  CamList	*pointsList;
+
+  dataFd = fopen(file, "r");
+  pointsList = NULL;
+  if (!dataFd)
+    {
+      printf("Unable to open the file %s, which is containing the data\n", file);
+      perror("");
+      exit(-1);
+    }
+  while (1)
+    {
+      pointsList = cam_3d_viewer_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+      ((Cam3dPoint *)pointsList->data)->x = extractNextValue(dataFd);
+      ((Cam3dPoint *)pointsList->data)->y = extractNextValue(dataFd);
+      ((Cam3dPoint *)pointsList->data)->z = extractNextValue(dataFd);
+      fgetc(dataFd); // \r
+      fgetc(dataFd); // \n
+      spacingSymbol = fgetc(dataFd);
+      if (spacingSymbol == EOF)
+	break;
+      else
+	fseek(dataFd, -1, SEEK_CUR);
+    }
+  printf("Load done\n");
+  fclose(dataFd);
+  return (pointsList);
 }
 
 void		test_cam_project_3d_to_2d()
@@ -344,9 +377,9 @@ void		test_cam_project_3d_to_2d()
   CamAllocateVector(&t, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
-  points = NULL;
-  points = cam_keypoints_tracking2_add_to_linked_list(points, (void*)1);
-  points = cam_keypoints_tracking2_add_to_linked_list(points, (void*)4);
+
+  points = loadPoints("/home/splin/manny");
+
   res = cam_project_3d_to_2d(points, &K, R, &t);
   cam_keypoints_tracking2_free_linked_list(points);
   free(res);

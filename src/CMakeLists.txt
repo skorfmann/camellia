@@ -6,8 +6,6 @@ FIND_LIBRARY(JPEG NAMES jpeg)
 SET(files 
     camellia.cpp 
     cam_3d.c 
-    cam_project_3d_to_2d.c
-    cam_3d_viewer.c
     cam_arithmetics.c 
     cam_capture.cpp 
     cam_draw.c 
