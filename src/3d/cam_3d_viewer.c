@@ -54,28 +54,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include "cam_list.h"
+#include "cam_matrix.h"
 
 //#define CAM_3D_VIWER_DISPLAY_KEYS
 //#define CAM_3D_VIWER_DISPLAY_MOUSE
 //#define	CAM_3D_DEBUG
 
-#define	POINTS_TYPE	float
 #define PI		3.1415926535897932384626433832795
-
-typedef struct
-{
-  POINTS_TYPE	x;
-  POINTS_TYPE	y;
-  POINTS_TYPE	z;
-  POINTS_TYPE	dist;
-}		Cam3dPoint;
-
-typedef struct
-{
-  POINTS_TYPE	*data;
-  int		nrows;
-  int		ncols;
-}		CamMatrix;
 
 typedef enum
   {
@@ -131,100 +116,6 @@ float oldX;
 float oldY;
 float oldZ;
 
-/***************************/
-/* Begin matrix operations */
-/***************************/
-inline void	cam_3d_viewer_allocate_matrix(CamMatrix *m, int ncols, int nrows)
-{
-  m->ncols = ncols;
-  m->nrows = nrows;
-  m->data = (POINTS_TYPE *)calloc(nrows * ncols, sizeof(POINTS_TYPE));
-}
-
-inline void	cam_3d_viewer_disallocate_matrix(CamMatrix *m)
-{
-  free(m->data);
-  m->data = NULL;
-  m->nrows = 0;
-  m->ncols = 0;
-}
-
-inline void	cam_3d_viewer_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
-{
-  m->data[y * m->ncols + x] = value;
-  return ;
-}
-
-inline POINTS_TYPE	cam_3d_viewer_matrix_get_value(CamMatrix *m, int x, int y)
-{
-  return (m->data[y * m->ncols + x]);
-}
-
-inline void	cam_3d_viewer_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
-{
-  m->data[y * m->ncols + x] += value;
-  return ;
-}
-
-void		cam_3d_viewer_print_matrix(CamMatrix *mat, char *name)
-{
-  register int	i;
-  register int	j;
-
-  if (name)
-    printf("%s\n", name);
-  for (j = 0 ; j < mat->nrows ; ++j)
-    {
-      for (i = 0 ; i < mat->ncols ; ++i)
-	{
-	  printf("%f\t", cam_3d_viewer_matrix_get_value(mat, i, j));
-	}
-      printf("\n");
-    }
-}
-
-inline void	cam_3d_viewer_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
-{
-  register int	i;
-  register int	j;
-  register int	k;
-
-  if (!res->data)
-    cam_3d_viewer_allocate_matrix(res, m1->nrows, m2->ncols);
-  if (m1->ncols != m2->nrows)
-    camError("CamMatrixMultiply", "m1->ncols != m2->nrows");
-  for (j = 0 ; j < res->nrows ; ++j)
-    {
-      for (i = 0 ; i < res->ncols ; ++i)
-	{
-	  for (k = 0 ; k < m1->ncols ; ++k)
-	    {
-	      cam_3d_viewer_matrix_add_value(res, i, j, cam_3d_viewer_matrix_get_value(m1, k, j) * cam_3d_viewer_matrix_get_value(m2, i, k));
-	    }
-	}
-    }
-}
-
-inline void	cam_3d_viewer_matrix_copy(CamMatrix *dst, CamMatrix *src)
-{
-  register int	i;
-  register int	j;
-
-  if (dst->ncols != src->ncols || dst->nrows != src->nrows)
-    camError("CamMatrixCopy", "m1->ncols != m2->cols || m1->nrows != m2->nrows");
-  for (j = 0 ; j < src->nrows ; ++j)
-    {
-      for (i = 0 ; i < src->ncols ; ++i)
-	{
-	  cam_3d_viewer_matrix_set_value(dst, i, j, cam_3d_viewer_matrix_get_value(src, i, j));
-	}
-    }
-}
-
-/***************************/
-/* End matrix operations */
-/***************************/
-
 void	camera()
 {
   CamMatrix	rotx;
@@ -235,61 +126,61 @@ void	camera()
   CamMatrix	res;
   CamMatrix	vect;
 
-  cam_3d_viewer_allocate_matrix(&rotx, 3, 3);
-  cam_3d_viewer_allocate_matrix(&roty, 3, 3);
-  cam_3d_viewer_allocate_matrix(&rotz, 3, 3);
-  cam_3d_viewer_allocate_matrix(&tmp1, 3, 3);
-  cam_3d_viewer_allocate_matrix(&tmp2, 3, 3);
-  cam_3d_viewer_allocate_matrix(&res, 1, 3);
-  cam_3d_viewer_allocate_matrix(&vect, 1, 3);
-  cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f);
+  cam_allocate_matrix(&rotx, 3, 3);
+  cam_allocate_matrix(&roty, 3, 3);
+  cam_allocate_matrix(&rotz, 3, 3);
+  cam_allocate_matrix(&tmp1, 3, 3);
+  cam_allocate_matrix(&tmp2, 3, 3);
+  cam_allocate_matrix(&res, 1, 3);
+  cam_allocate_matrix(&vect, 1, 3);
+  cam_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f);
   /* Rx */
-  cam_3d_viewer_matrix_set_value(&rotx, 0, 0, (POINTS_TYPE)1.0f);
-  cam_3d_viewer_matrix_set_value(&rotx, 1, 0, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotx, 2, 0, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotx, 0, 1, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotx, 1, 1, (POINTS_TYPE)cos(rotX));
-  cam_3d_viewer_matrix_set_value(&rotx, 2, 1, (POINTS_TYPE)sin(rotX));
-  cam_3d_viewer_matrix_set_value(&rotx, 0, 2, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotx, 1, 2, (POINTS_TYPE)-sin(rotX));
-  cam_3d_viewer_matrix_set_value(&rotx, 2, 2, (POINTS_TYPE)cos(rotX));
+  cam_matrix_set_value(&rotx, 0, 0, (POINTS_TYPE)1.0f);
+  cam_matrix_set_value(&rotx, 1, 0, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotx, 2, 0, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotx, 0, 1, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotx, 1, 1, (POINTS_TYPE)cos(rotX));
+  cam_matrix_set_value(&rotx, 2, 1, (POINTS_TYPE)sin(rotX));
+  cam_matrix_set_value(&rotx, 0, 2, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotx, 1, 2, (POINTS_TYPE)-sin(rotX));
+  cam_matrix_set_value(&rotx, 2, 2, (POINTS_TYPE)cos(rotX));
   /* Ry */
-  cam_3d_viewer_matrix_set_value(&roty, 0, 0, (POINTS_TYPE)cos(rotY));
-  cam_3d_viewer_matrix_set_value(&roty, 1, 0, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&roty, 2, 0, (POINTS_TYPE)-sin(rotY));
-  cam_3d_viewer_matrix_set_value(&roty, 0, 1, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&roty, 1, 1, (POINTS_TYPE)1.0f);
-  cam_3d_viewer_matrix_set_value(&roty, 2, 1, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&roty, 0, 2, (POINTS_TYPE)sin(rotY));
-  cam_3d_viewer_matrix_set_value(&roty, 1, 2, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&roty, 2, 2, (POINTS_TYPE)cos(rotY));
+  cam_matrix_set_value(&roty, 0, 0, (POINTS_TYPE)cos(rotY));
+  cam_matrix_set_value(&roty, 1, 0, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&roty, 2, 0, (POINTS_TYPE)-sin(rotY));
+  cam_matrix_set_value(&roty, 0, 1, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&roty, 1, 1, (POINTS_TYPE)1.0f);
+  cam_matrix_set_value(&roty, 2, 1, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&roty, 0, 2, (POINTS_TYPE)sin(rotY));
+  cam_matrix_set_value(&roty, 1, 2, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&roty, 2, 2, (POINTS_TYPE)cos(rotY));
   /* Rz */
-  cam_3d_viewer_matrix_set_value(&rotz, 0, 0, (POINTS_TYPE)cos(rotZ));
-  cam_3d_viewer_matrix_set_value(&rotz, 1, 0, (POINTS_TYPE)sin(rotZ));
-  cam_3d_viewer_matrix_set_value(&rotz, 2, 0, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotz, 0, 1, (POINTS_TYPE)-sin(rotZ));
-  cam_3d_viewer_matrix_set_value(&rotz, 1, 1, (POINTS_TYPE)cos(rotZ));
-  cam_3d_viewer_matrix_set_value(&rotz, 2, 1, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotz, 0, 2, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotz, 1, 2, (POINTS_TYPE)0.0f);
-  cam_3d_viewer_matrix_set_value(&rotz, 2, 2, (POINTS_TYPE)1.0f);
+  cam_matrix_set_value(&rotz, 0, 0, (POINTS_TYPE)cos(rotZ));
+  cam_matrix_set_value(&rotz, 1, 0, (POINTS_TYPE)sin(rotZ));
+  cam_matrix_set_value(&rotz, 2, 0, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotz, 0, 1, (POINTS_TYPE)-sin(rotZ));
+  cam_matrix_set_value(&rotz, 1, 1, (POINTS_TYPE)cos(rotZ));
+  cam_matrix_set_value(&rotz, 2, 1, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotz, 0, 2, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotz, 1, 2, (POINTS_TYPE)0.0f);
+  cam_matrix_set_value(&rotz, 2, 2, (POINTS_TYPE)1.0f);
 
-  cam_3d_viewer_matrix_multiply(&tmp1, &rotx, &roty);
+  cam_matrix_multiply(&tmp1, &rotx, &roty);
 
-  cam_3d_viewer_matrix_multiply(&tmp2, &tmp1, &rotz);
+  cam_matrix_multiply(&tmp2, &tmp1, &rotz);
   
-  cam_3d_viewer_matrix_copy(&currentRotation, &tmp2);
-  cam_3d_viewer_matrix_multiply(&res, &currentRotation, &vect);
+  cam_matrix_copy(&currentRotation, &tmp2);
+  cam_matrix_multiply(&res, &currentRotation, &vect);
 
-  cam_3d_viewer_matrix_copy(&currentNormal, &res);
+  cam_matrix_copy(&currentNormal, &res);
 
   glLoadIdentity();
   gluLookAt(posX, posY, posZ,
-	    posX + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0),
-	    posY + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1),
-	    posZ + cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2),
+	    posX + cam_matrix_get_value(&currentNormal, 0, 0),
+	    posY + cam_matrix_get_value(&currentNormal, 0, 1),
+	    posZ + cam_matrix_get_value(&currentNormal, 0, 2),
 	    0.0f, 1.0f, 0.0f);
 
   glMatrixMode(GL_PROJECTION);
@@ -299,13 +190,13 @@ void	camera()
   glMatrixMode(GL_MODELVIEW);
 
 
-  cam_3d_viewer_disallocate_matrix(&rotx);
-  cam_3d_viewer_disallocate_matrix(&roty);
-  cam_3d_viewer_disallocate_matrix(&rotz);
-  cam_3d_viewer_disallocate_matrix(&tmp1);
-  cam_3d_viewer_disallocate_matrix(&tmp2);
-  cam_3d_viewer_disallocate_matrix(&res);
-  cam_3d_viewer_disallocate_matrix(&vect);
+  cam_disallocate_matrix(&rotx);
+  cam_disallocate_matrix(&roty);
+  cam_disallocate_matrix(&rotz);
+  cam_disallocate_matrix(&tmp1);
+  cam_disallocate_matrix(&tmp2);
+  cam_disallocate_matrix(&res);
+  cam_disallocate_matrix(&vect);
 }
 
 void	resetView()
@@ -461,15 +352,15 @@ void	processMouseKeys(int button, int state, int x, int y)
 	  rightUpMouseYPos = posY;
 	  rightUpMouseZPos = posZ;
 	  /* to be deleted */
-	  oldX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
-	  oldY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
-	  oldZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
+	  oldX = cam_matrix_get_value(&currentNormal, 0, 0);
+	  oldY = cam_matrix_get_value(&currentNormal, 0, 1);
+	  oldZ = cam_matrix_get_value(&currentNormal, 0, 2);
 
 	  if (printClosestPoint == TRUE)
 	    {
-	      NX = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 0);
-	      NY = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 1);
-	      NZ = cam_3d_viewer_matrix_get_value(&currentNormal, 0, 2);
+	      NX = cam_matrix_get_value(&currentNormal, 0, 0);
+	      NY = cam_matrix_get_value(&currentNormal, 0, 1);
+	      NZ = cam_matrix_get_value(&currentNormal, 0, 2);
 
 	      i = 0;
 
@@ -549,63 +440,63 @@ void		processSpecialKeys(int key, int x, int y)
   CamMatrix	vect;
   CamMatrix	tmp;
 
-  cam_3d_viewer_allocate_matrix(&vect, 1, 3);
-  cam_3d_viewer_allocate_matrix(&tmp, 1, 3);
+  cam_allocate_matrix(&vect, 1, 3);
+  cam_allocate_matrix(&tmp, 1, 3);
   switch (key)
     {
     case GLUT_KEY_LEFT :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Left key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
-      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
-      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
-      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
+      cam_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
+      cam_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
+      cam_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_matrix_get_value(&tmp, 0, 0);
+      posY += cam_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_RIGHT :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Right key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
-      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
-      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
-      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
+      cam_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
+      cam_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)0.0f);
+      cam_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_matrix_get_value(&tmp, 0, 0);
+      posY += cam_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_UP :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Up key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
-      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
-      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
-      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
-      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
+      cam_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)1.0f * TRANSLATION_ACCELERATION);
+      cam_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_matrix_get_value(&tmp, 0, 0);
+      posY += cam_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_matrix_get_value(&tmp, 0, 2);
       break;
     case GLUT_KEY_DOWN :
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
       printf("Down key pressed\n");
 #endif
-      cam_3d_viewer_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
-      cam_3d_viewer_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
-      cam_3d_viewer_matrix_multiply(&tmp, &currentRotation, &vect);
-      posX += cam_3d_viewer_matrix_get_value(&tmp, 0, 0);
-      posY += cam_3d_viewer_matrix_get_value(&tmp, 0, 1);
-      posZ += cam_3d_viewer_matrix_get_value(&tmp, 0, 2);
+      cam_matrix_set_value(&vect, 0, 0, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 1, (POINTS_TYPE)0.0f);
+      cam_matrix_set_value(&vect, 0, 2, (POINTS_TYPE)-1.0f * TRANSLATION_ACCELERATION);
+      cam_matrix_multiply(&tmp, &currentRotation, &vect);
+      posX += cam_matrix_get_value(&tmp, 0, 0);
+      posY += cam_matrix_get_value(&tmp, 0, 1);
+      posZ += cam_matrix_get_value(&tmp, 0, 2);
       break;
     default:
       break;
     }
-  cam_3d_viewer_disallocate_matrix(&vect);
-  cam_3d_viewer_disallocate_matrix(&tmp);
+  cam_disallocate_matrix(&vect);
+  cam_disallocate_matrix(&tmp);
 }
 
 /*************************/
@@ -871,7 +762,7 @@ void	loadAyetPoints(char *file)
     }
   while (1)
     {
-      pointsList = cam_3d_viewer_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+      pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
       ((Cam3dPoint *)pointsList->data)->x = extractNextValue(dataFd);
       ((Cam3dPoint *)pointsList->data)->y = extractNextValue(dataFd);
       ((Cam3dPoint *)pointsList->data)->z = extractNextValue(dataFd);
@@ -904,8 +795,8 @@ void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
 
 void	test_cam_3d_viewer()
 {
-  cam_3d_viewer_allocate_matrix(&currentRotation, 3, 3);
-  cam_3d_viewer_allocate_matrix(&currentNormal, 1, 3);
+  cam_allocate_matrix(&currentRotation, 3, 3);
+  cam_allocate_matrix(&currentNormal, 1, 3);
 
   loadAyetPoints("/home/splin/manny"); // methode de chargement spécifique à chaque format de fichier
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));

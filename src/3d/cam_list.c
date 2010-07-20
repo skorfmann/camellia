@@ -46,6 +46,7 @@
   ==========================================================================
 */
 
+#include <stdlib.h>
 #include "cam_list.h"
 
 CamList		*cam_add_to_linked_list(CamList *l, void *data)
@@ -89,6 +90,6 @@ void		cam_free_data_in_linked_list(CamList *l)
 
 void	cam_disallocate_linked_list(CamList *l)
 {
-  cam_3d_viewer_free_data_in_linked_list(l);
-  cam_3d_viewer_free_linked_list(l);
+  cam_free_data_in_linked_list(l);
+  cam_free_linked_list(l);
 }

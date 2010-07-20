@@ -46,6 +46,9 @@
   ==========================================================================
 */
 
+#ifndef __CAM_LIST_H__
+# define	__CAM_LIST_H__	
+
 typedef struct		s_camList
 {
   void			*data;
@@ -61,3 +64,5 @@ void	cam_free_data_in_linked_list(CamList *l);
 CamList	*cam_add_to_linked_list(CamList *l, void *data);
 /* Dissallocate data then the list itself */
 void	cam_disallocate_linked_list(CamList *l);
+
+#endif /* __CAM_LIST_H__*/

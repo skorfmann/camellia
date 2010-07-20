@@ -46,23 +46,17 @@
   ==========================================================================
 */
 
-#ifndef __CAM_MATRIX_H__
-# define __CAM_MATRIX_H__
+#ifndef __CAM_3D_POINt_H__
+# define __CAM_3D_POINt_H__
+
+#define	POINTS_TYPE	float
 
 typedef struct
 {
-  POINTS_TYPE	*data;
-  int		nrows;
-  int		ncols;
-}		CamMatrix;
+  POINTS_TYPE	x;
+  POINTS_TYPE	y;
+  POINTS_TYPE	z;
+  POINTS_TYPE	dist;
+}		Cam3dPoint;
 
-void		cam_allocate_matrix(CamMatrix *m, int ncols, int nrows);
-void		cam_disallocate_matrix(CamMatrix *m);
-void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
-void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-void		cam_print_matrix(CamMatrix *mat, char *name);
-void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
-void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
-
-#endif /* __CAM_MATRIX_H__ */
+#endif /* __CAM_3D_POINt_H__ */
