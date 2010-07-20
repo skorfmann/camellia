@@ -56,18 +56,13 @@
 
 #include "cam_list.h"
 #include "cam_matrix.h"
+#include "misc.h"
 
 /* #define CAM_3D_VIWER_DISPLAY_KEYS
 #define CAM_3D_VIWER_DISPLAY_MOUSE
 #define	CAM_3D_DEBUG */
 
 #define PI		3.1415926535897932384626433832795
-
-typedef enum
-  {
-    FALSE,
-    TRUE
-  }	BOOL;
 
 #define FOV	60.0f
 #define ZNEAR	0.0f

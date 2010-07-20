@@ -1,4 +1,5 @@
 SRC_MISC	=	cam_matrix.c	\
+			cam_vector.c	\
 			cam_list.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
@@ -19,6 +20,7 @@ CFLAGS		=	-W -Wall -ansi -pedantic -g3
 CC		=	gcc
 
 LIBS_VIEWER	=	-lGLU -lglut -lGL
+LIBS_SFT	=	-lm
 
 all: viewer sft
 
@@ -26,7 +28,7 @@ viewer: $(OBJ_VIEWER)
 	$(CC) $(OBJ_VIEWER) -o $(NAME_VIEWER) $(LIBS_VIEWER)
 
 sft: $(OBJ_SFT)
-	$(CC) $(OBJ_SFT) -o $(NAME_SFT)
+	$(CC) $(OBJ_SFT) -o $(NAME_SFT) $(LIBS_SFT)
 
 clean:
 	rm -f $(OBJ_VIEWER)

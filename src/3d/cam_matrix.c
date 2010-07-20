@@ -82,6 +82,25 @@ void	cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value)
   return ;
 }
 
+void	cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
+{
+  register int	i;
+  register int	j;
+  
+  if (m1->ncols != m2->ncols || m1->nrows != m2->nrows)
+    {
+      printf("CamMatrixAdd : m1->ncols != m2->cols || m1->nrows != m2->nrows");
+      exit(-1);
+    }
+  for (j = 0 ; j < m1->nrows ; ++j)
+    {
+      for (i = 0 ; i < m1->ncols ; ++i)
+	{
+	  cam_matrix_set_value(res, i, j, cam_matrix_get_value(m1, i, j) + cam_matrix_get_value(m2, i, j));
+	}
+    }
+}
+
 void		cam_print_matrix(CamMatrix *mat, char *name)
 {
   register int	i;

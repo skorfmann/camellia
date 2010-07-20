@@ -63,6 +63,7 @@ void		cam_disallocate_matrix(CamMatrix *m);
 void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
 POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
 void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
+void		cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
 void		cam_print_matrix(CamMatrix *mat, char *name);
 void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
 void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
