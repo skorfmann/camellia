@@ -47,6 +47,7 @@
 */
 
 #include <GL/glut.h>
+#include <GL/freeglut_ext.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -330,7 +331,7 @@ void	processMouseKeys(int button, int state, int x, int y)
     }
   if (button == GLUT_RIGHT_BUTTON)
     {
-      if (state = GLUT_DOWN)
+      if (state == GLUT_DOWN)
 	{
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
 	  printf("Mouse right down\n");
@@ -338,7 +339,7 @@ void	processMouseKeys(int button, int state, int x, int y)
 #endif
 	  
 	}
-      if (state = GLUT_UP)
+      if (state == GLUT_UP)
 	{
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
 	  printf("Mouse right down\n");
@@ -801,5 +802,5 @@ int	main()
 			     150, 150,
 			     renderInfos, infoChangeSize);
   glutMainLoop();
-  return ;
+  return (0);
 }
