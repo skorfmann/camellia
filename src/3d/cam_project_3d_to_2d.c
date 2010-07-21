@@ -239,7 +239,7 @@ CamList		*loadPoints(char *file)
   return (pointsList);
 }
 
-void		test_cam_project_3d_to_2d()
+int		main()
 {
   CamMatrix	K;
   CamMatrix	*R;
@@ -264,9 +264,6 @@ void		test_cam_project_3d_to_2d()
   cam_disallocate_matrix(R);
   cam_disallocate_matrix(&K);
   free(R);
-}
-
-int main()
-{
+  cam_write_points_to_pgm("pts.pgm", NULL, 800, 600, 255, 0, 0);
   return (0);
 }
