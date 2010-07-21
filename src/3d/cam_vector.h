@@ -50,7 +50,7 @@
 # define __CAM_VECTOR_H__
 
 #include "cam_matrix.h"
-#include "cam_3d_point.h"
+#include "cam_3d_points.h"
 
 typedef struct
 {

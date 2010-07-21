@@ -49,7 +49,7 @@
 #ifndef __CAM_MATRIX_H__
 # define __CAM_MATRIX_H__
 
-#include "cam_3d_point.h"
+#include "cam_3d_points.h"
 
 typedef struct
 {

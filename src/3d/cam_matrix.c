@@ -128,13 +128,19 @@ void	cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2)
     cam_allocate_matrix(res, m1->nrows, m2->ncols);
   if (m1->ncols != m2->nrows)
     {
-      printf("CamMatrixMultiply : m1->ncols != m2->nrows");
+      printf("CamMatrixMultiply : m1->ncols != m2->nrows\n");
+      exit(-1);
+    }
+  if (m1->nrows != res->nrows || m2->ncols != res->ncols)
+    {
+      printf("CamMatrixMultiply : m1->nrows != res->nrows || m2->ncols != res->ncols\n");
       exit(-1);
     }
   for (j = 0 ; j < res->nrows ; ++j)
     {
       for (i = 0 ; i < res->ncols ; ++i)
 	{
+	  cam_matrix_set_value(res, i, j, 0.0f);
 	  for (k = 0 ; k < m1->ncols ; ++k)
 	    {
 	      cam_matrix_add_value(res, i, j, cam_matrix_get_value(m1, k, j) * cam_matrix_get_value(m2, i, k));

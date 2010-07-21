@@ -51,8 +51,8 @@
 #include "cam_list.h"
 
 void	cam_write_points_to_pgm(char *filename, CamList *points, int width, int height,
-				char ptR, char ptG, char ptB)
-				char bgR, char bgG, char bgB)
+				unsigned char ptR, unsigned char ptG, unsigned char ptB,
+				unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   FILE	*file;
   int i;
@@ -65,12 +65,13 @@ void	cam_write_points_to_pgm(char *filename, CamList *points, int width, int hei
       printf("cam_write_points_to_pgm : unable to open the destination image file\n");
       exit (-1);
     }
+  pts = points;
   fprintf(file, "P6\n%i %i\n255\n", width, height);
   for (i = 0 ; i < height ; ++i)
     {
       for (j = 0 ; j < width ; ++j)
 	{
-	  fprintf(file, "%c%c%c", bgR, bgG, bgB);
+	  fprintf(file, "%uc%uc%uc", bgR, bgG, bgB);
 	}
     }
   fclose(file);

@@ -53,6 +53,7 @@ typedef struct		s_camList
 {
   void			*data;
   struct s_camList	*next;
+  struct s_camList	*previous;
   int			index;
 }			CamList;
 

@@ -1,7 +1,7 @@
 SRC_MISC	=	cam_matrix.c	\
 			cam_vector.c	\
 			cam_list.c	\
-			cam_write_to_pgm.c
+			cam_write_points_to_pgm.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c

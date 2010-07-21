@@ -53,6 +53,9 @@
 #include	"cam_list.h"
 #include	"cam_matrix.h"
 #include	"cam_vector.h"
+#include	"cam_2d_points.h"
+#include	"cam_3d_points.h"
+#include	"cam_write_points_to_pgm.h"
 #include	"misc.h"
 
 #define PRINT_MATRIX
@@ -63,6 +66,9 @@
 CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t)
 {
   CamList	*res;
+  CamList	*pts;
+  CamMatrix	pt3d;
+  CamMatrix	pt2d;
   CamMatrix	P;
   CamMatrix	Rt;
   register int	i;
@@ -88,11 +94,29 @@ CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamV
   cam_print_matrix(&Rt, "Rotation + Translation");
 #endif
   cam_allocate_matrix(&P, 4, 3);
-  res = (CamList *)malloc(points->index * sizeof(CamList));
+  res = NULL;
   cam_matrix_multiply(&P, K, &Rt);
 #ifdef PRINT_MATRIX
   cam_print_matrix(&P, "Projection Matrix");
 #endif
+
+  cam_allocate_matrix(&pt3d, 1, 4);
+  cam_allocate_matrix(&pt2d, 1, 3);
+  cam_matrix_set_value(&pt3d, 0, 3, 1.0f);
+  pts = points;
+  while (pts)
+    {
+      cam_matrix_set_value(&pt3d, 0, 0, ((Cam3dPoint *)(pts->data))->x);
+      cam_matrix_set_value(&pt3d, 0, 1, ((Cam3dPoint *)(pts->data))->y);
+      cam_matrix_set_value(&pt3d, 0, 2, ((Cam3dPoint *)(pts->data))->z);
+      cam_matrix_multiply(&pt2d, &P, &pt3d);
+      res = cam_add_to_linked_list(res, (Cam2dPoint *)malloc(sizeof(Cam2dPoint)));
+      ((Cam2dPoint *)(res->data))->x = cam_matrix_get_value(&pt2d, 0, 0);
+      ((Cam2dPoint *)(res->data))->y = cam_matrix_get_value(&pt2d, 0, 1);
+      pts = pts->next;
+    }
+
+  cam_disallocate_matrix(&pt3d);
   cam_disallocate_matrix(&Rt);
   cam_disallocate_matrix(&P);
   return (res);
@@ -250,7 +274,7 @@ int		main()
   CamList	*res;
 
   cam_allocate_matrix(&K, 3, 3);
-  R = compute_rotation_matrix(PI / 4, PI / 4, 0.0f);
+  R = compute_rotation_matrix(0.0f, 0.0f, PI);
   cam_allocate_vector(&t, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
@@ -258,12 +282,14 @@ int		main()
   points = loadPoints("/home/splin/manny");
 
   res = cam_project_3d_to_2d(points, &K, R, &t);
-  free(res);
+  cam_write_points_to_pgm("pts.pgm", res, 800, 600,
+			  255, 0, 0,
+			  0, 255, 0);
+  cam_disallocate_linked_list(res);
   cam_disallocate_linked_list(points);
   cam_disallocate_vector(&t);
   cam_disallocate_matrix(R);
   cam_disallocate_matrix(&K);
   free(R);
-  cam_write_points_to_pgm("pts.pgm", NULL, 800, 600, 255, 0, 0);
   return (0);
 }

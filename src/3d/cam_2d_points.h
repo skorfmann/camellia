@@ -53,6 +53,6 @@ typedef struct
 {
   POINTS_TYPE	x;
   POINTS_TYPE	y;
-}		Cam3dPoint;
+}		Cam2dPoint;
 
 #endif /* __CAM_2D_POINT_H__ */

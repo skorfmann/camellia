@@ -56,8 +56,12 @@ CamList		*cam_add_to_linked_list(CamList *l, void *data)
   head = (CamList*)malloc(sizeof(CamList));
   head->data = data;
   head->next = l;
+  head->previous = NULL;
   if (l)
-    head->index = l->index + 1;
+    {
+      head->index = l->index + 1;
+      l->previous = head;
+    }
   else
     head->index = 1;
   return (head);
