@@ -55,16 +55,17 @@
 #include	"cam_vector.h"
 #include	"cam_2d_points.h"
 #include	"cam_3d_points.h"
+#include	"cam_3d_points_loaders.h"
 #include	"cam_write_points_to_pgm.h"
 #include	"misc.h"
 
-#define PRINT_MATRIX
-#define	PRINT_VECTOR
+/* #define PRINT_MATRIX
+   #define	PRINT_VECTOR */
 #define PI		3.1415926535897932384626433832795
 
-#define	MAX(a, b) (a) < (b) ? (b) : (a)
-#define	MIN(a, b) (a) > (b) ? (b) : (a)
-#define ABS(a) (a) < 0 ? (-a) : (a)
+#define	MAX(a, b) (a < b ? b : a)
+#define	MIN(a, b) (a > b ? b : a)
+#define ABS(a) (a < 0 ? -a : a)
 
 /* absolute translation and rotation in the 3d space */
 CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t)
@@ -192,85 +193,6 @@ CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE r
   return (res);
 }
 
-POINTS_TYPE	extractNextValue(FILE *fd)
-{
-  POINTS_TYPE	res;
-  POINTS_TYPE	sign;
-  char		symbol;
-  BOOL		integerPart;
-  POINTS_TYPE	power;
-
-  res = 0;
-  symbol = (char)fgetc(fd);
-  integerPart = TRUE;
-  power = (POINTS_TYPE)10;
-  if (symbol == '-')
-    sign = (POINTS_TYPE)-1;
-  else
-    {
-      sign = (POINTS_TYPE)1;
-      res = (POINTS_TYPE)symbol - '0';
-    }
-  while (1)
-    {
-      symbol = (char)fgetc(fd);
-      if (symbol == ' ')
-	break;
-      if (symbol == '.')
-	{
-	  integerPart = FALSE;
-	}
-      else
-	{
-	  if (integerPart == TRUE)
-	    {
-	      res *= (POINTS_TYPE)10;
-	      res += (POINTS_TYPE)symbol - '0';
-	    }
-	  else
-	    {
-	      res += (POINTS_TYPE)(symbol - '0') / power;
-	      power *= 10;
-	    }
-	}
-    }
-  res *= sign;
-  return (res);
-}
-
-CamList		*loadPoints(char *file)
-{
-  FILE		*dataFd;
-  int		spacingSymbol;
-  CamList	*pointsList;
-
-  dataFd = fopen(file, "r");
-  pointsList = NULL;
-  if (!dataFd)
-    {
-      printf("Unable to open the file %s, which is containing the data\n", file);
-      perror("");
-      exit(-1);
-    }
-  while (1)
-    {
-      pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
-      ((Cam3dPoint *)pointsList->data)->x = extractNextValue(dataFd);
-      ((Cam3dPoint *)pointsList->data)->y = extractNextValue(dataFd);
-      ((Cam3dPoint *)pointsList->data)->z = extractNextValue(dataFd);
-      fgetc(dataFd);
-      fgetc(dataFd);
-      spacingSymbol = fgetc(dataFd);
-      if (spacingSymbol == EOF)
-	break;
-      else
-	fseek(dataFd, -1, SEEK_CUR);
-    }
-  printf("Load done\n");
-  fclose(dataFd);
-  return (pointsList);
-}
-
 void		cam_center_2d_points(CamList *points, int width, int height)
 {
   CamList	*pts;
@@ -303,8 +225,8 @@ void		cam_center_2d_points(CamList *points, int width, int height)
     }
   xAvg = (xMax - xMin) / 2;
   yAvg = (yMax - yMin) / 2;
-  xFactor = (POINTS_TYPE)width / (MAX(ABS(xMax), ABS(xMin)) * 2);
-  yFactor = (POINTS_TYPE)height / (MAX(ABS(yMax), ABS(yMin)) * 2);
+  xFactor = ((POINTS_TYPE)(width / 2)) / MAX(ABS(xMax), ABS(xMin));
+  yFactor = ((POINTS_TYPE)(height / 2)) / MAX(ABS(yMax), ABS(yMin));
   factor = MIN(xFactor, yFactor);
   pts = points;
   while (pts)
@@ -322,7 +244,7 @@ int		main()
   CamVector	t;
   CamList	*points;
   POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
-  POINTS_TYPE	Tdata[3] = {1,0,0};
+  POINTS_TYPE	Tdata[3] = {1.0f,0.0f,0.0f};
   CamList	*res;
 
   cam_allocate_matrix(&K, 3, 3);
@@ -331,7 +253,7 @@ int		main()
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
   
-  points = loadPoints("/home/splin/manny");
+  points = loadPoints1("/home/splin/manny");
 
   res = cam_project_3d_to_2d(points, &K, R, &t);
   cam_center_2d_points(res, 800, 600);

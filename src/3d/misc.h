@@ -49,6 +49,8 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
+#define	POINTS_TYPE	float
+
 typedef enum
   {
     FALSE,

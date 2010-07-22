@@ -46,15 +46,85 @@
   ==========================================================================
 */
 
-#ifndef __CAM_2D_POINT_H__
-# define __CAM_2D_POINT_H__
+#include <stdio.h>
+#include <stdlib.h>
+#include "cam_list.h"
+#include "cam_3d_points.h"
 
-#include "misc.h"
-
-typedef struct
+POINTS_TYPE	extractNextValue1(FILE *fd)
 {
-  POINTS_TYPE	x;
-  POINTS_TYPE	y;
-}		Cam2dPoint;
+  POINTS_TYPE	res;
+  POINTS_TYPE	sign;
+  char		symbol;
+  BOOL		integerPart;
+  POINTS_TYPE	power;
 
-#endif /* __CAM_2D_POINT_H__ */
+  res = 0;
+  symbol = (char)fgetc(fd);
+  integerPart = TRUE;
+  power = (POINTS_TYPE)10;
+  if (symbol == '-')
+    sign = (POINTS_TYPE)-1;
+  else
+    {
+      sign = (POINTS_TYPE)1;
+      res = (POINTS_TYPE)symbol - '0';
+    }
+  while (1)
+    {
+      symbol = (char)fgetc(fd);
+      if (symbol == ' ')
+	break;
+      if (symbol == '.')
+	{
+	  integerPart = FALSE;
+	}
+      else
+	{
+	  if (integerPart == TRUE)
+	    {
+	      res *= (POINTS_TYPE)10;
+	      res += (POINTS_TYPE)symbol - '0';
+	    }
+	  else
+	    {
+	      res += (POINTS_TYPE)(symbol - '0') / power;
+	      power *= 10;
+	    }
+	}
+    }
+  res *= sign;
+  return (res);
+}
+
+CamList		*loadPoints1(char *file)
+{
+  FILE		*dataFd;
+  int		spacingSymbol;
+  CamList	*pointsList;
+
+  dataFd = fopen(file, "r");
+  pointsList = NULL;
+  if (!dataFd)
+    {
+      printf("Unable to open the file %s, which is containing the data\n", file);
+      perror("");
+      exit(-1);
+    }
+  while (1)
+    {
+      pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+      ((Cam3dPoint *)pointsList->data)->x = extractNextValue1(dataFd);
+      ((Cam3dPoint *)pointsList->data)->y = extractNextValue1(dataFd);
+      ((Cam3dPoint *)pointsList->data)->z = extractNextValue1(dataFd);
+      fgetc(dataFd);
+      fgetc(dataFd);
+      spacingSymbol = fgetc(dataFd);
+      if (spacingSymbol == EOF)
+	break;
+      else
+	fseek(dataFd, -1, SEEK_CUR);
+    }
+  fclose(dataFd);
+  return (pointsList);
+}

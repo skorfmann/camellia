@@ -46,15 +46,11 @@
   ==========================================================================
 */
 
-#ifndef __CAM_2D_POINT_H__
-# define __CAM_2D_POINT_H__
+#ifndef __CAM_3D_POINS_LOADERS_H__
+# define __CAM_3D_POINS_LOADERS_H__
 
-#include "misc.h"
+#include "cam_list.h"
 
-typedef struct
-{
-  POINTS_TYPE	x;
-  POINTS_TYPE	y;
-}		Cam2dPoint;
+CamList	*loadPoints1(char *file);
 
-#endif /* __CAM_2D_POINT_H__ */
+#endif /* __CAM_3D_POINS_LOADERS_H__ */

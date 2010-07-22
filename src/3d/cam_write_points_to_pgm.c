@@ -89,10 +89,6 @@ void		cam_write_points_to_pgm(char *filename, CamList *points, int width, int he
 	  fseek(file, (strlen(header) + 3 * ((height - (int)((Cam2dPoint *)pts->data)->y - height / 2) * width + ((int)((Cam2dPoint *)pts->data)->x + width / 2)) * sizeof(char)), SEEK_SET);
 	  fprintf(file, "%c%c%c", ptR, ptG, ptB);
 	}
-      else
-	{
-	  printf("%f %f\n", ((Cam2dPoint *)pts->data)->x, ((Cam2dPoint *)pts->data)->y);
-	}
       pts = pts->next;
     }
   fclose(file);

@@ -49,7 +49,7 @@
 #ifndef __CAM_3D_POINT_H__
 # define __CAM_3D_POINT_H__
 
-#define	POINTS_TYPE	float
+#include "misc.h"
 
 typedef struct
 {
