@@ -8,6 +8,7 @@ SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c
 
 SRC_SFM		=	$(SRC_MISC)	\
+			cam_project_2d_to_3d.c	\
 			cam_project_3d_to_2d.c
 
 OBJ_MISC	=	$(SRC_MISC:.c=.o)
@@ -40,6 +41,6 @@ fclean:	clean
 	rm -f *~
 	rm -f \#*\#
 	rm -f $(NAME_VIEWER)
-	rm -f $(NAME_SFT)
+	rm -f $(NAME_SFM)
 
 re : clean all
