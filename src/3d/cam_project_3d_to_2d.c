@@ -62,6 +62,10 @@
 #define	PRINT_VECTOR
 #define PI		3.1415926535897932384626433832795
 
+#define	MAX(a, b) (a) < (b) ? (b) : (a)
+#define	MIN(a, b) (a) > (b) ? (b) : (a)
+#define ABS(a) (a) < 0 ? (-a) : (a)
+
 /* absolute translation and rotation in the 3d space */
 CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t)
 {
@@ -111,12 +115,16 @@ CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamV
       cam_matrix_set_value(&pt3d, 0, 2, ((Cam3dPoint *)(pts->data))->z);
       cam_matrix_multiply(&pt2d, &P, &pt3d);
       res = cam_add_to_linked_list(res, (Cam2dPoint *)malloc(sizeof(Cam2dPoint)));
+      cam_matrix_set_value(&pt2d, 0, 0, cam_matrix_get_value(&pt2d, 0, 0) / cam_matrix_get_value(&pt2d, 0, 2));
+      cam_matrix_set_value(&pt2d, 0, 1, cam_matrix_get_value(&pt2d, 0, 1) / cam_matrix_get_value(&pt2d, 0, 2));
+      cam_matrix_set_value(&pt2d, 0, 2, 1.0f);
       ((Cam2dPoint *)(res->data))->x = cam_matrix_get_value(&pt2d, 0, 0);
       ((Cam2dPoint *)(res->data))->y = cam_matrix_get_value(&pt2d, 0, 1);
       pts = pts->next;
     }
 
   cam_disallocate_matrix(&pt3d);
+  cam_disallocate_matrix(&pt2d);
   cam_disallocate_matrix(&Rt);
   cam_disallocate_matrix(&P);
   return (res);
@@ -263,6 +271,50 @@ CamList		*loadPoints(char *file)
   return (pointsList);
 }
 
+void		cam_center_2d_points(CamList *points, int width, int height)
+{
+  CamList	*pts;
+  POINTS_TYPE	xMin;
+  POINTS_TYPE	yMin;
+  POINTS_TYPE	xMax;
+  POINTS_TYPE	yMax;
+  POINTS_TYPE	xFactor;
+  POINTS_TYPE	yFactor;
+  POINTS_TYPE	factor;
+  POINTS_TYPE	xAvg;
+  POINTS_TYPE	yAvg;
+
+  xMin = 0.0f;
+  xMax = 0.0f;
+  yMax = 0.0f;
+  yMin = 0.0f;
+  pts = points;
+  while (pts)
+    {
+      if (((Cam2dPoint *)pts->data)->x < xMin)
+	xMin = ((Cam2dPoint *)pts->data)->x;
+      if (((Cam2dPoint *)pts->data)->x > xMax)
+	xMax = ((Cam2dPoint *)pts->data)->x;
+      if (((Cam2dPoint *)pts->data)->y < yMin)
+	yMin = ((Cam2dPoint *)pts->data)->y;
+      if (((Cam2dPoint *)pts->data)->y > yMax)
+	yMax = ((Cam2dPoint *)pts->data)->y;
+      pts = pts->next;
+    }
+  xAvg = (xMax - xMin) / 2;
+  yAvg = (yMax - yMin) / 2;
+  xFactor = (POINTS_TYPE)width / (MAX(ABS(xMax), ABS(xMin)) * 2);
+  yFactor = (POINTS_TYPE)height / (MAX(ABS(yMax), ABS(yMin)) * 2);
+  factor = MIN(xFactor, yFactor);
+  pts = points;
+  while (pts)
+    {
+      ((Cam2dPoint *)pts->data)->x = ((Cam2dPoint *)pts->data)->x * factor;
+      ((Cam2dPoint *)pts->data)->y = ((Cam2dPoint *)pts->data)->y * factor;
+      pts = pts->next;
+    }
+}
+
 int		main()
 {
   CamMatrix	K;
@@ -270,21 +322,22 @@ int		main()
   CamVector	t;
   CamList	*points;
   POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
-  POINTS_TYPE	Tdata[3] = {0,0,0};
+  POINTS_TYPE	Tdata[3] = {1,0,0};
   CamList	*res;
 
   cam_allocate_matrix(&K, 3, 3);
-  R = compute_rotation_matrix(0.0f, 0.0f, PI);
+  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
   cam_allocate_vector(&t, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
-
+  
   points = loadPoints("/home/splin/manny");
 
   res = cam_project_3d_to_2d(points, &K, R, &t);
+  cam_center_2d_points(res, 800, 600);
   cam_write_points_to_pgm("pts.pgm", res, 800, 600,
-			  255, 0, 0,
-			  0, 255, 0);
+			  255, 255, 255,
+			  0, 0, 0);
   cam_disallocate_linked_list(res);
   cam_disallocate_linked_list(points);
   cam_disallocate_vector(&t);
