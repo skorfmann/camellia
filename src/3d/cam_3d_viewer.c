@@ -55,6 +55,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "cam_3d_points_loaders.h"
 #include "cam_list.h"
 #include "cam_matrix.h"
 #include "misc.h"
@@ -695,82 +696,6 @@ void	cam_3d_viewer_init_display(int xPos, int yPos, int width, int height,
   redisplay_all();
 }
 
-POINTS_TYPE	extractNextValue(FILE *fd)
-{
-  POINTS_TYPE	res;
-  POINTS_TYPE	sign;
-  char		symbol;
-  BOOL		integerPart;
-  POINTS_TYPE	power;
-
-  res = 0;
-  symbol = (char)fgetc(fd);
-  integerPart = TRUE;
-  power = (POINTS_TYPE)10;
-  if (symbol == '-')
-    sign = (POINTS_TYPE)-1;
-  else
-    {
-      sign = (POINTS_TYPE)1;
-      res = (POINTS_TYPE)symbol - '0';
-    }
-  while (1)
-    {
-      symbol = (char)fgetc(fd);
-      if (symbol == ' ')
-	break;
-      if (symbol == '.')
-	{
-	  integerPart = FALSE;
-	}
-      else
-	{
-	  if (integerPart == TRUE)
-	    {
-	      res *= (POINTS_TYPE)10;
-	      res += (POINTS_TYPE)symbol - '0';
-	    }
-	  else
-	    {
-	      res += (POINTS_TYPE)(symbol - '0') / power;
-	      power *= 10;
-	    }
-	}
-    }
-  res *= sign;
-  return (res);
-}
-
-void	loadAyetPoints(char *file)
-{
-  FILE	*dataFd;
-  int	spacingSymbol;
-
-  dataFd = fopen(file, "r");
-  if (!dataFd)
-    {
-      printf("Unable to open the file %s, which is containing the data\n", file);
-      perror("");
-      exit(-1);
-    }
-  while (1)
-    {
-      pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
-      ((Cam3dPoint *)pointsList->data)->x = extractNextValue(dataFd);
-      ((Cam3dPoint *)pointsList->data)->y = extractNextValue(dataFd);
-      ((Cam3dPoint *)pointsList->data)->z = extractNextValue(dataFd);
-      fgetc(dataFd);
-      fgetc(dataFd);
-      spacingSymbol = fgetc(dataFd);
-      if (spacingSymbol == EOF)
-	break;
-      else
-	fseek(dataFd, -1, SEEK_CUR);
-    }
-  printf("Load done\n");
-  fclose(dataFd);
-}
-
 void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
 {
   CamList	*ptr;
@@ -791,7 +716,7 @@ int	main()
   cam_allocate_matrix(&currentRotation, 3, 3);
   cam_allocate_matrix(&currentNormal, 1, 3);
 
-  loadAyetPoints("/home/splin/manny");
+  pointsList = loadPoints1("/home/splin/manny");
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
 
   loadSortedPointsList(pointsList, sortedPointsList);
