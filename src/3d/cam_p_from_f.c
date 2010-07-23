@@ -46,27 +46,25 @@
   ==========================================================================
 */
 
-#ifndef __CAM_MATRIX_H__
-# define __CAM_MATRIX_H__
+#include <stdlib.h>
+#include "cam_p_from_f.h"
 
-#include "misc.h"
-#include "cam_3d_points.h"
-
-typedef struct
+CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
 {
-  POINTS_TYPE	*data;
-  int		nrows;
-  int		ncols;
-}		CamMatrix;
+  CamProjectionsPair	*res;
+  CamMatrix		ePrimeSkew;
 
-void		cam_allocate_matrix(CamMatrix *m, int ncols, int nrows);
-void		cam_disallocate_matrix(CamMatrix *m);
-void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
-void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-void		cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_print_matrix(CamMatrix *mat, char *name);
-void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
+  res = (CamProjectionsPair *)malloc(sizeof(CamProjectionsPair));
+  cam_allocate_matrix(&ePrimeSkew, 3, 3);
+  cam_allocate_matrix(&res->p1, 4, 3);
+  cam_allocate_matrix(&res->p2, 4, 3);
+  
+  cam_disallocate_matrix(&ePrimeSkew);
+  return (res);
+}
 
-#endif /* __CAM_MATRIX_H__ */
+void	cam_disallocate_projections_pair(CamProjectionsPair *p)
+{
+  cam_disallocate_matrix(&p->p1);
+  cam_disallocate_matrix(&p->p2);
+}
