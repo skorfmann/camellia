@@ -56,7 +56,7 @@ typedef struct
 {
   CamMatrix	p1;
   CamMatrix	p2;
-}	CamProjectionsPair;
+}		CamProjectionsPair;
 
 CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f);
 void			cam_disallocate_projections_pair(CamProjectionsPair *p);

@@ -167,3 +167,20 @@ void	cam_matrix_copy(CamMatrix *dst, CamMatrix *src)
 	}
     }
 }
+
+void		cam_matrix_transpose(CamMatrix *dst, CamMatrix *src)
+{
+  register int	i;
+  register int	j;
+
+  if (dst->ncols != src->nrows || dst->nrows != src->ncols)
+    {
+      printf("cam_matrix_transpose : dst->ncols != src->nrows || dst->nrows != src->ncols\n");
+      exit (-1);
+    }
+  for (j = 0 ; j < src->nrows ; ++j)
+    for (i = 0 ; i < src->ncols ; ++i)
+      {
+	cam_matrix_set_value(dst, j, i, cam_matrix_get_value(src, i , j));
+      }
+}

@@ -68,5 +68,6 @@ void		cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
 void		cam_print_matrix(CamMatrix *mat, char *name);
 void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
 void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
+void		cam_matrix_transpose(CamMatrix *dst, CamMatrix *src);
 
 #endif /* __CAM_MATRIX_H__ */

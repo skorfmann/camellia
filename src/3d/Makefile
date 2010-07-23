@@ -8,6 +8,7 @@ SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c
 
 SRC_SFM		=	$(SRC_MISC)		\
+			cam_epipoles.c		\
 			cam_p_from_f.c		\
 			cam_project_2d_to_3d.c	\
 			cam_project_3d_to_2d.c

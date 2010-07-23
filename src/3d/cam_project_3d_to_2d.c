@@ -59,8 +59,8 @@
 #include	"cam_write_points_to_pgm.h"
 #include	"misc.h"
 
-/* #define PRINT_MATRIX
-   #define	PRINT_VECTOR */
+/*#define PRINT_MATRIX
+  #define	PRINT_VECTOR*/
 #define PI		3.1415926535897932384626433832795
 
 #define	MAX(a, b) (a < b ? b : a)
