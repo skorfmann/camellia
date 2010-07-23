@@ -49,6 +49,10 @@
 #ifndef __CAM_PROJECT_2D_TO_3D_H__
 # define __CAM_PROJECT_2D_TO_3D_H__
 
+#include "cam_p_from_f.h"
+#include "cam_2d_points.h"
+#include "cam_matrix.h"
 
+Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b);
 
 #endif /* __CAM_PROJECT_2D_TO_3D_H__*/

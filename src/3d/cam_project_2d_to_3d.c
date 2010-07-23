@@ -45,3 +45,70 @@
 
   ==========================================================================
 */
+
+#include <stdlib.h>
+#include "cam_project_2d_to_3d.h"
+
+/* solve : [ x y 1 ] = Rt * [ X Y Z 1 ] */
+void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *Rt, Cam2dPoint *pt)
+{
+  POINTS_TYPE	x;
+  POINTS_TYPE	y;
+  POINTS_TYPE	X;
+  POINTS_TYPE	Y;
+  POINTS_TYPE	Z;
+  POINTS_TYPE	r1;
+  POINTS_TYPE	r2;
+  POINTS_TYPE	r3;
+  POINTS_TYPE	r4;
+  POINTS_TYPE	r5;
+  POINTS_TYPE	r6;
+  POINTS_TYPE	r7;
+  POINTS_TYPE	r8;
+  POINTS_TYPE	r9;
+  POINTS_TYPE	t1;
+  POINTS_TYPE	t2;
+  POINTS_TYPE	t3;
+  POINTS_TYPE	a;
+  POINTS_TYPE	b;
+  
+  x = pt->x;
+  y = pt->y;
+  r1 = cam_matrix_get_value(Rt, 0, 0);
+  r2 = cam_matrix_get_value(Rt, 1, 0);
+  r3 = cam_matrix_get_value(Rt, 2, 0);
+  r4 = cam_matrix_get_value(Rt, 0, 1);
+  r5 = cam_matrix_get_value(Rt, 1, 1);
+  r6 = cam_matrix_get_value(Rt, 2, 1);
+  r7 = cam_matrix_get_value(Rt, 0, 2);
+  r8 = cam_matrix_get_value(Rt, 1, 2);
+  r9 = cam_matrix_get_value(Rt, 2, 2);
+  t1 = cam_matrix_get_value(Rt, 3, 0);
+  t2 = cam_matrix_get_value(Rt, 3, 1);
+  t3 = cam_matrix_get_value(Rt, 3, 2);
+  
+  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
+    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
+  b = r9 + (r2 * r7 *(r6 - r3 * r4 / r1)) / (r1 * (r5 * r1 - r2 * r4)) - r3 * r7 / r1 - r8 * ((r6 - r3 * r4 / r1) / (r5 * r1 - r2 * r4));
+  Z = (1.0f - a) / b;
+  Y = (r1 * (y - Z * (r6 - r3 * r4 / r1 ) - t2) - r4 * (x - t1) ) / (r5 * r1 - r2 * r4);
+  X = (x - r2 * Y - r3 * Z - t1) / r1;
+  cam_matrix_set_value(v, 0, 0, X);
+  cam_matrix_set_value(v, 0, 1, Y);
+  cam_matrix_set_value(v, 0, 2, Z);
+}
+
+Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b)
+{
+  CamMatrix	v1;
+  CamMatrix	v2;
+
+  cam_allocate_matrix(&v1, 1, 4);
+  cam_allocate_matrix(&v2, 1, 4);
+  /* TODO : compute K-1 . P pour recuperer Rt */
+  cam_compute_vector_to_3d_point(&v1, &projectionPair->p1, a);
+  cam_compute_vector_to_3d_point(&v2, &projectionPair->p2, b);
+  cam_disallocate_matrix(&v1);
+  cam_disallocate_matrix(&v2);
+  return (NULL);
+}
