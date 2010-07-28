@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include "cam_p_from_f.h"
 
+/* TODO */
 CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
 {
   CamProjectionsPair	*res;
