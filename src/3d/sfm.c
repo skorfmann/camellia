@@ -102,8 +102,10 @@ void			main_triangulate_2d_points()
   POINTS_TYPE		Tdata[3] = {0.0f,0.0f,0.0f};  
   CamMatrix		*R;
   CamMatrix		t;
+  POINTS_TYPE	rval[3] = {0, PI/2, PI/4};
 
-  R = compute_rotation_matrix(PI/2, 0.0f, 0.0f);
+  int a,b,c;
+
   cam_allocate_matrix(&projectionPair.p1, 4, 3);
   cam_allocate_matrix(&projectionPair.p2, 4, 3);
   cam_allocate_matrix(&K, 3, 3);
@@ -112,9 +114,15 @@ void			main_triangulate_2d_points()
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
   pt.x = 0.0f;
   pt.y = 0.0f;
-  cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t);
-  cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t);
-  cam_triangulate_one_3d_point(&projectionPair, &t, &t, &K, &pt, &pt);
+  for (a = 0; a < 3 ; ++a)
+    for (b = 0; b < 3 ; ++b)
+      for (c = 0; c < 3 ; ++c)
+    {
+      R = compute_rotation_matrix(rval[a], rval[b], rval[c]);
+      cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t);
+      cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t);
+      cam_triangulate_one_3d_point(&projectionPair, &t, &t, &K, &pt, &pt);
+    }
   cam_disallocate_projections_pair(&projectionPair);
 }
 
