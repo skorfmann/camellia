@@ -51,13 +51,13 @@
 #include	"cam_2d_points.h"
 #include	"cam_matrix.h"
 #include	"cam_list.h"
-#include	"cam_vector.h"
 #include	"cam_write_points_to_pgm.h"
 #include	"cam_3d_points_loaders.h"
 #include	"cam_project_3d_to_2d.h"
 #include	"cam_project_2d_to_3d.h"
 #include	"cam_projection_matrix.h"
 #include	"cam_p_from_f.h"
+#include	"misc.h"
 
 void		main_project_and_write_points()
 {
@@ -87,6 +87,7 @@ void		main_project_and_write_points()
   cam_disallocate_linked_list(points);
   cam_disallocate_matrix(&t);
   cam_disallocate_matrix(R);
+
   cam_disallocate_matrix(&K);
   cam_disallocate_matrix(&P);
   free(R);
@@ -102,7 +103,7 @@ void			main_triangulate_2d_points()
   CamMatrix		*R;
   CamMatrix		t;
 
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(PI/2, 0.0f, 0.0f);
   cam_allocate_matrix(&projectionPair.p1, 4, 3);
   cam_allocate_matrix(&projectionPair.p2, 4, 3);
   cam_allocate_matrix(&K, 3, 3);

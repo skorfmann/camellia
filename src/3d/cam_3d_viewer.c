@@ -64,8 +64,6 @@
 #define CAM_3D_VIWER_DISPLAY_MOUSE
 #define	CAM_3D_DEBUG */
 
-#define PI		3.1415926535897932384626433832795
-
 #define FOV	60.0f
 #define ZNEAR	0.0f
 #define ZFAR	1000.0f
