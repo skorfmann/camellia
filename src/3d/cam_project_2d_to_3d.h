@@ -54,8 +54,8 @@
 #include "cam_matrix.h"
 
 /* internal */
-void		cam_compute_vector_to_3d_point(Cam3dPoint *p, CamMatrix *Rt, Cam2dPoint *pt);
+void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, Cam2dPoint *pt);
 
-Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b);
+Cam3dPoint      *cam_triangulate_one_3d_point(CamProjectionsPair *projectionPair, CamMatrix *t1, CamMatrix *t2, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b);
 
 #endif /* __CAM_PROJECT_2D_TO_3D_H__*/

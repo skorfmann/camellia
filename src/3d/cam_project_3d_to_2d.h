@@ -49,7 +49,7 @@
 #ifndef __CAM_PROJECT_3D_TO_2D_H__
 # define __CAM_PROJECT_3D_TO_2D_H__
 
-CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t);
+CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *P);
 CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE rz);
 void		cam_center_2d_points(CamList *points, int width, int height);
 

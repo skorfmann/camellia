@@ -67,43 +67,15 @@
 #define ABS(a) (a < 0 ? -a : a)
 
 /* absolute translation and rotation in the 3d space */
-CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t)
+CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *P)
 {
   CamList	*res;
   CamList	*pts;
   CamMatrix	pt3d;
   CamMatrix	pt2d;
-  CamMatrix	P;
-  CamMatrix	Rt;
-  register int	i;
-  register int	j;
 
-  cam_allocate_matrix(&Rt, 4, 3);
-  for (j = 0 ; j < 3 ; ++j)
-    {
-      for (i = 0 ; i < 3 ; ++i)
-	{
-	  cam_matrix_set_value(&Rt, i, j, cam_matrix_get_value(R, i, j));
-	}
-      cam_matrix_set_value(&Rt, i, j, cam_vector_get_value(t, j));
-    }
-#ifdef PRINT_MATRIX
-  cam_print_matrix(K, "Calibration");
-  cam_print_matrix(R, "Rotation");
-#endif
-#ifdef PRINT_VECTOR
-  cam_print_vector(t, "Translation");
-#endif
-#ifdef PRINT_MATRIX
-  cam_print_matrix(&Rt, "Rotation + Translation");
-#endif
-  cam_allocate_matrix(&P, 4, 3);
+
   res = NULL;
-  cam_matrix_multiply(&P, K, &Rt);
-#ifdef PRINT_MATRIX
-  cam_print_matrix(&P, "Projection Matrix");
-#endif
-
   cam_allocate_matrix(&pt3d, 1, 4);
   cam_allocate_matrix(&pt2d, 1, 3);
   cam_matrix_set_value(&pt3d, 0, 3, 1.0f);
@@ -113,7 +85,7 @@ CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamV
       cam_matrix_set_value(&pt3d, 0, 0, ((Cam3dPoint *)(pts->data))->x);
       cam_matrix_set_value(&pt3d, 0, 1, ((Cam3dPoint *)(pts->data))->y);
       cam_matrix_set_value(&pt3d, 0, 2, ((Cam3dPoint *)(pts->data))->z);
-      cam_matrix_multiply(&pt2d, &P, &pt3d);
+      cam_matrix_multiply(&pt2d, P, &pt3d);
       res = cam_add_to_linked_list(res, (Cam2dPoint *)malloc(sizeof(Cam2dPoint)));
       cam_matrix_set_value(&pt2d, 0, 0, cam_matrix_get_value(&pt2d, 0, 0) / cam_matrix_get_value(&pt2d, 0, 2));
       cam_matrix_set_value(&pt2d, 0, 1, cam_matrix_get_value(&pt2d, 0, 1) / cam_matrix_get_value(&pt2d, 0, 2));
@@ -125,8 +97,6 @@ CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamV
 
   cam_disallocate_matrix(&pt3d);
   cam_disallocate_matrix(&pt2d);
-  cam_disallocate_matrix(&Rt);
-  cam_disallocate_matrix(&P);
   return (res);
 }
 
