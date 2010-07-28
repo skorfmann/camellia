@@ -91,20 +91,16 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   t2 = cam_matrix_get_value(Rt, 3, 1);
   t3 = cam_matrix_get_value(Rt, 3, 2);
 
-  cam_print_matrix(Rt, "Rt");
-
   if (ABSF(r5 * r1 - r2 * r4) >= 0.001f)
     {
       if (ABSF(r1) >= 0.001f)
 	{
-	  printf("here1\n");
 	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
 	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
 	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
 	}
       else if (ABSF(r4) >= 0.001f)
 	{
-	  printf("here2\n");
 	  a = r7 / r4 * (y - r5 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1)) - t2 ) +
 	    r8 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1) ) + t3;
 	  b = r9 + (r7 * r5 * r3 - r8 * r3 * r4 + r8 * r1 * r6) / (r4 * r2 - r5 * r1) - r6 * r7 / r4 - (r7 * r5 * r1 * r6) / (r4 * (r4 * r2 - r5 * r1));
@@ -118,7 +114,6 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r1) >= 0.001f)
 	{
-	  printf("here3\n");
 	  a = r4 / r1 * (x - r2 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7)) - t1 ) +
 	    r5 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7) ) + t2;
 	  b = r6 + (r4 * r2 * r9 - r5 * r9 * r1 + r5 * r7 * r3) / (r1 * r8 - r2 * r7) - r3 * r4 / r1 - (r4 * r2 * r7 * r3) / (r1 * (r1 * r8 - r2 * r7));
@@ -126,8 +121,11 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
 	}
       else if (ABSF(r7) >= 0.001f)
 	{
-	  printf("here4\n");
-	  a = r4 / r7 * (1 - r8 * ( (r7 * (x - t1) - r7 * (1 - t3)) / (r2 * r7 - r8 * r1)) - t3 ) +
+	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
+	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
+	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
+	  /*  printf("here4\n");*/
+	  a = r4 / r7 * (1 - r8 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1)) - t3 ) +
 	    r5 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1) ) + t2;
 	  b = r6 + (r4 * r8 * r3 - r5 * r3 * r7 + r5 * r1 *r9) / (r7 * r2 - r8 * r1) - r9 * r4 / r7 - (r4 * r8 * r1 * r9) / (r7 * (r7 * r2 - r8 * r1));
 	}
@@ -140,14 +138,16 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r7) >= 0.001f)
 	{
-	  printf("here5\n");
-	  a = r1 / r7 * (1 - r2 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4)) - t3 ) +
+	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
+	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
+	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
+	  /*	  printf("here5\n");*/
+	  a = r1 / r7 * (1 - r8 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4)) - t3 ) +
 	    r2 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4) ) + t1;
 	  b = r3 + (r1 * r8 * r6 - r2 * r6 * r7 + r2 * r4 *r9) / (r7 * r5 - r8 * r4) - r9 * r1 / r7 - (r1 * r8 * r4 * r9) / (r7 * (r7 * r5 - r8 * r4));
 	}
       else if (ABSF(r4) >= 0.001f)
 	{
-	  printf("here6\n");
 	  a = r1 / r4 * (y - r5 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7)) - t2 ) +
 	    r2 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7) ) + t1;
 	  b = r3 + (r1 * r5 * r9 - r2 * r9 * r4 + r2 * r7 * r6) / (r4 * r8 - r5 * r7) - r6 * r1 / r4 - (r1 * r5 * r7 * r6) / (r4 * (r4 * r8 - r5 * r7));
@@ -160,7 +160,7 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   else
     {
       printf("cam_compute_vector_to_3d_point : unable to determine Z\n");
-      /* exit(-1); */
+      exit(-1);
     }
 
 
@@ -189,16 +189,18 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     }
  
   /* check */
-  printf("%f %f %f\n", X, Y, Z);
+  /*
   cam_allocate_matrix(&test, 1, 3);
   cam_matrix_set_value(v, 0, 0, X);
   cam_matrix_set_value(v, 0, 1, Y);
   cam_matrix_set_value(v, 0, 2, Z);
   cam_matrix_set_value(v, 0, 3, 1);
   cam_matrix_multiply(&test, Rt, v);
-  /*  if (ABSF(cam_matrix_get_value(&test, 0, 0)) >= 0.001f || ABSF(cam_matrix_get_value(&test, 0, 1)) >= 0.001f)*/
-  cam_print_matrix(&test, "test");
-  
+  if (ABSF(cam_matrix_get_value(&test, 0, 2)) >= 1.001 ||
+      (ABSF(cam_matrix_get_value(&test, 0, 0)) >= 4.001f && ABSF(cam_matrix_get_value(&test, 0, 0)) <= 3.999f) ||
+      (ABSF(cam_matrix_get_value(&test, 0, 1)) >= 12.001f && ABSF(cam_matrix_get_value(&test, 0, 1)) <= 11.999f))
+      cam_print_matrix(&test, "test");
+  */
   /* end check */
 
   cam_matrix_set_value(v, 0, 0, cam_matrix_get_value(t, 0, 0) - X);
@@ -214,9 +216,46 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
   POINTS_TYPE	X;
   POINTS_TYPE	Y;
   POINTS_TYPE	Z;
-
-  res= (Cam3dPoint *)malloc(sizeof(Cam3dPoint));
+  POINTS_TYPE	v1x;
+  POINTS_TYPE	v1y;
+  POINTS_TYPE	v1z;
+  POINTS_TYPE	v2x;
+  POINTS_TYPE	v2y;
+  POINTS_TYPE	v2z;
+  POINTS_TYPE	t1x;
+  POINTS_TYPE	t1y;
+  POINTS_TYPE	t1z;
+  POINTS_TYPE	t2x;
+  POINTS_TYPE	t2y;
+  POINTS_TYPE	t2z;
+  POINTS_TYPE	beta;
   
+  v1x = cam_matrix_get_value(v1, 0, 0);
+  v1y = cam_matrix_get_value(v1, 0, 1);
+  v1z = cam_matrix_get_value(v1, 0, 2);
+  v2x = cam_matrix_get_value(v2, 0, 0);
+  v2y = cam_matrix_get_value(v2, 0, 1);
+  v2z = cam_matrix_get_value(v2, 0, 2);
+  t1x = cam_matrix_get_value(t1, 0, 0);
+  t1y = cam_matrix_get_value(t1, 0, 1);
+  t1z = cam_matrix_get_value(t1, 0, 2);
+  t2x = cam_matrix_get_value(t2, 0, 0);
+  t2y = cam_matrix_get_value(t2, 0, 1);
+  t2z = cam_matrix_get_value(t2, 0, 2);
+
+  res = (Cam3dPoint *)malloc(sizeof(Cam3dPoint));
+
+  beta = (t1y - t2y + v1y * (t2x - t1x) / v1x) / (v2y + v2x * v1y / v1x);
+  
+  X = t2x + beta * v2x;
+  Y = t2y + beta * v2y;
+  Z = t2y + beta * v2y;
+
+  res->x = X;
+  res->y = Y;
+  res->z = Z;
+  res->dist = 1;
+
   return (res);
 }
 
@@ -231,10 +270,9 @@ Cam3dPoint	*cam_triangulate_one_3d_point(CamProjectionsPair *projectionPair, Cam
 
   /* TODO : compute K-1 . P pour recuperer Rt */
   cam_compute_vector_to_3d_point(&v1, t1, &projectionPair->p1, a);
-  /*  cam_compute_vector_to_3d_point(&v2, t2, &projectionPair->p2, b); */
+  cam_compute_vector_to_3d_point(&v2, t2, &projectionPair->p2, b);
   res = cam_vectors_intersection(&v1, t1, &v2, t2);
   cam_disallocate_matrix(&v1);
   cam_disallocate_matrix(&v2);
-  
-  return (NULL);
+  return (res);
 }
