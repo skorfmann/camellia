@@ -56,7 +56,6 @@
 #include	"cam_2d_points.h"
 #include	"cam_3d_points.h"
 #include	"cam_3d_points_loaders.h"
-#include	"cam_write_points_to_pgm.h"
 #include	"misc.h"
 
 /*#define PRINT_MATRIX
@@ -235,36 +234,4 @@ void		cam_center_2d_points(CamList *points, int width, int height)
       ((Cam2dPoint *)pts->data)->y = ((Cam2dPoint *)pts->data)->y * factor;
       pts = pts->next;
     }
-}
-
-int		main()
-{
-  CamMatrix	K;
-  CamMatrix	*R;
-  CamVector	t;
-  CamList	*points;
-  POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
-  POINTS_TYPE	Tdata[3] = {1.0f,0.0f,0.0f};
-  CamList	*res;
-
-  cam_allocate_matrix(&K, 3, 3);
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
-  cam_allocate_vector(&t, 3);
-  memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
-  memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
-  
-  points = loadPoints1("/home/splin/manny");
-
-  res = cam_project_3d_to_2d(points, &K, R, &t);
-  cam_center_2d_points(res, 800, 600);
-  cam_write_points_to_pgm("pts.pgm", res, 800, 600,
-			  255, 255, 255,
-			  0, 0, 0);
-  cam_disallocate_linked_list(res);
-  cam_disallocate_linked_list(points);
-  cam_disallocate_vector(&t);
-  cam_disallocate_matrix(R);
-  cam_disallocate_matrix(&K);
-  free(R);
-  return (0);
 }

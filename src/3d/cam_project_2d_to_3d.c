@@ -50,7 +50,7 @@
 #include "cam_project_2d_to_3d.h"
 
 /* solve : [ x y 1 ] = Rt * [ X Y Z 1 ] */
-void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *Rt, Cam2dPoint *pt)
+void		cam_compute_vector_to_3d_point(Cam3dPoint *p, CamMatrix *Rt, Cam2dPoint *pt)
 {
   POINTS_TYPE	x;
   POINTS_TYPE	y;
@@ -89,26 +89,23 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *Rt, Cam2dPoint *pt
   
   a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
     r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
-  b = r9 + (r2 * r7 *(r6 - r3 * r4 / r1)) / (r1 * (r5 * r1 - r2 * r4)) - r3 * r7 / r1 - r8 * ((r6 - r3 * r4 / r1) / (r5 * r1 - r2 * r4));
+  b = r9 + (r2 * r7 *(r6 - r3 * r4 / r1)) / (r5 * r1 - r2 * r4) - r3 * r7 / r1 - r8 * ((r6 - r3 * r4 / r1) / (r5 * r1 - r2 * r4));
   Z = (1.0f - a) / b;
   Y = (r1 * (y - Z * (r6 - r3 * r4 / r1 ) - t2) - r4 * (x - t1) ) / (r5 * r1 - r2 * r4);
   X = (x - r2 * Y - r3 * Z - t1) / r1;
-  cam_matrix_set_value(v, 0, 0, X);
-  cam_matrix_set_value(v, 0, 1, Y);
-  cam_matrix_set_value(v, 0, 2, Z);
+  p->x = X;
+  p->y = Y;
+  p->z = Z;
+  p->dist = 0.0f;
 }
 
 Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b)
 {
-  CamMatrix	v1;
-  CamMatrix	v2;
+  Cam3dPoint	p1;
+  Cam3dPoint	p2;
 
-  cam_allocate_matrix(&v1, 1, 4);
-  cam_allocate_matrix(&v2, 1, 4);
   /* TODO : compute K-1 . P pour recuperer Rt */
-  cam_compute_vector_to_3d_point(&v1, &projectionPair->p1, a);
-  cam_compute_vector_to_3d_point(&v2, &projectionPair->p2, b);
-  cam_disallocate_matrix(&v1);
-  cam_disallocate_matrix(&v2);
+  cam_compute_vector_to_3d_point(&p1, &projectionPair->p1, a);
+  cam_compute_vector_to_3d_point(&p2, &projectionPair->p2, b);
   return (NULL);
 }

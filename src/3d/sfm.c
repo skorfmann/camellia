@@ -46,16 +46,49 @@
   ==========================================================================
 */
 
-#ifndef __CAM_PROJECT_2D_TO_3D_H__
-# define __CAM_PROJECT_2D_TO_3D_H__
+#include	<string.h>
+#include	<stdlib.h>
+#include	"cam_matrix.h"
+#include	"cam_list.h"
+#include	"cam_vector.h"
+#include	"cam_write_points_to_pgm.h"
+#include	"cam_3d_points_loaders.h"
+#include	"cam_project_3d_to_2d.h"
 
-#include "cam_p_from_f.h"
-#include "cam_2d_points.h"
-#include "cam_matrix.h"
+void		main_project_and_write_points()
+{
+  CamMatrix	K;
+  CamMatrix	*R;
+  CamVector	t;
+  CamList	*points;
+  POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
+  POINTS_TYPE	Tdata[3] = {1.0f,0.0f,0.0f};
+  CamList	*res;
 
-/* internal */
-void		cam_compute_vector_to_3d_point(Cam3dPoint *p, CamMatrix *Rt, Cam2dPoint *pt);
+  cam_allocate_matrix(&K, 3, 3);
+  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  cam_allocate_vector(&t, 3);
+  memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
+  memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
+  
+  points = loadPoints1("/home/splin/manny");
 
-Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b);
+  res = cam_project_3d_to_2d(points, &K, R, &t);
+  cam_center_2d_points(res, 800, 600);
+  cam_write_points_to_pgm("pts.pgm", res, 800, 600,
+			  255, 255, 255,
+			  0, 0, 0);
+  cam_disallocate_linked_list(res);
+  cam_disallocate_linked_list(points);
+  cam_disallocate_vector(&t);
+  cam_disallocate_matrix(R);
+  cam_disallocate_matrix(&K);
+  free(R);
+}
 
-#endif /* __CAM_PROJECT_2D_TO_3D_H__*/
+int		main()
+{
+  /* main_project_and_write_points(); */
+  
+  return (0);
+}

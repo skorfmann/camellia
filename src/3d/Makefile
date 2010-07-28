@@ -11,7 +11,8 @@ SRC_SFM		=	$(SRC_MISC)		\
 			cam_epipoles.c		\
 			cam_p_from_f.c		\
 			cam_project_2d_to_3d.c	\
-			cam_project_3d_to_2d.c
+			cam_project_3d_to_2d.c	\
+			sfm.c
 
 OBJ_MISC	=	$(SRC_MISC:.c=.o)
 OBJ_VIEWER	=	$(SRC_VIEWER:.c=.o)

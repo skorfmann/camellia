@@ -46,16 +46,11 @@
   ==========================================================================
 */
 
-#ifndef __CAM_PROJECT_2D_TO_3D_H__
-# define __CAM_PROJECT_2D_TO_3D_H__
+#ifndef __CAM_PROJECT_3D_TO_2D_H__
+# define __CAM_PROJECT_3D_TO_2D_H__
 
-#include "cam_p_from_f.h"
-#include "cam_2d_points.h"
-#include "cam_matrix.h"
+CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *K, CamMatrix *R, CamVector *t);
+CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE rz);
+void		cam_center_2d_points(CamList *points, int width, int height);
 
-/* internal */
-void		cam_compute_vector_to_3d_point(Cam3dPoint *p, CamMatrix *Rt, Cam2dPoint *pt);
-
-Cam3dPoint	*cam_triangulate(CamProjectionsPair *projectionPair, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b);
-
-#endif /* __CAM_PROJECT_2D_TO_3D_H__*/
+#endif /* __CAM_PROJECT_3D_TO_2D_H__ */
