@@ -146,7 +146,7 @@ void			main_triangulate_2d_points()
   Cam3dPoint		*pt3d;
   FILE			*file;
 
-  file = fopen("test", "w");
+  file = fopen("my_sfm_manny", "w");
 
   cam_allocate_matrix(&projectionPair.p1, 4, 3);
   cam_allocate_matrix(&projectionPair.p2, 4, 3);
@@ -196,9 +196,7 @@ void			main_triangulate_2d_points()
       if (pt3d)
 	{
 	  /*printf("3d pt : %.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);*/
-	  fwrite(&pt3d->x, sizeof(pt3d->x), 1, file);
-	  fwrite(&pt3d->y, sizeof(pt3d->x), 1, file);
-	  fwrite(&pt3d->z, sizeof(pt3d->x), 1, file);
+	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
 	  free(pt3d);
 	}
       ppts1 = ppts1->next;

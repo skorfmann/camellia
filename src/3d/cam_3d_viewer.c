@@ -714,7 +714,7 @@ int	main()
   cam_allocate_matrix(&currentRotation, 3, 3);
   cam_allocate_matrix(&currentNormal, 1, 3);
 
-  pointsList = loadPoints2("test");
+  pointsList = loadPoints2("my_sfm_manny");
   /*pointsList = loadPoints1("/home/splin/manny");*/
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
 

@@ -133,6 +133,7 @@ CamList		*loadPoints2(char *file)
 {
   FILE		*dataFd;
   CamList	*pointsList;
+  size_t	read;
 
   dataFd = fopen(file, "r");
   pointsList = NULL;
@@ -142,15 +143,11 @@ CamList		*loadPoints2(char *file)
       perror("");
       exit(-1);
     }
-  while (1)
+  read = 1;
+  while (read)
     {
       pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
-      fread(&((Cam3dPoint *)pointsList->data)->x, sizeof(POINTS_TYPE), 1, dataFd);
-      fread(&((Cam3dPoint *)pointsList->data)->y, sizeof(POINTS_TYPE), 1, dataFd);
-      fread(&((Cam3dPoint *)pointsList->data)->z, sizeof(POINTS_TYPE), 1, dataFd);
-      printf("here %f %f %f\n", ((Cam3dPoint *)pointsList->data)->x,
-	     ((Cam3dPoint *)pointsList->data)->y,
-	     ((Cam3dPoint *)pointsList->data)->z);
+      read = fread(pointsList->data, sizeof(POINTS_TYPE), 3, dataFd);
     }
   fclose(dataFd);
   return (pointsList);
