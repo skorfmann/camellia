@@ -128,3 +128,30 @@ CamList		*loadPoints1(char *file)
   fclose(dataFd);
   return (pointsList);
 }
+
+CamList		*loadPoints2(char *file)
+{
+  FILE		*dataFd;
+  CamList	*pointsList;
+
+  dataFd = fopen(file, "r");
+  pointsList = NULL;
+  if (!dataFd)
+    {
+      printf("Unable to open the file %s, which is containing the data\n", file);
+      perror("");
+      exit(-1);
+    }
+  while (1)
+    {
+      pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+      fread(&((Cam3dPoint *)pointsList->data)->x, sizeof(POINTS_TYPE), 1, dataFd);
+      fread(&((Cam3dPoint *)pointsList->data)->y, sizeof(POINTS_TYPE), 1, dataFd);
+      fread(&((Cam3dPoint *)pointsList->data)->z, sizeof(POINTS_TYPE), 1, dataFd);
+      printf("here %f %f %f\n", ((Cam3dPoint *)pointsList->data)->x,
+	     ((Cam3dPoint *)pointsList->data)->y,
+	     ((Cam3dPoint *)pointsList->data)->z);
+    }
+  fclose(dataFd);
+  return (pointsList);
+}

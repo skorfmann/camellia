@@ -51,6 +51,9 @@
 
 #include "cam_list.h"
 
+/* "%.3f %.3f %.3f \n" => Ayet points */
 CamList	*loadPoints1(char *file);
+/* contiguous floats */
+CamList	*loadPoints2(char *file);
 
 #endif /* __CAM_3D_POINS_LOADERS_H__ */

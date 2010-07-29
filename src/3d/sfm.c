@@ -157,17 +157,34 @@ void			main_triangulate_2d_points()
 
   points = loadPoints1("/home/splin/manny");
 
+  ppts1 = points;
+  while (ppts1)
+    {
+      if (!ppts1->next)
+	{
+	  /*printf("lst pt : %f %f %f\n", ((Cam3dPoint *)(points->data))->x, ((Cam3dPoint *)(points->data))->y, ((Cam3dPoint *)(points->data))->z);*/
+	  ((Cam3dPoint *)(ppts1->data))->x = 0.0f;
+	  ((Cam3dPoint *)(ppts1->data))->y = 0.0f;
+	  ((Cam3dPoint *)(ppts1->data))->z = 2.0f;
+	}
+      ppts1 = ppts1->next;
+    }
+
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
   R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
+  cam_print_matrix(&projectionPair.p1,"proj1");
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
+  printf("pt1 %f %f \n", ((Cam2dPoint*)pts1->data)->x, ((Cam2dPoint*)pts1->data)->y);
   cam_disallocate_matrix(R);
   free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(PI, 0.0f, 0.0f);
+  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
+  cam_print_matrix(&projectionPair.p2,"proj2");
+  printf("pt2 %f %f \n", ((Cam2dPoint*)pts2->data)->x, ((Cam2dPoint*)pts2->data)->y);
   cam_disallocate_matrix(R);
   free(R);
 
@@ -175,13 +192,15 @@ void			main_triangulate_2d_points()
   ppts2 = pts2;
   while (ppts1 && ppts2)
     {
-      /*printf("%f %f\n", ((Cam2dPoint*)ppts1->data)->x, ((Cam2dPoint*)ppts1->data)->y);
-	printf("%f %f\n", ((Cam2dPoint*)ppts2->data)->x, ((Cam2dPoint*)ppts2->data)->y);*/
       pt3d = cam_triangulate_one_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
-      /*printf("%.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);
-      exit(0); */
-      /*fprintf(file, "%.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);*/
-      free(pt3d);
+      if (pt3d)
+	{
+	  /*printf("3d pt : %.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);*/
+	  fwrite(&pt3d->x, sizeof(pt3d->x), 1, file);
+	  fwrite(&pt3d->y, sizeof(pt3d->x), 1, file);
+	  fwrite(&pt3d->z, sizeof(pt3d->x), 1, file);
+	  free(pt3d);
+	}
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
     }
