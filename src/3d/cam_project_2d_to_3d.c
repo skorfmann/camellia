@@ -51,7 +51,7 @@
 #include "cam_project_2d_to_3d.h"
 
 #define	ABSF(x) (x >= 0.0f ? (x) : -(x))
-#define	SUP0	0.001f
+#define	SUP0	0.0001f
 
 /* solve : [ x y 1 ] = Rt * [ X Y Z 1 ] */
 void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, Cam2dPoint *pt)
@@ -122,9 +122,6 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
 	}
       else if (ABSF(r7) >= SUP0)
 	{
-	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
-	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
-	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
 	  printf("here4\n");
 	  a = r4 / r7 * (1 - r8 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1)) - t3 ) +
 	    r5 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1) ) + t2;
@@ -139,9 +136,6 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r7) >= SUP0)
 	{
-	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
-	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
-	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
 	  printf("here5\n");
 	  a = r1 / r7 * (1 - r8 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4)) - t3 ) +
 	    r2 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4) ) + t1;
@@ -197,11 +191,8 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   cam_matrix_set_value(v, 0, 2, Z);
   cam_matrix_set_value(v, 0, 3, 1);
   cam_matrix_multiply(&test, Rt, v);
-  if (ABSF(cam_matrix_get_value(&test, 0, 2)) >= 1.001 ||
-      (ABSF(cam_matrix_get_value(&test, 0, 0)) >= 4.001f && ABSF(cam_matrix_get_value(&test, 0, 0)) <= 3.999f) ||
-      (ABSF(cam_matrix_get_value(&test, 0, 1)) >= 12.001f && ABSF(cam_matrix_get_value(&test, 0, 1)) <= 11.999f))
-      cam_print_matrix(&test, "test");
-*/
+  cam_print_matrix(&test, "test");
+  */
   /* end check */
 
   cam_matrix_set_value(v, 0, 0, cam_matrix_get_value(t, 0, 0) - X);
@@ -281,10 +272,11 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
 
   if (ABSF((t1z + alpha * v1z) - (t2z + beta * v2z)) >= SUP0)
     {
-      printf("Error on vectors intersection\n");
+      printf("Error on vectors intersection : %f\n",   (t1z + alpha * v1z) - (t2z + beta * v2z));
+  exit (0);
       return (NULL);
     }   
-
+  exit (0);
   X = t2x + beta * v2x;
   Y = t2y + beta * v2y;
   Z = t2z + beta * v2z;

@@ -134,7 +134,7 @@ void			main_triangulate_2d_points()
   CamMatrix		K;
   POINTS_TYPE		Kdata[9] = {1,0,0,0,1,0,0,0,1};
   POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
-  POINTS_TYPE		Tdata2[3] = {1.0f,0.0f,0.0f};  
+  POINTS_TYPE		Tdata2[3] = {1.0f,1.0f,1.0f};  
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
@@ -155,7 +155,13 @@ void			main_triangulate_2d_points()
   cam_allocate_matrix(&t2, 1, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
 
-  points = loadPoints1("/home/splin/manny");
+  points = loadPoints1("/home/splin/voiture");
+  /*  points = NULL;
+  points = cam_add_to_linked_list(points, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+  ((Cam3dPoint *)points->data)->x = 0.0f;
+  ((Cam3dPoint *)points->data)->y = 0.0f;
+  ((Cam3dPoint *)points->data)->z = 10.0f;*/
+  
 
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
   R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
@@ -165,7 +171,7 @@ void			main_triangulate_2d_points()
   free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(PI, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
   cam_disallocate_matrix(R);
@@ -182,8 +188,6 @@ void			main_triangulate_2d_points()
 	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
 	  free(pt3d);
 	}
-      else
-	printf("fail\n");
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
     }
