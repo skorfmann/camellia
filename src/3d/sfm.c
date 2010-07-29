@@ -161,22 +161,15 @@ void			main_triangulate_2d_points()
   R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
+  cam_disallocate_matrix(R);
+  free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
   R = compute_rotation_matrix(PI, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
-
-  /*
-  cam_center_2d_points(pts1, 800, 600);
-  cam_center_2d_points(pts2, 800, 600);
-  cam_write_points_to_pgm("pt1.pgm", pts1, 800, 600,
-			  255, 255, 255,
-			  0, 0, 0);
-  cam_write_points_to_pgm("pt2.pgm", pts2, 800, 600,
-			  255, 255, 255,
-			  0, 0, 0);
-  */
+  cam_disallocate_matrix(R);
+  free(R);
 
   ppts1 = pts1;
   ppts2 = pts2;
@@ -185,7 +178,9 @@ void			main_triangulate_2d_points()
       /*printf("%f %f\n", ((Cam2dPoint*)ppts1->data)->x, ((Cam2dPoint*)ppts1->data)->y);
 	printf("%f %f\n", ((Cam2dPoint*)ppts2->data)->x, ((Cam2dPoint*)ppts2->data)->y);*/
       pt3d = cam_triangulate_one_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
-      fprintf(file, "%.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);
+      /*printf("%.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);
+      exit(0); */
+      /*fprintf(file, "%.3f %.3f %.3f \n", pt3d->x, pt3d->y, pt3d->z);*/
       free(pt3d);
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
@@ -197,10 +192,8 @@ void			main_triangulate_2d_points()
   cam_disallocate_linked_list(points);
   cam_disallocate_matrix(&t1);
   cam_disallocate_matrix(&t2);
-  cam_disallocate_matrix(R);
-
   cam_disallocate_matrix(&K);
-  free(R);
+
   fclose(file);
 }
 
