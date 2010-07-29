@@ -266,7 +266,7 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
       printf("Unable to compute Beta\n");
       return (NULL);
     }
-  
+
   if (ABSF(v1x) >= SUP0)
     alpha = (t2x + beta * v2x - t1x) / v1x;
   else if (ABSF(v1y) >= SUP0)
