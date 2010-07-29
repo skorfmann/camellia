@@ -249,38 +249,45 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
   t2y = cam_matrix_get_value(t2, 0, 1);
   t2z = cam_matrix_get_value(t2, 0, 2);
 
-  if (ABSF(v1x * v2y + v2x * v1y) >= SUP0)
+  if (ABSF(v2y * v1x - v1y * v2x) >= SUP0)
     {
-      beta = (v1x * (t1y - t2y) + v1y * (t2x -t1x ) ) / (v1x * v2y + v2x * v1y);
+      beta = (v1x * (t1y - t2y) + v1y * (t2x - t1x)) / (v2y * v1x - v1y * v2x);
+    }
+  else if (ABSF(v2z * v1x - v1z * v2x) >= SUP0)
+    {
+      beta = (v1x * (t1z - t2z) + v1z * (t2x - t1x)) / (v2z * v1x - v1z * v2x);
+    }
+  else if (ABSF(v2y * v1z - v1y * v2z) >= SUP0)
+    {
+      beta = (v1z * (t1y - t2y) + v1y * (t2z - t1z)) / (v2y * v1z - v1y * v2z);
     }
   else
     {
-      return (NULL);
-      /*
       printf("Unable to compute Beta\n");
-      exit (-1);*/
+      return (NULL);
     }
   
   if (ABSF(v1x) >= SUP0)
-    alpha = (t2x - beta * v2x - t1x) / v1x;
+    alpha = (t2x + beta * v2x - t1x) / v1x;
+  else if (ABSF(v1y) >= SUP0)
+    alpha = (t2y + beta * v2y -t1y) / v1y;
+  else if (ABSF(v1z) >= SUP0)
+    alpha = (t2z + beta * v2z -t1z) / v1z;
   else
     {
-      return (NULL);
-      /*
       printf("Unable to compute Alpha\n");
-      exit (-1);*/
+      return (NULL);
     }
-    
 
   if (ABSF((t1z + alpha * v1z) - (t2z + beta * v2z)) >= SUP0)
     {
+      printf("Error on vectors intersection\n");
       return (NULL);
-      /*printf("Error on vectors intersection\n");*/
     }   
 
   X = t2x + beta * v2x;
   Y = t2y + beta * v2y;
-  Z = t2y + beta * v2y;
+  Z = t2z + beta * v2z;
 
   res = (Cam3dPoint *)malloc(sizeof(Cam3dPoint));
 

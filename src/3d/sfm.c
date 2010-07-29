@@ -157,18 +157,25 @@ void			main_triangulate_2d_points()
 
   points = loadPoints1("/home/splin/manny");
 
-  ppts1 = points;
+  /*
+  points = NULL;
+  points = cam_add_to_linked_list(points, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
+  ((Cam3dPoint *)points->data)->x = 0.0f;
+  ((Cam3dPoint *)points->data)->y = 0.0f;
+  ((Cam3dPoint *)points->data)->z = 1.0f;
+  */
+  /*  ppts1 = points;
   while (ppts1)
     {
       if (!ppts1->next)
 	{
-	  /*printf("lst pt : %f %f %f\n", ((Cam3dPoint *)(points->data))->x, ((Cam3dPoint *)(points->data))->y, ((Cam3dPoint *)(points->data))->z);*/
-	  ((Cam3dPoint *)(ppts1->data))->x = 0.0f;
+	((Cam3dPoint *)(ppts1->data))->x = 0.0f;
 	  ((Cam3dPoint *)(ppts1->data))->y = 0.0f;
 	  ((Cam3dPoint *)(ppts1->data))->z = 2.0f;
 	}
       ppts1 = ppts1->next;
     }
+  */  
 
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
   R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
@@ -199,6 +206,8 @@ void			main_triangulate_2d_points()
 	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
 	  free(pt3d);
 	}
+      else
+	printf("fail\n");
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
     }
