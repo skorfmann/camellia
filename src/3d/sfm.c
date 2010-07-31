@@ -177,6 +177,7 @@ void			main_triangulate_2d_points()
   cam_disallocate_matrix(R);
   free(R);
 
+
   ppts1 = pts1;
   ppts2 = pts2;
   while (ppts1 && ppts2)
