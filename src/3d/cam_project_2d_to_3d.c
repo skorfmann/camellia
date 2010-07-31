@@ -52,7 +52,7 @@
 
 #define	ABSF(x) (x >= 0.0f ? (x) : -(x))
 #define	SUP0	0.0001f
-#define	DEBUG 1
+/*#define	DEBUG*/
 
 /********************************/
 /* solve :                      */
@@ -101,14 +101,18 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r1) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here1\n");
+#endif
 	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
 	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
 	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
 	}
       else if (ABSF(r4) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here2\n");
+#endif
 	  a = r7 / r4 * (y - r5 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1)) - t2 ) +
 	    r8 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1) ) + t3;
 	  b = r9 + (r7 * r5 * r3 - r8 * r3 * r4 + r8 * r1 * r6) / (r4 * r2 - r5 * r1) - r6 * r7 / r4 - (r7 * r5 * r1 * r6) / (r4 * (r4 * r2 - r5 * r1));
@@ -122,7 +126,9 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r1) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here3\n");
+#endif
 	  a = r4 / r1 * (x - r2 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7)) - t1 ) +
 	    r5 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7) ) + t2;
 	  b = r6 + (r4 * r2 * r9 - r5 * r9 * r1 + r5 * r7 * r3) / (r1 * r8 - r2 * r7) - r3 * r4 / r1 - (r4 * r2 * r7 * r3) / (r1 * (r1 * r8 - r2 * r7));
@@ -130,7 +136,9 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
 	}
       else if (ABSF(r7) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here4\n");
+#endif
 	  a = r4 / r7 * (1 - r8 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1)) - t3 ) +
 	    r5 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1) ) + t2;
 	  b = r6 + (r4 * r8 * r3 - r5 * r3 * r7 + r5 * r1 *r9) / (r7 * r2 - r8 * r1) - r9 * r4 / r7 - (r4 * r8 * r1 * r9) / (r7 * (r7 * r2 - r8 * r1));
@@ -144,14 +152,18 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     {
       if (ABSF(r7) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here5\n");
+#endif
 	  a = r1 / r7 * (1 - r8 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4)) - t3 ) +
 	    r2 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4) ) + t1;
 	  b = r3 + (r1 * r8 * r6 - r2 * r6 * r7 + r2 * r4 *r9) / (r7 * r5 - r8 * r4) - r9 * r1 / r7 - (r1 * r8 * r4 * r9) / (r7 * (r7 * r5 - r8 * r4));
 	}
       else if (ABSF(r4) >= SUP0)
 	{
+#ifdef DEBUG
 	  printf("here6\n");
+#endif
 	  a = r1 / r4 * (y - r5 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7)) - t2 ) +
 	    r2 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7) ) + t1;
 	  b = r3 + (r1 * r5 * r9 - r2 * r9 * r4 + r2 * r7 * r6) / (r4 * r8 - r5 * r7) - r6 * r1 / r4 - (r1 * r5 * r7 * r6) / (r4 * (r4 * r8 - r5 * r7));
@@ -193,7 +205,7 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     }
  
   /* check if the 3d point intersect the plan at the point position */
-  
+#ifdef DEBUG
   cam_allocate_matrix(&test, 1, 3);
   cam_matrix_set_value(v, 0, 0, X);
   cam_matrix_set_value(v, 0, 1, Y);
@@ -210,12 +222,13 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
     }
 
   cam_disallocate_matrix(&test);
-  /* end check */
-
   printf("camera center %f %f %f\n", cam_matrix_get_value(t, 0, 0),
 	 cam_matrix_get_value(t, 0, 1),
 	 cam_matrix_get_value(t, 0, 2));
   printf("point %f %f %f\n", X, Y, Z);
+ #endif
+  /* end check */
+
   cam_matrix_set_value(v, 0, 0, cam_matrix_get_value(t, 0, 0) - X);
   cam_matrix_set_value(v, 0, 1, cam_matrix_get_value(t, 0, 1) - Y);
   cam_matrix_set_value(v, 0, 2, cam_matrix_get_value(t, 0, 2) - Z);
@@ -291,16 +304,14 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
       return (NULL);
     }
 
-  printf("alpha : %f beta : %f\n", alpha, beta);
+  /*  printf("alpha : %f beta : %f\n", alpha, beta);
   printf("%f %f %f // %f %f %f\n", t1x, t1y, t1z, t2x, t2y, t2z);
-  printf("%f %f %f // %f %f %f\n", v1x, v1y, v1z, v2x, v2y, v2z);
+  printf("%f %f %f // %f %f %f\n", v1x, v1y, v1z, v2x, v2y, v2z);*/
   if (ABSF((t1z + alpha * v1z) - (t2z + beta * v2z)) >= SUP0)
     {
       printf("Error on vectors intersection : %f\n",   (t1z + alpha * v1z) - (t2z + beta * v2z));
-      exit (0);
       return (NULL);
     }   
-  exit (0);
   X = t2x + beta * v2x;
   Y = t2y + beta * v2y;
   Z = t2z + beta * v2z;

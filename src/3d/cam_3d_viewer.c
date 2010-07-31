@@ -709,13 +709,19 @@ void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
     }
 }
 
-int	main()
+int	main(int ac, char **argv)
 {
+  if (ac != 2)
+    {
+      printf("Usage : ./viewer \"filename\"");
+      exit (-1);
+    }
+  
   cam_allocate_matrix(&currentRotation, 3, 3);
   cam_allocate_matrix(&currentNormal, 1, 3);
 
-  /*pointsList = loadPoints2("my_sfm_manny");*/
-  pointsList = loadPoints1("/home/splin/voiture");
+  pointsList = loadPoints2(argv[1]);
+  /*pointsList = loadPoints1("/home/splin/voiture");*/
   sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
 
   loadSortedPointsList(pointsList, sortedPointsList);

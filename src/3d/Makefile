@@ -38,12 +38,12 @@ sfm: $(OBJ_SFM)
 	$(CC) $(OBJ_SFM) -o $(NAME_SFM) $(LIBS_SFM)
 
 clean:
+	rm -f *~
+	rm -f \#*\#
 	rm -f $(OBJ_VIEWER)
 	rm -f $(OBJ_SFM)
 
 fclean:	clean
-	rm -f *~
-	rm -f \#*\#
 	rm -f $(NAME_VIEWER)
 	rm -f $(NAME_SFM)
 
