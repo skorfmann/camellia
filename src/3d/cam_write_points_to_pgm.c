@@ -71,7 +71,7 @@ void		cam_write_points_to_pgm(char *filename, CamList *points, int width, int he
     }
   pts = points;
   sprintf(header, "P6\n%i %i\n255\n", width, height);
-  fprintf(file, header);
+  fwrite(header, sizeof(char), strlen(header), file);
   for (i = 0 ; i < height ; ++i)
     {
       for (j = 0 ; j < width ; ++j)

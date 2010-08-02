@@ -51,6 +51,8 @@
 #include "cam_list.h"
 #include "cam_3d_points.h"
 
+#define DEBUG
+
 POINTS_TYPE	extractNextValue1(FILE *fd)
 {
   POINTS_TYPE	res;
@@ -133,6 +135,7 @@ CamList		*loadPoints2(char *file)
 {
   FILE		*dataFd;
   CamList	*pointsList;
+  CamList	*tmp;
   size_t	read;
 
   dataFd = fopen(file, "r");
@@ -144,11 +147,25 @@ CamList		*loadPoints2(char *file)
       exit(-1);
     }
   read = 1;
+#ifdef DEBUG
+  printf("Loading points\n");
+#endif
   while (read)
     {
       pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
       read = fread(pointsList->data, sizeof(POINTS_TYPE), 3, dataFd);
+#ifdef DEBUG
+      if (read)
+	printf("%f %f %f\n",((Cam3dPoint *)pointsList->data)->x, ((Cam3dPoint *)pointsList->data)->y, ((Cam3dPoint *)pointsList->data)->z);
+#endif
     }
+  tmp = pointsList;
+  if (pointsList->next)
+    pointsList = pointsList->next;
+  free (tmp);
+#ifdef DEBUG
+  printf("Points loaded\n");
+#endif
   fclose(dataFd);
   return (pointsList);
 }

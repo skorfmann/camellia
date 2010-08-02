@@ -60,6 +60,8 @@
 #include	"cam_p_from_f.h"
 #include	"misc.h"
 
+#define		DEBUG
+
 void		main_project_and_write_points()
 {
   CamMatrix	K;
@@ -132,9 +134,9 @@ void			main_triangulate_2d_points()
 {
   CamProjectionsPair	projectionPair;
   CamMatrix		K;
-  POINTS_TYPE		Kdata[9] = {1,0,0,0,1,0,0,0,1};
+  POINTS_TYPE		Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
   POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
-  POINTS_TYPE		Tdata2[3] = {1.0f,1.0f,1.0f};  
+  POINTS_TYPE		Tdata2[3] = {1.0f,0.0f,0.0f};
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
@@ -145,9 +147,13 @@ void			main_triangulate_2d_points()
   CamList		*points;
   Cam3dPoint		*pt3d;
   FILE			*file;
-  char			*filename = "voiture";
+  char			*filename = "manny";
   char			*path1;
   char			*path2;
+#ifdef DEBUG
+  FILE			*debug_file;
+  CamList		*tailPoints;
+#endif
 
   path1 = (char*)malloc((strlen("data/3dmodels/") + strlen(filename) + 1) * sizeof (char));
   path2 = (char*)malloc((strlen("data/results/") + strlen(filename) + 1) * sizeof (char));
@@ -179,12 +185,24 @@ void			main_triangulate_2d_points()
   cam_disallocate_matrix(R);
   free(R);
 
+#ifdef DEBUG
+  tailPoints = points;
+  while (tailPoints->next)
+    tailPoints = tailPoints->next;
+  debug_file = fopen("debug_vectors", "w");
+  fwrite(t1.data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(tailPoints->data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(t2.data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(tailPoints->data, sizeof(POINTS_TYPE), 3, debug_file);
+  fclose(debug_file);
+#endif
 
   ppts1 = pts1;
   ppts2 = pts2;
   while (ppts1 && ppts2)
     {
       pt3d = cam_triangulate_one_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
+
       if (pt3d)
 	{
 	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
@@ -206,6 +224,7 @@ void			main_triangulate_2d_points()
 			  255, 255, 255,
 			  0, 0, 0);
   free(path1);
+
     
   cam_disallocate_projections_pair(&projectionPair);
   cam_disallocate_linked_list(pts1);

@@ -62,7 +62,8 @@
 
 /* #define CAM_3D_VIWER_DISPLAY_KEYS
 #define CAM_3D_VIWER_DISPLAY_MOUSE
-#define	CAM_3D_DEBUG */
+#define	CAM_3D_DEBUG
+#define	DEBUG*/
 
 #define FOV	60.0f
 #define ZNEAR	0.0f
@@ -80,7 +81,14 @@
 #define TRANSLATION_ACCELERATION 0.2f
 #define ROTATI0N_ACCELERATION 0.3f
 
+typedef enum
+  {
+    POINTS_CLOUD,
+    EXPERIMENTAL
+  }	display_type;
+
 /* globals */
+display_type	g_method;
 float		lastx;
 float		lasty;
 static CamList	*pointsList = NULL;
@@ -219,6 +227,8 @@ void	resetView()
 
 void	processKeyboardKeys(unsigned char key, int x, int y)
 {
+  x = x;
+  y = y;
 #ifdef CAM_3D_VIWER_DISPLAY_KEYS
   printf("keyboard key : %i\n", (int)key);
 #endif
@@ -396,6 +406,7 @@ void	processMouseMotion(int x, int y)
 
 void	processMouseWheel(int button, int dir, int x, int y)
 {
+  button = button;
   if (dir > 0)
     {
       fov /= ZOOM_FACTOR;
@@ -426,6 +437,8 @@ void	processMouseWheel(int button, int dir, int x, int y)
 
 void	processMousePassiveMotion(int x, int y)
 {
+  x = x;
+  y = y;
 #ifdef CAM_3D_VIWER_DISPLAY_MOUSE
   printf("Mouse pos : %i %i\n", x, y);
 #endif
@@ -436,6 +449,8 @@ void		processSpecialKeys(int key, int x, int y)
   CamMatrix	vect;
   CamMatrix	tmp;
 
+  x = x;
+  y = y;
   cam_allocate_matrix(&vect, 1, 3);
   cam_allocate_matrix(&tmp, 1, 3);
   switch (key)
@@ -579,7 +594,12 @@ void	renderInfos(void)
 
 void		renderSparsePoints(void)
 {
+  CamList	*exp;
   int		index;
+  float		colors[] = {1.0f, 0.0f, 0.0f,
+			    0.0f, 1.0f, 0.0f,
+			    0.0f, 0.0f, 1.0f,
+			    0.5f, 0.5f, 0.5f};
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
@@ -598,18 +618,47 @@ void		renderSparsePoints(void)
       glEnd();
     }
 
-  glBegin(GL_POINTS);
-  index = 0;
-  glColor3f(1.0f, 1.0f, 1.0f);
-  while (index < pointsList->index)
+  if (g_method == POINTS_CLOUD)
     {
-      glVertex3f(sortedPointsList[index].x,
-		 sortedPointsList[index].y,
-		 sortedPointsList[index].z);
-      ++index;
+      glBegin(GL_POINTS);
+      index = 0;
+      glColor3f(1.0f, 1.0f, 1.0f);
+      while (index < pointsList->index)
+	{
+	  glVertex3f(sortedPointsList[index].x,
+		     sortedPointsList[index].y,
+		     sortedPointsList[index].z);
+	  ++index;
+	}
+      glEnd();
     }
-  glEnd();
-  
+  else if (g_method == EXPERIMENTAL)
+    {
+      exp = pointsList;
+      glBegin(GL_LINES);
+      index = 0;
+      while (exp && exp->next)
+	{
+	  glColor3f(colors[index++], colors[index++], colors[index++]);
+	  glVertex3f(((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);
+#ifdef DEBUG
+	  printf("%f %f %f with ", ((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);
+#endif
+	  exp = exp->next;
+	  glVertex3f(((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);
+#ifdef DEBUG
+	  printf("%f %f %f\n", ((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);
+#endif
+	  exp = exp->next;
+	}
+#ifdef DEBUG
+      exit (0);
+#endif
+      glEnd();
+    }
+  else
+    exit (-1);
+
   if (printClosestPoint == TRUE)
     {
       glBegin(GL_LINES);
@@ -617,11 +666,11 @@ void		renderSparsePoints(void)
       glVertex3f(rightUpMouseXPos,
 		 rightUpMouseYPos,
 		 rightUpMouseZPos);
-
+      
       glVertex3f(sortedPointsList[pointIndex].x,
 		 sortedPointsList[pointIndex].y,
 		 sortedPointsList[pointIndex].z);
-
+      
       if (printNormale == TRUE)
 	{
 	  glColor3f(1.0f, 1.0f, 0.0f);
@@ -633,14 +682,16 @@ void		renderSparsePoints(void)
 		     rightUpMouseYPos + oldY * ZFAR,
 		     rightUpMouseZPos + oldZ * ZFAR);
 	}
-
+      
       glEnd();
     }
+
 
   camera();
 
   redisplay_all();
   glutSwapBuffers();
+
   return ;
 }
 
@@ -709,21 +760,43 @@ void		loadSortedPointsList(CamList *list, Cam3dPoint *sortedPointsList)
     }
 }
 
+void	print_usage()
+{
+  printf("Usage : ./viewer method_number path_to_data_file\n");
+  printf("Methods :\n");
+  printf("1 : load raw 3d points\n");
+  printf("2 : load char 3d points\n");
+  printf("3 : experimental\n");
+  exit (-1);
+}
+
 int	main(int ac, char **argv)
 {
-  if (ac != 2)
-    {
-      printf("Usage : ./viewer \"filename\"");
-      exit (-1);
-    }
+  if (ac != 3)
+    print_usage();
   
   cam_allocate_matrix(&currentRotation, 3, 3);
   cam_allocate_matrix(&currentNormal, 1, 3);
 
-  pointsList = loadPoints2(argv[1]);
-  /*pointsList = loadPoints1("/home/splin/voiture");*/
-  sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
+  if (strncmp("1",argv[1],1) == 0)
+    {
+      pointsList = loadPoints2(argv[2]);
+      g_method = POINTS_CLOUD;
+    }
+  else if (strncmp("2",argv[1],1) == 0)
+    {
+      pointsList = loadPoints1(argv[2]);
+      g_method = POINTS_CLOUD;
+    }
+  else if (strncmp("3",argv[1],1) == 0)
+    {
+      g_method = EXPERIMENTAL;
+      pointsList = loadPoints2(argv[2]);
+    }
+  else
+    print_usage();
 
+  sortedPointsList = (Cam3dPoint *)malloc(pointsList->index * sizeof(Cam3dPoint));
   loadSortedPointsList(pointsList, sortedPointsList);
 
   cam_3d_viewer_init_display(100, 100, WIDTH, HEIGHT, GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB, "Camellia Vizualizer",

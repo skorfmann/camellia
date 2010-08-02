@@ -52,7 +52,7 @@
 
 #define	ABSF(x) (x >= 0.0f ? (x) : -(x))
 #define	SUP0	0.0001f
-/*#define	DEBUG*/
+#define	DEBUG
 
 /********************************/
 /* solve :                      */
@@ -80,7 +80,10 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   POINTS_TYPE	t3;
   POINTS_TYPE	a;
   POINTS_TYPE	b;
+#ifdef DEBUG
   CamMatrix	test;
+  FILE		*debug_file;
+#endif
   
   x = pt->x;
   y = pt->y;
@@ -213,19 +216,23 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   cam_matrix_set_value(v, 0, 3, 1);
   cam_matrix_multiply(&test, Rt, v);
 
-  if (DEBUG || ABSF(cam_matrix_get_value(&test, 0, 0) - pt->x) >= SUP0 ||
-      ABSF(cam_matrix_get_value(&test, 0, 1) - pt->y) >= SUP0)
-    {
-      cam_print_matrix(Rt, "Rt");
-      cam_print_matrix(&test, "test");
-      printf("Should be on : %f %f\n", pt->x, pt->y);
-    }
+  cam_print_matrix(Rt, "Rt");
+  cam_print_matrix(&test, "test");
+  printf("Should be on : %f %f\n", pt->x, pt->y);
 
   cam_disallocate_matrix(&test);
   printf("camera center %f %f %f\n", cam_matrix_get_value(t, 0, 0),
 	 cam_matrix_get_value(t, 0, 1),
 	 cam_matrix_get_value(t, 0, 2));
-  printf("point %f %f %f\n", X, Y, Z);
+  printf("X : %f Y : %f Z : %f\n", X, Y, Z);
+
+  debug_file = fopen("debug_vectors", "a");
+  fwrite(t->data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(&X, sizeof(POINTS_TYPE), 1, debug_file);
+  fwrite(&Y, sizeof(POINTS_TYPE), 1, debug_file);
+  fwrite(&Z, sizeof(POINTS_TYPE), 1, debug_file);
+  fclose(debug_file);
+
  #endif
   /* end check */
 
@@ -304,14 +311,22 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
       return (NULL);
     }
 
-  /*  printf("alpha : %f beta : %f\n", alpha, beta);
-  printf("%f %f %f // %f %f %f\n", t1x, t1y, t1z, t2x, t2y, t2z);
-  printf("%f %f %f // %f %f %f\n", v1x, v1y, v1z, v2x, v2y, v2z);*/
+#ifdef DEBUG
+  printf("alpha : %f beta : %f\n", alpha, beta);
+  printf("t1x : %f t1y : %f t1z : %f // t2x : %f t2y : %f t2z : %f\n", t1x, t1y, t1z, t2x, t2y, t2z);
+  printf("v1x : %f v1y : %f v1z : %f // v2x : %f v2y : %f v2z : %f\n", v1x, v1y, v1z, v2x, v2y, v2z);
+#endif
   if (ABSF((t1z + alpha * v1z) - (t2z + beta * v2z)) >= SUP0)
     {
       printf("Error on vectors intersection : %f\n",   (t1z + alpha * v1z) - (t2z + beta * v2z));
+#ifdef DEBUG
+      exit (0);
+#endif
       return (NULL);
-    }   
+    }
+#ifdef DEBUG
+  exit (0);
+#endif
   X = t2x + beta * v2x;
   Y = t2y + beta * v2y;
   Z = t2z + beta * v2z;
