@@ -1,6 +1,6 @@
-SRC_MISC	=	cam_matrix.c	\
-			cam_vector.c	\
-			cam_list.c	\
+SRC_MISC	=	cam_matrix.c		\
+			cam_vector.c		\
+			cam_list.c		\
 			cam_3d_points_loaders.c	\
 			cam_projection_matrix.c \
 			cam_write_points_to_pgm.c
@@ -15,12 +15,21 @@ SRC_SFM		=	$(SRC_MISC)		\
 			cam_project_3d_to_2d.c	\
 			sfm.c
 
+SRC_NON_REGRESSION	=	$(SRC_MISC)		\
+				cam_epipoles.c		\
+				cam_p_from_f.c		\
+				cam_project_2d_to_3d.c	\
+				cam_project_3d_to_2d.c	\
+				non_regression.c
+
 OBJ_MISC	=	$(SRC_MISC:.c=.o)
 OBJ_VIEWER	=	$(SRC_VIEWER:.c=.o)
 OBJ_SFM		=	$(SRC_SFM:.c=.o)
+OBJ_NON_REGRESSION	=	$(SRC_NON_REGRESSION:.c=.o)
 
 NAME_VIEWER	=	viewer
 NAME_SFM	=	sfm
+NAME_NON_REGRESSION	=	non_regression
 
 CFLAGS		=	-W -Wall -ansi -pedantic -g3
 
@@ -28,14 +37,18 @@ CC		=	gcc
 
 LIBS_VIEWER	=	-lGLU -lglut -lGL
 LIBS_SFM	=	-lm
+LIBS_NON_REGRESSION	=	-lm
 
-all: viewer sfm
+all: viewer sfm non_regression
 
 viewer: $(OBJ_VIEWER)
 	$(CC) $(OBJ_VIEWER) -o $(NAME_VIEWER) $(LIBS_VIEWER)
 
 sfm: $(OBJ_SFM)
 	$(CC) $(OBJ_SFM) -o $(NAME_SFM) $(LIBS_SFM)
+
+non_regression:	$(OBJ_NON_REGRESSION)
+	$(CC) $(OBJ_NON_REGRESSION) -o $(NAME_NON_REGRESSION) $(LIBS_NON_REGRESSION)
 
 clean:
 	rm -f *~

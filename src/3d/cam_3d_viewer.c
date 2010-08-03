@@ -639,7 +639,8 @@ void		renderSparsePoints(void)
       index = 0;
       while (exp && exp->next)
 	{
-	  glColor3f(colors[index++], colors[index++], colors[index++]);
+	  glColor3f(colors[index], colors[index+1], colors[index+2]);
+	  index += 3;
 	  glVertex3f(((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);
 #ifdef DEBUG
 	  printf("%f %f %f with ", ((Cam3dPoint *)exp->data)->x, ((Cam3dPoint *)exp->data)->y, ((Cam3dPoint *)exp->data)->z);

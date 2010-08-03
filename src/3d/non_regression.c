@@ -46,13 +46,25 @@
   ==========================================================================
 */
 
-#ifndef __CAM_PROJECT_3D_TO_2D_H__
-# define __CAM_PROJECT_3D_TO_2D_H__
-
+#include	"cam_matrix.h"
+#include	"cam_project_3d_to_2d.h"
+#include	"cam_project_2d_to_3d.h"
 #include	"cam_list.h"
+#include	"misc.h"
 
-CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *P);
-CamMatrix	*compute_rotation_matrix(POINTS_TYPE rx, POINTS_TYPE ry, POINTS_TYPE rz);
-void		cam_center_2d_points(CamList *points, int width, int height);
+int		main()
+{
+  CamList	*points3d;
+  CamList	*points2d;
+  CamMatrix	P;
+  CamMatrix	K;
+  CamMatrix	R;
+  CamMatrix	t;
+  
+  cam_allocate_matrix(&P, 4, 3);
+  cam_allocate_matrix(&K, 3, 3);
+  cam_allocate_matrix(&R, 3, 3);
+  cam_allocate_matrix(&t, 1, 3);
 
-#endif /* __CAM_PROJECT_3D_TO_2D_H__ */
+  cam_disallocate_matrix(&P);
+}

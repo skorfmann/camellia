@@ -70,7 +70,7 @@ void		main_project_and_write_points()
   CamMatrix	P;
   CamList	*points;
   POINTS_TYPE	Kdata[9] = {1,0,0,0,1,0,0,0,1};
-  POINTS_TYPE	Tdata[3] = {1.0f,0.0f,0.0f};
+  POINTS_TYPE	Tdata[3] = {0.0f,0.0f,0.0f};
   CamList	*res;
 
   cam_allocate_matrix(&K, 3, 3);
@@ -79,9 +79,19 @@ void		main_project_and_write_points()
   cam_allocate_matrix(&t, 1, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
   memcpy(t.data, Tdata, 3 * sizeof(POINTS_TYPE));
-  points = loadPoints1("/home/splin/manny");
+
+  /*points = loadPoints1("/home/splin/manny");*/
+  points = NULL;
+  points = cam_add_to_linked_list(points, (Cam3dPoint *)malloc(sizeof(Cam2dPoint)));
+  ((Cam3dPoint *)(points->data))->x = 2.0f;
+  ((Cam3dPoint *)(points->data))->y = 1.0f;
+  ((Cam3dPoint *)(points->data))->z = 0.0f;
+  
   cam_compute_projection_matrix(&P, &K, R, &t);
   res = cam_project_3d_to_2d(points, &P);
+  
+  printf("Result point : %f %f\n", ((Cam2dPoint *)(res->data))->x, ((Cam2dPoint *)(res->data))->y);
+
   cam_center_2d_points(res, 800, 600);
   cam_write_points_to_pgm("pts.pgm", res, 800, 600,
 			  255, 255, 255,
@@ -189,6 +199,7 @@ void			main_triangulate_2d_points()
   tailPoints = points;
   while (tailPoints->next)
     tailPoints = tailPoints->next;
+  printf("3D point : %f %f %f\n", ((Cam3dPoint *)tailPoints->data)->x, ((Cam3dPoint *)tailPoints->data)->y, ((Cam3dPoint *)tailPoints->data)->z);
   debug_file = fopen("debug_vectors", "w");
   fwrite(t1.data, sizeof(POINTS_TYPE), 3, debug_file);
   fwrite(tailPoints->data, sizeof(POINTS_TYPE), 3, debug_file);
@@ -240,8 +251,8 @@ void			main_triangulate_2d_points()
 int		main()
 {
   /*main_project_and_write_points();*/
-  /*main_triangulate_2d_points_tests()*/
+  /*main_triangulate_2d_points_tests();*/
   main_triangulate_2d_points();
- 
+  
   return (0);
 }
