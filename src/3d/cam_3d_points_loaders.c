@@ -51,7 +51,7 @@
 #include "cam_list.h"
 #include "cam_3d_points.h"
 
-#define DEBUG
+/*#define DEBUG*/
 
 POINTS_TYPE	extractNextValue1(FILE *fd)
 {

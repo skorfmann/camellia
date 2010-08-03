@@ -51,6 +51,6 @@
 
 #include "cam_matrix.h"
 
-void	cam_compute_projection_matrix(CamMatrix	*P, CamMatrix *K, CamMatrix *R, CamMatrix *t);
+void	cam_compute_projection_matrix(CamMatrix	*P, CamMatrix *K, CamMatrix *R, CamMatrix *C);
 
 #endif /* __CAM_PROJECTION_MATRIX_H__ */

@@ -49,22 +49,30 @@
 #include	<stdlib.h>
 #include	"cam_matrix.h"
 
-void		cam_compute_projection_matrix(CamMatrix *P, CamMatrix *K, CamMatrix *R, CamMatrix *t)
+/***************************/
+/* P = K[R|t] with t = -RC */
+/***************************/
+
+void		cam_compute_projection_matrix(CamMatrix *P, CamMatrix *K, CamMatrix *R, CamMatrix *C)
 {
   CamMatrix	Rt;
   register int	i;
   register int	j;
-  
+  CamMatrix	t;
+
   cam_allocate_matrix(&Rt, 4, 3);
+  cam_allocate_matrix(&t, 1, 3);
+  cam_matrix_multiply(&t, R, C);
   for (j = 0 ; j < 3 ; ++j)
     {
       for (i = 0 ; i < 3 ; ++i)
 	{
 	  cam_matrix_set_value(&Rt, i, j, cam_matrix_get_value(R, i, j));
 	}
-      cam_matrix_set_value(&Rt, i, j, cam_matrix_get_value(t, 0, j));
+      cam_matrix_set_value(&Rt, i, j, -cam_matrix_get_value(&t, 0, j));
     }
   cam_matrix_multiply(P, K, &Rt);
   cam_disallocate_matrix(&Rt);
+  cam_disallocate_matrix(&t);
   return ;
 }

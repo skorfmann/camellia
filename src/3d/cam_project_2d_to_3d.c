@@ -53,7 +53,7 @@
 
 #define	ABSF(x) (x >= 0.0f ? (x) : -(x))
 #define	SUP0	0.0001f
-#define	DEBUG
+/*#define	DEBUG*/
 
 /********************************/
 /* solve :                      */
