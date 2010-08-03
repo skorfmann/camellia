@@ -54,12 +54,16 @@ CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
 {
   CamProjectionsPair	*res;
   CamMatrix		ePrimeSkew;
+  CamMatrix		fTranspose;
 
+  cam_allocate_matrix(&fTranspose, 3, 3);
+  cam_matrix_transpose(&fTranspose, f);
   res = (CamProjectionsPair *)malloc(sizeof(CamProjectionsPair));
   cam_allocate_matrix(&ePrimeSkew, 3, 3);
   cam_allocate_matrix(&res->p1, 4, 3);
   cam_allocate_matrix(&res->p2, 4, 3);
   
+  cam_disallocate_matrix(&fTranspose);
   cam_disallocate_matrix(&ePrimeSkew);
   return (res);
 }

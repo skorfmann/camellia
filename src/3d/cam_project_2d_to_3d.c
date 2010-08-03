@@ -55,12 +55,12 @@
 #define	SUP0	0.0001f
 /*#define	DEBUG*/
 
-/********************************/
-/* solve :                      */
-/* [ x y 1 ] = Rt * [ X Y Z 1 ] */
-/********************************/
-
-/* TODO : variable substitution not to be as error prone */
+/*******************************************/
+/* solve :                                 */
+/*             [r1 r2 r3 t1]               */
+/* [ x y 1 ] = [r4 r5 r6 t2] * [ X Y Z 1 ] */
+/*             [r7 r8 r9 t3]               */
+/*******************************************/
 
 void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, Cam2dPoint *pt)
 {
@@ -69,20 +69,22 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   POINTS_TYPE	X;
   POINTS_TYPE	Y;
   POINTS_TYPE	Z;
-  POINTS_TYPE	r1;
-  POINTS_TYPE	r2;
-  POINTS_TYPE	r3;
-  POINTS_TYPE	r4;
-  POINTS_TYPE	r5;
-  POINTS_TYPE	r6;
-  POINTS_TYPE	r7;
-  POINTS_TYPE	r8;
-  POINTS_TYPE	r9;
-  POINTS_TYPE	t1;
-  POINTS_TYPE	t2;
-  POINTS_TYPE	t3;
+  POINTS_TYPE	r1, r1c;
+  POINTS_TYPE	r2, r2c;
+  POINTS_TYPE	r3, r3c;
+  POINTS_TYPE	r4, r4c;
+  POINTS_TYPE	r5, r5c;
+  POINTS_TYPE	r6, r6c;
+  POINTS_TYPE	r7, r7c;
+  POINTS_TYPE	r8, r8c;
+  POINTS_TYPE	r9, r9c;
+  POINTS_TYPE	t1, t1c;
+  POINTS_TYPE	t2, t2c;
+  POINTS_TYPE	t3, t3c;
   POINTS_TYPE	a;
   POINTS_TYPE	b;
+  POINTS_TYPE	tmp1;
+  POINTS_TYPE	tmp2;
 #ifdef DEBUG
   CamMatrix	test;
   FILE		*debug_file;
@@ -90,126 +92,244 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   
   x = pt->x;
   y = pt->y;
-  r1 = cam_matrix_get_value(Rt, 0, 0);
-  r2 = cam_matrix_get_value(Rt, 1, 0);
-  r3 = cam_matrix_get_value(Rt, 2, 0);
-  r4 = cam_matrix_get_value(Rt, 0, 1);
-  r5 = cam_matrix_get_value(Rt, 1, 1);
-  r6 = cam_matrix_get_value(Rt, 2, 1);
-  r7 = cam_matrix_get_value(Rt, 0, 2);
-  r8 = cam_matrix_get_value(Rt, 1, 2);
-  r9 = cam_matrix_get_value(Rt, 2, 2);
-  t1 = cam_matrix_get_value(Rt, 3, 0);
-  t2 = cam_matrix_get_value(Rt, 3, 1);
-  t3 = cam_matrix_get_value(Rt, 3, 2);
+  r1c = cam_matrix_get_value(Rt, 0, 0);
+  r2c = cam_matrix_get_value(Rt, 1, 0);
+  r3c = cam_matrix_get_value(Rt, 2, 0);
+  r4c = cam_matrix_get_value(Rt, 0, 1);
+  r5c = cam_matrix_get_value(Rt, 1, 1);
+  r6c = cam_matrix_get_value(Rt, 2, 1);
+  r7c = cam_matrix_get_value(Rt, 0, 2);
+  r8c = cam_matrix_get_value(Rt, 1, 2);
+  r9c = cam_matrix_get_value(Rt, 2, 2);
+  t1c = cam_matrix_get_value(Rt, 3, 0);
+  t2c = cam_matrix_get_value(Rt, 3, 1);
+  t3c = cam_matrix_get_value(Rt, 3, 2);
 
-  if (ABSF(r5 * r1 - r2 * r4) >= SUP0)
+  if (ABSF(r5c * r1c - r2c * r4c) >= SUP0)
     {
-      if (ABSF(r1) >= SUP0)
+      /* 1-1 2-2 3-3 */
+      if (ABSF(r1c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here1\n");
 #endif
-	  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
-	    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
-	  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
+	  t1 = t1c;
+	  t2 = t2c;
+	  t3 = t3c;
+	  r1 = r1c;
+	  r2 = r2c;
+	  r3 = r3c;
+	  r4 = r4c;
+	  r5 = r5c;
+	  r6 = r6c;
+	  r7 = r7c;
+	  r8 = r8c;
+	  r9 = r9c;
 	}
-      else if (ABSF(r4) >= SUP0)
+      /* 1-2 2-1 3-3 */
+      else if (ABSF(r4c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here2\n");
 #endif
-	  a = r7 / r4 * (y - r5 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1)) - t2 ) +
-	    r8 * ( (r4 * (x - t1) - r1 * (y - t2)) / (r2 * r4 - r5 * r1) ) + t3;
-	  b = r9 + (r7 * r5 * r3 - r8 * r3 * r4 + r8 * r1 * r6) / (r4 * r2 - r5 * r1) - r6 * r7 / r4 - (r7 * r5 * r1 * r6) / (r4 * (r4 * r2 - r5 * r1));
+	  t1 = t2c;
+	  t2 = t1c;
+	  t3 = t3c;
+	  r1 = r4c;
+	  r2 = r5c;
+	  r3 = r6c;
+	  r4 = r1c;
+	  r5 = r2c;
+	  r6 = r3c;
+	  r7 = r7c;
+	  r8 = r8c;
+	  r9 = r9c;
 	}
-      if (ABSF(b) >= SUP0)
-	Z = (1.0f - a) / b;
-      else
-	printf("b = 0 ...\n");
+      tmp1 = 1.0f;
     }
-  else if (ABSF(r8 * r1 - r2 * r7) >= SUP0)
+  else if (ABSF(r8c * r1c - r2c * r7c) >= SUP0)
     {
-      if (ABSF(r1) >= SUP0)
+      /* 1-1 2-3 3-2 */
+      if (ABSF(r1c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here3\n");
 #endif
-	  a = r4 / r1 * (x - r2 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7)) - t1 ) +
-	    r5 * ( (r1 * (1 - t3) - r7 * (x - t1)) / (r8 * r1 - r2 * r7) ) + t2;
-	  b = r6 + (r4 * r2 * r9 - r5 * r9 * r1 + r5 * r7 * r3) / (r1 * r8 - r2 * r7) - r3 * r4 / r1 - (r4 * r2 * r7 * r3) / (r1 * (r1 * r8 - r2 * r7));
-	  Z = (y - a) / b;
+	  t1 = t1c;
+	  t2 = t3c;
+	  t3 = t2c;
+	  r1 = r1c;
+	  r2 = r2c;
+	  r3 = r3c;
+	  r4 = r7c;
+	  r5 = r8c;
+	  r6 = r9c;
+	  r7 = r4c;
+	  r8 = r5c;
+	  r9 = r6c;
 	}
-      else if (ABSF(r7) >= SUP0)
+      /* 1-3 2-1 3-2 */
+      else if (ABSF(r7c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here4\n");
 #endif
-	  a = r4 / r7 * (1 - r8 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1)) - t3 ) +
-	    r5 * ( (r7 * (x - t1) - r1 * (1 - t3)) / (r2 * r7 - r8 * r1) ) + t2;
-	  b = r6 + (r4 * r8 * r3 - r5 * r3 * r7 + r5 * r1 *r9) / (r7 * r2 - r8 * r1) - r9 * r4 / r7 - (r4 * r8 * r1 * r9) / (r7 * (r7 * r2 - r8 * r1));
+	  t1 = t3c;
+	  t2 = t1c;
+	  t3 = t2c;
+	  r1 = r7c;
+	  r2 = r8c;
+	  r3 = r9c;
+	  r4 = r1c;
+	  r5 = r2c;
+	  r6 = r3c;
+	  r7 = r4c;
+	  r8 = r5c;
+	  r9 = r6c;
 	}
-      if (ABSF(b) >= SUP0)
-	Z = (y - a) / b;
-      else
-	printf("b = 0 ...\n");
+      tmp1 = y;
     }
-  else if (ABSF(r4 * r8 - r7 * r5) >= SUP0)
+  else if (ABSF(r4c * r8c - r7c * r5c) >= SUP0)
     {
-      if (ABSF(r7) >= SUP0)
+      /* 1-3 2-2 3-1 */
+      if (ABSF(r7c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here5\n");
 #endif
-	  a = r1 / r7 * (1 - r8 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4)) - t3 ) +
-	    r2 * ( (r7 * (y - t2) - r4 * (1 - t3)) / (r5 * r7 - r8 * r4) ) + t1;
-	  b = r3 + (r1 * r8 * r6 - r2 * r6 * r7 + r2 * r4 *r9) / (r7 * r5 - r8 * r4) - r9 * r1 / r7 - (r1 * r8 * r4 * r9) / (r7 * (r7 * r5 - r8 * r4));
+	  t1 = t3c;
+	  t2 = t2c;
+	  t3 = t1c;
+	  r1 = r7c;
+	  r2 = r8c;
+	  r3 = r9c;
+	  r4 = r4c;
+	  r5 = r5c;
+	  r6 = r6c;
+	  r7 = r1c;
+	  r8 = r2c;
+	  r9 = r3c;
 	}
-      else if (ABSF(r4) >= SUP0)
+      /* 1-2 2-3 3-1 */
+      else if (ABSF(r4c) >= SUP0)
 	{
 #ifdef DEBUG
 	  printf("here6\n");
 #endif
-	  a = r1 / r4 * (y - r5 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7)) - t2 ) +
-	    r2 * ( (r4 * (1 - t3) - r7 * (y - t2)) / (r8 * r4 - r5 * r7) ) + t1;
-	  b = r3 + (r1 * r5 * r9 - r2 * r9 * r4 + r2 * r7 * r6) / (r4 * r8 - r5 * r7) - r6 * r1 / r4 - (r1 * r5 * r7 * r6) / (r4 * (r4 * r8 - r5 * r7));
+	  t1 = t2c;
+	  t2 = t3c;
+	  t3 = t1c;
+	  r1 = r4c;
+	  r2 = r5c;
+	  r3 = r6c;
+	  r4 = r7c;
+	  r5 = r8c;
+	  r6 = r9c;
+	  r7 = r1c;
+	  r8 = r2c;
+	  r9 = r3c;
 	}
-      if (ABSF(b) >= SUP0)
-	Z = (x - a) / b;
-      else
-	printf("b = 0 ...\n");
+      tmp1 = x;
     }
   else
     {
       printf("cam_compute_vector_to_3d_point : unable to determine Z\n");
       exit(-1);
     }
-
-
-  if (ABSF(r5 * r1 - r2 * r4) >= SUP0)
-    Y = (r1 * (y - r6 * Z - t2) - r4 * (x - r3 * Z - t1) ) / (r5 * r1 - r2 * r4);
-  else if (ABSF(r8 * r4 - r5 * r7) >= SUP0)
-    Y = (r4 * (1 - r9 * Z - t3) - r7 * (y - r6 * Z - t2) ) / (r8 * r4 - r5 * r7);
-  else if (ABSF(r8 * r1 - r2 * r7) >= SUP0)
-    Y = (r1 * (1 - r9 * Z - t3) - r7 * (x - r3 * Z - t1) ) / (r8 * r1 - r2 * r7);
+  
+  a = r7 / r1 * (x - r2 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4)) - t1 ) +
+    r8 * ( (r1 * (y - t2) - r4 * (x - t1)) / (r5 * r1 - r2 * r4) ) + t3;
+  b = r9 + (r7 * r2 * r6 - r8 * r6 * r1 + r8 * r4 *r3) / (r1 * r5 - r2 * r4) - r3 * r7 / r1 - (r7 * r2 * r4 * r3) / (r1 * (r1 * r5 - r2 * r4));
+  Z = (tmp1 - a) / b;
+  
+  /* 1&2 */
+  if (ABSF(r5c * r1c - r2c * r4c) >= SUP0)
+    {
+      tmp1 = x;
+      tmp2 = y;
+      t1 = t1c;
+      t2 = t2c;
+      r1 = r1c;
+      r2 = r2c;
+      r3 = r3c;
+      r4 = r4c;
+      r5 = r5c;
+      r6 = r6c;
+    }
+  /* 2&3 */
+  else if (ABSF(r8c * r4c - r5c * r7c) >= SUP0)
+    {
+      tmp1 = y;
+      tmp2 = 1.0f;
+      t1 = t2c;
+      t2 = t3c;
+      r1 = r4c;
+      r2 = r5c;
+      r3 = r6c;
+      r4 = r7c;
+      r5 = r8c;
+      r6 = r9c;
+    }
+  /* 1&3 */
+  else if (ABSF(r8c * r1c - r2c * r7c) >= SUP0)
+    {
+      tmp1 = x;
+      tmp2 = 1.0f;
+      t1 = t1c;
+      t2 = t3c;
+      r1 = r1c;
+      r2 = r2c;
+      r3 = r3c;
+      r4 = r7c;
+      r5 = r8c;
+      r6 = r9c;
+    }
   else
     {
       printf("cam_compute_vector_to_3d_point : unable to determine Y\n");
       exit(-1);
     }
 
-  if (ABSF(r1) >= SUP0)
-    X = (x - r2 * Y - r3 * Z - t1) / r1;
-  else if (ABSF(r4) >= SUP0)
-    X = (y - r5 * Y - r6 * Z - t2) / r4;
-  else if (ABSF(r7) >= SUP0)
-    X = (1 - r8 * Y - r9 * Z - t3) / r7;
+  Y = (r1 * (tmp2 - r6 * Z - t2) - r4 * (tmp1 - r3 * Z - t1) ) / (r5 * r1 - r2 * r4);
+  
+  /* 1 */
+  if (ABSF(r1c) >= SUP0)
+    {
+      tmp1 = x;
+      r1 = r1c;
+      r2 = r2c;
+      r3 = r3c;
+      t1 = t1c;
+      X = (x - r2c * Y - r3c * Z - t1c) / r1c;
+    }
+  /* 2 */
+  else if (ABSF(r4c) >= SUP0)
+    {
+      tmp1 = y;
+      r1 = r4c;
+      r2 = r5c;
+      r3 = r6c;
+      t1 = t2c;
+      X = (y - r5c * Y - r6c * Z - t2c) / r4c;
+    }
+  /* 3 */
+  else if (ABSF(r7c) >= SUP0)
+    {
+      tmp1 = 1.0f;
+      r1 = r7c;
+      r2 = r8c;
+      r3 = r9c;
+      t1 = t3c;
+      X = (1 - r8c * Y - r9c * Z - t3c) / r7c;
+    }
   else
     {
       printf("cam_compute_vector_to_3d_point : unable to determine X\n");
       exit(-1);
     }
  
+  X = (tmp1 - r2 * Y - r3 * Z - t1) / r1;
+
   /* check if the 3d point intersect the plan at the point position */
 #ifdef DEBUG
   cam_allocate_matrix(&test, 1, 3);
@@ -322,14 +442,9 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
   if (ABSF((t1z + alpha * v1z) - (t2z + beta * v2z)) >= SUP0)
     {
       printf("Error on vectors intersection : %f\n",   (t1z + alpha * v1z) - (t2z + beta * v2z));
-#ifdef DEBUG
       exit (0);
-#endif
       return (NULL);
     }
-#ifdef DEBUG
-  exit (0);
-#endif
   X = t2x + beta * v2x;
   Y = t2y + beta * v2y;
   Z = t2z + beta * v2z;
