@@ -49,7 +49,7 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
-#define	POINTS_TYPE	float
+#define	POINTS_TYPE	double
 
 #define PI		3.1415926535897932384626433832795
 

@@ -60,6 +60,8 @@
 /* [ x y 1 ] = Rt * [ X Y Z 1 ] */
 /********************************/
 
+/* TODO : variable substitution not to be as error prone */
+
 void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, Cam2dPoint *pt)
 {
   POINTS_TYPE	x;
@@ -201,7 +203,7 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
   else if (ABSF(r4) >= SUP0)
     X = (y - r5 * Y - r6 * Z - t2) / r4;
   else if (ABSF(r7) >= SUP0)
-    X = (1 - r8 * Y - r9 * Z - t2) / r7;
+    X = (1 - r8 * Y - r9 * Z - t3) / r7;
   else
     {
       printf("cam_compute_vector_to_3d_point : unable to determine X\n");
