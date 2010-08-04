@@ -58,6 +58,11 @@ typedef struct
   CamMatrix	p2;
 }		CamProjectionsPair;
 
+/* internals */
+CamMatrix	*cam_compute_epipole(CamMatrix *f);
+CamMatrix	*cam_compute_e(CamMatrix *f);
+CamMatrix	*cam_compute_eprime(CamMatrix *f);
+
 CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f);
 void			cam_disallocate_projections_pair(CamProjectionsPair *p);
 

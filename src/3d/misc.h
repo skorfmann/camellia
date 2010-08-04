@@ -49,9 +49,16 @@
 #ifndef __MISC_H__
 #define __MISC_H__
 
+#define	ABSF(x) (x >= 0.0f ? (x) : -(x))
+#define	MAX(a, b) (a < b ? b : a)
+#define	MIN(a, b) (a > b ? b : a)
+#define ABS(a) (a < 0 ? -a : a)
+
 #define	POINTS_TYPE	double
 
-#define PI		3.1415926535897932384626433832795
+#define PI		3.1415926535897932384626433832795f
+#define	SUP0		0.0001f
+
 
 typedef enum
   {

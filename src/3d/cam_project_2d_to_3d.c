@@ -49,10 +49,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "misc.h"
 #include "cam_project_2d_to_3d.h"
 
-#define	ABSF(x) (x >= 0.0f ? (x) : -(x))
-#define	SUP0	0.0001f
 /*#define	DEBUG*/
 
 /*******************************************/

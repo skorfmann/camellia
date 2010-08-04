@@ -47,24 +47,151 @@
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "cam_p_from_f.h"
 
-/* TODO */
-CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
+/**********************/
+/* solves	      */
+/* [f1 f2 f3]         */
+/* [f4 f5 f6] * e = 0 */
+/* [f7 f8 f9]         */
+/**********************/
+
+CamMatrix	*cam_compute_epipole(CamMatrix *f)
 {
-  CamProjectionsPair	*res;
-  CamMatrix		ePrimeSkew;
-  CamMatrix		fTranspose;
+  CamMatrix	*e;
+  POINTS_TYPE	x;
+  POINTS_TYPE	y;
+  POINTS_TYPE	f1, f1c;
+  POINTS_TYPE	f2, f2c;
+  POINTS_TYPE	f3, f3c;
+  POINTS_TYPE	f4, f4c;
+  POINTS_TYPE	f5, f5c;
+  POINTS_TYPE	f6, f6c;
+  POINTS_TYPE	f7c;
+  POINTS_TYPE	f8c;
+  POINTS_TYPE	f9c;
+ 
+  e = (CamMatrix *)malloc(sizeof(CamMatrix));
+  cam_allocate_matrix(e, 1, 3);
+  f1c = cam_matrix_get_value(f, 0, 0);
+  f2c = cam_matrix_get_value(f, 0, 1);
+  f3c = cam_matrix_get_value(f, 0, 2);
+  f4c = cam_matrix_get_value(f, 1, 0);
+  f5c = cam_matrix_get_value(f, 1, 1);
+  f6c = cam_matrix_get_value(f, 1, 2);
+  f7c = cam_matrix_get_value(f, 2, 0);
+  f8c = cam_matrix_get_value(f, 2, 1);
+  f9c = cam_matrix_get_value(f, 2, 2);
+
+  /* 1&2 */
+  if (ABSF(f1c * f5c - f2c * f4c) > SUP0)
+    {
+      f1 = f1c;
+      f2 = f2c;
+      f3 = f3c;
+      f4 = f4c;
+      f5 = f5c;
+      f6 = f6c;
+    }
+  /* 1&3 */
+  else if (ABSF(f1c * f8c - f2c * f7c) > SUP0)
+    {
+      f1 = f1c;
+      f2 = f2c;
+      f3 = f3c;
+      f4 = f7c;
+      f5 = f8c;
+      f6 = f9c;
+    }
+  /* 2&3 */
+  else if (ABSF(f4c * f8c - f5c * f7c) > SUP0)
+    {
+      f1 = f4c;
+      f2 = f5c;
+      f3 = f6c;
+      f4 = f7c;
+      f5 = f8c;
+      f6 = f9c;
+    }
+  else
+    {
+      printf("cam_compute_e : unable to determine y");
+      exit (-1);
+    }
+
+  y = (f3 * f4 - f1 * f6) / (f1 * f5 - f2 * f4);
+
+  if (ABSF(f1c) > SUP0)
+    {
+      f1 = f1c;
+      f2 = f2c;
+      f3 = f3c;
+    }
+  else if (ABSF(f4c) > SUP0)
+    {
+      f1 = f4c;
+      f2 = f5c;
+      f3 = f6c;
+    }
+  else if (ABSF(f7c) > SUP0)
+    {
+      f1 = f7c;
+      f2 = f8c;
+      f3 = f9c;
+    }
+  else
+    {
+      printf("cam_compute_e : unable to determine x");
+      exit (-1);
+    }
+  x = (-f2 * y -f3) / f1;
+
+  cam_matrix_set_value(e, 0, 0, x);
+  cam_matrix_set_value(e, 0, 1, y);
+  cam_matrix_set_value(e, 0, 2, 1.0f);
+
+  return (e);
+}
+
+CamMatrix	*cam_compute_e(CamMatrix *f)
+{
+  CamMatrix	*res;
+
+  res = cam_compute_epipole(f);
+  return (res);
+}
+
+CamMatrix	*cam_compute_eprime(CamMatrix *f)
+{
+  CamMatrix	fTranspose;
+  CamMatrix	*res;
 
   cam_allocate_matrix(&fTranspose, 3, 3);
   cam_matrix_transpose(&fTranspose, f);
+  res = cam_compute_epipole(&fTranspose);
+  cam_disallocate_matrix(&fTranspose);
+  return (res);
+}
+
+/* TODO : test me */
+
+CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
+{
+  CamProjectionsPair	*res;
+  CamMatrix		*ePrime;
+  CamMatrix		ePrimeSkew;
+
+
+  ePrime = cam_compute_eprime(f);
   res = (CamProjectionsPair *)malloc(sizeof(CamProjectionsPair));
   cam_allocate_matrix(&ePrimeSkew, 3, 3);
   cam_allocate_matrix(&res->p1, 4, 3);
   cam_allocate_matrix(&res->p2, 4, 3);
   
-  cam_disallocate_matrix(&fTranspose);
   cam_disallocate_matrix(&ePrimeSkew);
+  cam_disallocate_matrix(ePrime);
+  free(ePrime);
   return (res);
 }
 

@@ -60,11 +60,6 @@
 
 /*#define PRINT_MATRIX
   #define	PRINT_VECTOR*/
-#define PI		3.1415926535897932384626433832795
-
-#define	MAX(a, b) (a < b ? b : a)
-#define	MIN(a, b) (a > b ? b : a)
-#define ABS(a) (a < 0 ? -a : a)
 
 /* absolute translation and rotation in the 3d space */
 CamList		*cam_project_3d_to_2d(CamList *points, CamMatrix *P)
