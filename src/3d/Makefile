@@ -55,6 +55,7 @@ clean:
 	rm -f \#*\#
 	rm -f $(OBJ_VIEWER)
 	rm -f $(OBJ_SFM)
+	rm -f $(OBJ_NON_REGRESSION)
 
 fclean:	clean
 	rm -f $(NAME_VIEWER)
