@@ -46,27 +46,9 @@
   ==========================================================================
 */
 
-#include	"cam_matrix.h"
-#include	"cam_project_3d_to_2d.h"
-#include	"cam_project_2d_to_3d.h"
-#include	"cam_list.h"
-#include	"misc.h"
-
 /* TODO */
 
 int		main()
 {
-  CamList	*points3d;
-  CamList	*points2d;
-  CamMatrix	P;
-  CamMatrix	K;
-  CamMatrix	R;
-  CamMatrix	t;
-  
-  cam_allocate_matrix(&P, 4, 3);
-  cam_allocate_matrix(&K, 3, 3);
-  cam_allocate_matrix(&R, 3, 3);
-  cam_allocate_matrix(&t, 1, 3);
-
-  cam_disallocate_matrix(&P);
+  return (0);
 }

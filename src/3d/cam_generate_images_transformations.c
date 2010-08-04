@@ -46,17 +46,56 @@
   ==========================================================================
 */
 
+#include <math.h>
+#include  <stdlib.h>
 #include "cam_matrix.h"
+#include "cam_2d_points.h"
+#include "cam_list.h"
 #include "misc.h"
 
-/*
-CamList	*cam_euclidian_transform(POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_euclidian_transform(char *fileIn, char *fileOut, CamList *points, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
+  CamMatrix	H;
+  CamMatrix	pt;
+  CamMatrix	ptTransformed;
+  CamList	*res;
+  CamList	*ptr;
 
+  cam_allocate_matrix(&H, 3, 3);
+  cam_allocate_matrix(&pt, 1, 3);
+  cam_allocate_matrix(&ptTransformed, 1, 3);
+
+  cam_matrix_set_value(&H, 0, 0, cos(theta));
+  cam_matrix_set_value(&H, 0, 1, -sin(theta));
+  cam_matrix_set_value(&H, 0, 2, tx);
+  cam_matrix_set_value(&H, 1, 0, sin(theta));
+  cam_matrix_set_value(&H, 1, 1, cos(theta));
+  cam_matrix_set_value(&H, 1, 2, ty);
+  cam_matrix_set_value(&H, 2, 0, 0.0f);
+  cam_matrix_set_value(&H, 2, 1, 0.0f);
+  cam_matrix_set_value(&H, 2, 2, 1.0f);
+
+  res = NULL;
+  ptr = points;
+  cam_matrix_set_value(&pt, 0, 2, 1.0f);
+  while (ptr)
+    {
+      cam_matrix_set_value(&pt, 0, 0, ((CamColorized2dPoint *)(ptr->data))->point.x);
+      cam_matrix_set_value(&pt, 0, 0, ((CamColorized2dPoint *)(ptr->data))->point.y);
+      cam_matrix_multiply(&ptTransformed, &H, &pt);
+      res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(Cam2dPoint)));
+      ((CamColorized2dPoint *)(res->data))->point.x = cam_matrix_get_value(&ptTransformed, 0, 0);
+      ((CamColorized2dPoint *)(res->data))->point.y = cam_matrix_get_value(&ptTransformed, 0, 1);
+      ptr = ptr->next;
+    }
+
+  cam_disallocate_matrix(&H);
+  cam_disallocate_matrix(&pt);
+  cam_disallocate_matrix(&ptTransformed);
+  return (res);
 }
-*/
 
 int	main()
 {
-  
+  return (0);
 }

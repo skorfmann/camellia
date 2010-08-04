@@ -57,4 +57,10 @@ typedef struct
   POINTS_TYPE	y;
 }		Cam2dPoint;
 
+typedef struct
+{
+  Cam2dPoint	point;
+  RGB		color;
+}		CamColorized2dPoint;
+
 #endif /* __CAM_2D_POINT_H__ */

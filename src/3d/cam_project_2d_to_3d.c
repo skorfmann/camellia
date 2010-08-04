@@ -468,6 +468,7 @@ Cam3dPoint	*cam_triangulate_one_3d_point(CamProjectionsPair *projectionPair, Cam
   cam_allocate_matrix(&v2, 1 ,4);
 
   /* TODO : compute K-1 . P pour recuperer Rt */
+  K = K;
   cam_compute_vector_to_3d_point(&v1, t1, &projectionPair->p1, a);
   cam_compute_vector_to_3d_point(&v2, t2, &projectionPair->p2, b);
   res = cam_vectors_intersection(&v1, t1, &v2, t2);
