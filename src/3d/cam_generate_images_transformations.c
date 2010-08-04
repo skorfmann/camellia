@@ -55,13 +55,13 @@
 #include "cam_pgm_to_points.h"
 #include "cam_points_to_pgm.h"
 
-CamList		*cam_affine_transform(CamList *points, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE gamma, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_affine_transform(CamList *points, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE phi, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamMatrix	D;
   CamMatrix	Rtheta;
-  CamMatrix	Rgamma;
-  CamMatrix	Rminusgamma;
+  CamMatrix	Rphi;
+  CamMatrix	Rminusphi;
   CamMatrix	tmp1;
   CamMatrix	tmp2;
   CamMatrix	pt;
@@ -73,15 +73,15 @@ CamList		*cam_affine_transform(CamList *points, POINTS_TYPE lambda1, POINTS_TYPE
   cam_allocate_matrix(&pt, 1, 3);
   cam_allocate_matrix(&D, 2, 2);
   cam_allocate_matrix(&Rtheta, 2, 2);
-  cam_allocate_matrix(&Rgamma, 2, 2);
-  cam_allocate_matrix(&Rminusgamma, 2, 2);
+  cam_allocate_matrix(&Rphi, 2, 2);
+  cam_allocate_matrix(&Rminusphi, 2, 2);
   cam_allocate_matrix(&tmp1, 2, 2);
   cam_allocate_matrix(&tmp2, 2, 2);
   cam_allocate_matrix(&ptTransformed, 1, 3);
 
   cam_matrix_set_value(&D, 0, 0, lambda1);
   cam_matrix_set_value(&D, 0, 1, 0.0f);
-  cam_matrix_set_value(&D, 0, 0, 0.0f);
+  cam_matrix_set_value(&D, 1, 0, 0.0f);
   cam_matrix_set_value(&D, 1, 1, lambda2);
 
   cam_matrix_set_value(&Rtheta, 0, 0, cos(theta));
@@ -89,29 +89,41 @@ CamList		*cam_affine_transform(CamList *points, POINTS_TYPE lambda1, POINTS_TYPE
   cam_matrix_set_value(&Rtheta, 1, 0, sin(theta));
   cam_matrix_set_value(&Rtheta, 1, 1, cos(theta));
 
-  cam_matrix_set_value(&Rgamma, 0, 0, cos(gamma));
-  cam_matrix_set_value(&Rgamma, 0, 1, -sin(gamma));
-  cam_matrix_set_value(&Rgamma, 1, 0, sin(gamma));
-  cam_matrix_set_value(&Rgamma, 1, 1, cos(gamma));
+  cam_matrix_set_value(&Rphi, 0, 0, cos(phi));
+  cam_matrix_set_value(&Rphi, 0, 1, -sin(phi));
+  cam_matrix_set_value(&Rphi, 1, 0, sin(phi));
+  cam_matrix_set_value(&Rphi, 1, 1, cos(phi));
   
-  cam_matrix_set_value(&Rminusgamma, 0, 0, cos(-gamma));
-  cam_matrix_set_value(&Rminusgamma, 0, 1, -sin(-gamma));
-  cam_matrix_set_value(&Rminusgamma, 1, 0, sin(-gamma));
-  cam_matrix_set_value(&Rminusgamma, 1, 1, cos(-gamma));
+  cam_matrix_set_value(&Rminusphi, 0, 0, cos(-phi));
+  cam_matrix_set_value(&Rminusphi, 0, 1, -sin(-phi));
+  cam_matrix_set_value(&Rminusphi, 1, 0, sin(-phi));
+  cam_matrix_set_value(&Rminusphi, 1, 1, cos(-phi));
 
-  cam_matrix_multiply(&tmp1, &Rtheta, &Rminusgamma);
+  cam_print_matrix(&D, "D");
+  cam_print_matrix(&Rtheta, "Rtheta");
+  cam_print_matrix(&Rphi, "Rphi");
+  cam_print_matrix(&Rminusphi, "Rminusphi");
+
+  cam_matrix_multiply(&tmp1, &Rtheta, &Rminusphi);
+  cam_print_matrix(&tmp1, "Rtheta*Rminusphi");
+  
   cam_matrix_multiply(&tmp2, &tmp1, &D);
-  cam_matrix_multiply(&tmp1, &tmp2, &Rgamma);
+  cam_print_matrix(&tmp2, "Rtheta*Rminusphi*D");
+
+  cam_matrix_multiply(&tmp1, &tmp2, &Rphi);
+  cam_print_matrix(&tmp1, "Rtheta*Rminusphi*D*Rphi");
 
   cam_matrix_set_value(&H, 0, 0, cam_matrix_get_value(&tmp1, 0, 0));
   cam_matrix_set_value(&H, 0, 1, cam_matrix_get_value(&tmp1, 0, 1));
   cam_matrix_set_value(&H, 0, 2, tx);
   cam_matrix_set_value(&H, 1, 0, cam_matrix_get_value(&tmp1, 1, 0));
-  cam_matrix_set_value(&H, 1, 1, cam_matrix_get_value(&tmp1, 0, 1));
+  cam_matrix_set_value(&H, 1, 1, cam_matrix_get_value(&tmp1, 1, 1));
   cam_matrix_set_value(&H, 1, 2, ty);
   cam_matrix_set_value(&H, 2, 0, 0.0f);
   cam_matrix_set_value(&H, 2, 1, 0.0f);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
+
+  cam_print_matrix(&H, "H");
 
   res = NULL;
   ptr = points;
@@ -133,8 +145,8 @@ CamList		*cam_affine_transform(CamList *points, POINTS_TYPE lambda1, POINTS_TYPE
   cam_disallocate_matrix(&H);
   cam_disallocate_matrix(&D);
   cam_disallocate_matrix(&Rtheta);
-  cam_disallocate_matrix(&Rgamma);
-  cam_disallocate_matrix(&Rminusgamma);
+  cam_disallocate_matrix(&Rphi);
+  cam_disallocate_matrix(&Rminusphi);
   cam_disallocate_matrix(&tmp1);
   cam_disallocate_matrix(&tmp2);
   cam_disallocate_matrix(&pt);
@@ -242,7 +254,7 @@ int		main()
   pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");
   ptsEuclidian = cam_euclidian_transform(pts, PI/2, 0.0f, 0.0f);
   ptsSimilarity = cam_similarity_transform(pts, 2.0f, PI/2, 0.0f, 0.0f);
-  ptsAffine = cam_affine_transform(pts, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  ptsAffine = cam_affine_transform(pts, 1.0f, 1.0f, PI/4, 0.0f, 0.0f, 0.0f);
   cam_points_to_pgm2("data/tracking/points.pgm", pts, 800, 600,
 				0, 0, 0);
   cam_points_to_pgm2("data/tracking/pointsEuclidian.pgm", ptsEuclidian, 800, 600,
