@@ -52,6 +52,8 @@
 #include "cam_2d_points.h"
 #include "cam_list.h"
 #include "misc.h"
+#include "cam_pgm_to_points.h"
+#include "cam_points_to_pgm.h"
 
 CamList		*cam_euclidian_transform(char *fileIn, char *fileOut, CamList *points, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
@@ -83,7 +85,7 @@ CamList		*cam_euclidian_transform(char *fileIn, char *fileOut, CamList *points, 
       cam_matrix_set_value(&pt, 0, 0, ((CamColorized2dPoint *)(ptr->data))->point.x);
       cam_matrix_set_value(&pt, 0, 0, ((CamColorized2dPoint *)(ptr->data))->point.y);
       cam_matrix_multiply(&ptTransformed, &H, &pt);
-      res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(Cam2dPoint)));
+      res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint)));
       ((CamColorized2dPoint *)(res->data))->point.x = cam_matrix_get_value(&ptTransformed, 0, 0);
       ((CamColorized2dPoint *)(res->data))->point.y = cam_matrix_get_value(&ptTransformed, 0, 1);
       ptr = ptr->next;
@@ -95,7 +97,15 @@ CamList		*cam_euclidian_transform(char *fileIn, char *fileOut, CamList *points, 
   return (res);
 }
 
-int	main()
+int		main()
 {
+  CamList	*pts;
+
+  pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");
+  cam_points_to_pgm2("test.pgm", pts, 800, 600,
+				0, 0, 0);
+  
+
+
   return (0);
 }

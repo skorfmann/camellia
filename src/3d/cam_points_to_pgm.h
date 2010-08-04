@@ -52,5 +52,7 @@
 void	cam_points_to_pgm(char *filename, CamList *points, int width, int height,
 				unsigned char ptR, unsigned char ptG, unsigned char ptB,
 				unsigned char bgR, unsigned char bgG, unsigned char bgB);
+void	cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
+				unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
 #endif /* __CAM_WRITE_POINTS_TO_PGM_H__ */
