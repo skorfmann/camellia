@@ -165,10 +165,10 @@ void			main_triangulate_2d_points()
   CamList		*tailPoints;
 #endif
 
-  path1 = (char*)malloc((strlen("data/3dmodels/") + strlen(filename) + 1) * sizeof (char));
-  path2 = (char*)malloc((strlen("data/results/") + strlen(filename) + 1) * sizeof (char));
-  sprintf(path1, "data/3dmodels/%s", filename);
-  sprintf(path2, "data/results/%s", filename);
+  path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
+  path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
+  sprintf(path1, "data/3d/3dmodels/%s", filename);
+  sprintf(path2, "data/3d/results/%s", filename);
   points = loadPoints1(path1);
   file = fopen(path2, "w");
   free(path1);
@@ -223,13 +223,13 @@ void			main_triangulate_2d_points()
       ppts2 = ppts2->next;
     }
 
-  path1 = (char*)malloc((strlen("data/results/") + strlen(filename) + strlen("_viewpoint_X.pgm")  + 1) * sizeof (char));
-  sprintf(path1, "data/results/%s_viewpoint_1.pgm", filename);
+  path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.pgm")  + 1) * sizeof (char));
+  sprintf(path1, "data/3d/results/%s_viewpoint_1.pgm", filename);
   cam_center_2d_points(pts1, 800, 600);
   cam_write_points_to_pgm(path1, pts1, 800, 600,
 			  255, 255, 255,
 			  0, 0, 0);
-  sprintf(path1, "data/results/%s_viewpoint_2.pgm", filename);
+  sprintf(path1, "data/3d/results/%s_viewpoint_2.pgm", filename);
   cam_center_2d_points(pts2, 800, 600);
   cam_write_points_to_pgm(path1, pts2, 800, 600,
 			  255, 255, 255,
