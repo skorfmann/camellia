@@ -3,7 +3,7 @@ SRC_MISC	=	cam_matrix.c		\
 			cam_list.c		\
 			cam_3d_points_loaders.c	\
 			cam_projection_matrix.c \
-			cam_write_points_to_pgm.c
+			cam_points_to_pgm.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c

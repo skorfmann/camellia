@@ -46,11 +46,50 @@
   ==========================================================================
 */
 
-#ifndef __CAM_WRITE_POINTS_TO_PGM_H__
-# define __CAM_WRITE_POINTS_TO_PGM_H__
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cam_list.h"
+#include "cam_3d_points.h"
+#include "cam_2d_points.h"
 
-void	cam_write_points_to_pgm(char *filename, CamList *points, int width, int height,
+void		cam_points_to_pgm(char *filename, CamList *points, int width, int height,
 				unsigned char ptR, unsigned char ptG, unsigned char ptB,
-				unsigned char bgR, unsigned char bgG, unsigned char bgB);
-
-#endif /* __CAM_WRITE_POINTS_TO_PGM_H__ */
+				unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  FILE		*file;
+  int		i;
+  int		j;
+  CamList	*pts;
+  char		header[20];
+  
+  file = fopen(filename, "w+");
+  if (!file)
+    {
+      printf("cam_write_points_to_pgm : unable to open the destination image file\n");
+      exit (-1);
+    }
+  pts = points;
+  sprintf(header, "P6\n%i %i\n255\n", width, height);
+  fwrite(header, sizeof(char), strlen(header), file);
+  for (i = 0 ; i < height ; ++i)
+    {
+      for (j = 0 ; j < width ; ++j)
+	{
+	  fprintf(file, "%c%c%c", bgR, bgG, bgB);
+	}
+    }
+  while (pts)
+    {
+      if (((Cam2dPoint *)pts->data)->x < (float)(width / 2) &&
+	  ((Cam2dPoint *)pts->data)->x > -(float)(width / 2) &&
+	  ((Cam2dPoint *)pts->data)->y < (float)(height / 2) &&
+	  ((Cam2dPoint *)pts->data)->y > -(float)(height / 2))
+	{
+	  fseek(file, (strlen(header) + 3 * ((height - (int)((Cam2dPoint *)pts->data)->y - height / 2) * width + ((int)((Cam2dPoint *)pts->data)->x + width / 2)) * sizeof(char)), SEEK_SET);
+	  fprintf(file, "%c%c%c", ptR, ptG, ptB);
+	}
+      pts = pts->next;
+    }
+  fclose(file);
+}
