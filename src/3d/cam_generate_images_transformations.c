@@ -65,11 +65,11 @@ void		cam_homography_to_file(char *dstFile, CamMatrix *H)
   file = fopen(dstFile, "w");
   if (!file)
     {
-      printf("cam_homography_to_file : unable to create file %s", dstFile);
+      printf("cam_homography_to_file : unable to create file %s\n", dstFile);
       exit (-1);
     }
-  fwrite(&H->ncols, sizeof(POINTS_TYPE), 1, file);
-  fwrite(&H->nrows, sizeof(POINTS_TYPE), 1, file);
+  fwrite(&H->ncols, sizeof(int), 1, file);
+  fwrite(&H->nrows, sizeof(int), 1, file);
   fwrite(H->data, sizeof(POINTS_TYPE), H->ncols * H->nrows, file);
   fclose (file);
 }

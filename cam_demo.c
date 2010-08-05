@@ -1429,7 +1429,7 @@ int main()
     camInitBenchmark();
 
     // Tracking examples
-    //test_cam_keypoints_tracking2();
+    test_cam_keypoints_tracking2();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();
@@ -1438,7 +1438,7 @@ int main()
     //example_dilation();
 	//example_binary();
 	//example_color_labeling();
-	carotte();
+    //carotte();
     // Legacy examples
     /*
     example_filters();

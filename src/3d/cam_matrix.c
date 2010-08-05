@@ -54,7 +54,17 @@ void	cam_allocate_matrix(CamMatrix *m, int ncols, int nrows)
 {
   m->ncols = ncols;
   m->nrows = nrows;
+  if (!(ncols * nrows))
+    {
+      printf("cam_allocate_matrix : dimension error (%i,%i)\n", ncols, nrows);
+      exit (-1);
+    }
   m->data = (POINTS_TYPE *)calloc(nrows * ncols, sizeof(POINTS_TYPE));
+  if (!m->data)
+    {
+      printf("cam_allocate_matrix : alloc error (%i,%i)\n", ncols, nrows);
+      exit (-1);
+    }
 }
 
 void	cam_disallocate_matrix(CamMatrix *m)

@@ -43,7 +43,7 @@ NAME_NON_REGRESSION		=	non_regression
 NAME_EVALUATE_TRACKING		=	evaluate_tracking
 NAME_IMAGES_TRANSFORMATION	=	images_transformation
 
-CFLAGS		=	-W -Wall -ansi -pedantic -g3
+CFLAGS		=	-W -Wall -pedantic -ansi -Werror -g3
 
 CC		=	gcc
 
@@ -76,9 +76,13 @@ clean:
 	rm -f $(OBJ_VIEWER)
 	rm -f $(OBJ_SFM)
 	rm -f $(OBJ_NON_REGRESSION)
+	rm -f $(OBJ_EVALUATE_TRACKING)
+	rm -f $(OBJ_IMAGES_TRANSFORMATION)
 
 fclean:	clean
 	rm -f $(NAME_VIEWER)
 	rm -f $(NAME_SFM)
+	rm -f $(NAME_EVALUATE_TRACKING)
+	rm -f $(NAME_IMAGES_TRANSFORMATION)
 
 re : clean all

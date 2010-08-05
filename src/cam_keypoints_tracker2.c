@@ -1545,6 +1545,21 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
   camDeallocateImage(&res);
 }
 
+void	cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *outFile, int nb)
+{
+  FILE	*file;
+  char	filename[256];
+  
+  sprintf(filename, "output/%s%i.matches", outFile, nb);
+  file = fopen(filename, "w");
+  if (!file)
+    {
+      printf("cam_keypoints_tracking2_matches_to_file : unable to open %s\n", filename);
+      exit (-1);
+    }
+  
+}
+
 void			test_cam_keypoints_tracking2()
 {
   CamImage		modelImage;
@@ -1657,6 +1672,7 @@ void			test_cam_keypoints_tracking2()
   camDeallocateImage(&fifthImage);
   if (track1)
     {
+      cam_keypoints_tracking2_matches_to_file(track1, "matches", 0);
       cam_keypoints_tracking2_release_matches(track1);
       camFreeKeypointsMatches(track1);
       free(track1);

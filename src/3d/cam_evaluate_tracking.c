@@ -46,7 +46,123 @@
   ==========================================================================
 */
 
-int	main()
+#include <stdio.h>
+#include <stdlib.h>
+#include "cam_matrix.h"
+#include "cam_list.h"
+#include "cam_2d_points.h"
+
+#include "misc.h"
+
+/* TODO : utiliser les CamKeypointsMatch */
+
+typedef struct
 {
+  Cam2dPoint	pt1;
+  Cam2dPoint	pt2;
+}	PointsMatch;
+
+CamMatrix	*cam_file_to_homography(char *srcFile)
+{
+  int		ncols;
+  int		nrows;
+  FILE		*file;
+  CamMatrix	*res;
+
+  file = fopen(srcFile, "r");
+  if (!file)
+    {
+      printf("cam_file_to_homography : unable to open file %s\n", srcFile);
+      exit (-1);
+    }
+  if (!fread(&ncols, sizeof(int), 1, file) || !fread(&nrows, sizeof(int), 1, file))
+    {
+      printf("cam_file_to_homography : incorrect homography header (%s)\n", srcFile);
+      exit (-1);
+    }
+    
+  res = (CamMatrix *)malloc(sizeof(CamMatrix));
+  cam_allocate_matrix(res, ncols, nrows);
+  if (fread(res->data, sizeof(POINTS_TYPE), ncols * nrows, file) != (size_t)(ncols * nrows))
+    {
+      printf("cam_file_to_homography : incorrect homography data (%s)\n", srcFile);
+      exit (-1);
+    }
+
+  fclose(file);
+  return (res);
+}
+
+CamList		*cam_load_points(char *srcFile)
+{
+  CamList	*res;
+  int		nbMatches;
+  FILE		*file;
+  int		index;
+  PointsMatch	tmp;  
+
+  file = fopen(srcFile, "r");
+  if (!file)
+    {
+      printf("cam_load_points : unable to open %s\n", srcFile);
+      exit (-1);
+    }
+  if (!fread(&nbMatches, sizeof(int), 1, file))
+    {
+      printf("cam_load_points : incorrecct header (%s)\n", srcFile);
+      exit (-1);
+    }
+  index = 0;
+  res = NULL;
+  while (index < nbMatches)
+    {
+      res = cam_add_to_linked_list(res, (PointsMatch *)malloc(sizeof(PointsMatch)));
+      if (fread(res->data, sizeof(tmp), 1, file) != 1)
+	{
+	  printf("cam_load_points : %s is not a valid matches file\n", srcFile);
+	  exit (-1);
+	}
+      ++index;
+    }
+   return (res);
+  return (NULL);
+}
+
+void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
+{
+  CamMatrix	pt1;
+  CamMatrix	pt2;
+  CamList	*ptr;
+  POINTS_TYPE	dx;
+  POINTS_TYPE	dy;
+
+  cam_allocate_matrix(&pt1, 1, 3);
+  cam_allocate_matrix(&pt2, 1, 3);
+  cam_matrix_set_value(&pt1, 0, 2, 1.0f);
+  ptr = points;
+  while (ptr)
+    {
+      cam_matrix_set_value(&pt1, 0, 0, ((PointsMatch *)ptr->data)->pt1.x);
+      cam_matrix_set_value(&pt1, 0, 1, ((PointsMatch *)ptr->data)->pt1.y);
+      cam_matrix_multiply(&pt2, H, &pt1);
+      dx = ABSF(cam_matrix_get_value(&pt2, 0, 0) - ((PointsMatch *)ptr->data)->pt2.x);
+      dy = ABSF(cam_matrix_get_value(&pt2, 0, 1) - ((PointsMatch *)ptr->data)->pt2.y);
+      ptr = ptr->next;
+    }
+  cam_disallocate_matrix(&pt1);
+  cam_disallocate_matrix(&pt2);
+}
+
+int		main()
+{
+  CamMatrix	*H;
+  CamList	*points;
+
+  H = cam_file_to_homography("data/tracking/image_euclidian.tr");
+  points = cam_load_points("data/tracking/image_euclidian.matches");
+  cam_compute_tracking_errors(H, points);
+  
+  cam_disallocate_matrix(H);
+  free(H);
   return (0);
 }
