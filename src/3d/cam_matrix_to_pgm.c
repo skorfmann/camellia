@@ -46,36 +46,46 @@
   ==========================================================================
 */
 
-#ifndef __CAM_MATRIX_H__
-# define __CAM_MATRIX_H__
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cam_matrix_to_pgm.h"
+#include "cam_matrix.h"
 
-#include "misc.h"
-#include "cam_3d_points.h"
-
-typedef struct
+void	cam_matrix_to_pgm(char *filename, CamImageMatrix *m)
 {
-  POINTS_TYPE	*data;
-  int		nrows;
-  int		ncols;
-}		CamMatrix;
+  int	i;
+  int	j;
+  FILE	*file;
+  char	header[20];
+  
+  file = fopen(filename, "w+");
+  if (!file)
+    {
+      printf("cam_write_points_to_pgm : unable to open the destination image file\n");
+      exit (-1);
+    }
+  sprintf(header, "P6\n%i %i\n255\n", m->r.ncols, m->r.nrows);
+  fwrite(header, sizeof(char), strlen(header), file);
+  for (j = 0 ; j < m->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < m->r.ncols ; ++i)
+	{
+	  fprintf(file, "%c%c%c",
+		  (char)cam_matrix_get_value(&m->r, i, j),
+		  (char)cam_matrix_get_value(&m->g, i, j),
+		  (char)cam_matrix_get_value(&m->b, i, j));
+	}
+    }
+  fclose(file);
+}
 
-typedef struct
+void	cam_matrix_to_pathpgm(char *dir, char *fileName, CamImageMatrix *m)
 {
-  CamMatrix	r;
-  CamMatrix	g;
-  CamMatrix	b;
-}	CamImageMatrix;
+  char	*outputPath;
 
-void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, POINTS_TYPE factor);
-void		cam_allocate_matrix(CamMatrix *m, int ncols, int nrows);
-void		cam_disallocate_matrix(CamMatrix *m);
-void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
-void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-void		cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_print_matrix(CamMatrix *mat, char *name);
-void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
-void		cam_matrix_transpose(CamMatrix *dst, CamMatrix *src);
-
-#endif /* __CAM_MATRIX_H__ */
+  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("pgm") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, fileName, "pgm");
+  cam_matrix_to_pgm(outputPath, m);
+  free(outputPath);
+}

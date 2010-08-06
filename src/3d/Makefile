@@ -5,7 +5,9 @@ SRC_MISC	=	cam_matrix.c		\
 			cam_projection_matrix.c \
 			cam_points_to_pgm.c	\
 			cam_pgm_to_points.c	\
-			cam_pgm_to_matrix.c
+			cam_pgm_to_matrix.c	\
+			cam_matrix_to_pgm.c	\
+			cam_matrix_to_points.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c
@@ -83,6 +85,7 @@ clean:
 fclean:	clean
 	rm -f $(NAME_VIEWER)
 	rm -f $(NAME_SFM)
+	rm -f $(NAME_NON_REGRESSION)
 	rm -f $(NAME_EVALUATE_TRACKING)
 	rm -f $(NAME_IMAGES_TRANSFORMATION)
 

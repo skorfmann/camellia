@@ -51,13 +51,6 @@
 
 #include "cam_matrix.h"
 
-typedef struct
-{
-  CamMatrix	r;
-  CamMatrix	g;
-  CamMatrix	b;
-}	CamImageMatrix;
-
 void		cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows);
 void		cam_disallocate_imagematrix(CamImageMatrix *m);
 CamImageMatrix	*cam_pgm_to_matrix(char *file);

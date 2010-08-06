@@ -46,36 +46,12 @@
   ==========================================================================
 */
 
-#ifndef __CAM_MATRIX_H__
-# define __CAM_MATRIX_H__
+#ifndef __CAM_MATRIX_TO_PGM_H__
+# define __CAM_MATRIX_TO_PGM_H__
 
-#include "misc.h"
-#include "cam_3d_points.h"
+#include "cam_matrix.h"
 
-typedef struct
-{
-  POINTS_TYPE	*data;
-  int		nrows;
-  int		ncols;
-}		CamMatrix;
+void	cam_matrix_to_pgm(char *filename, CamImageMatrix *m);
+void	cam_matrix_to_pathpgm(char *dir, char *fileName, CamImageMatrix *m);
 
-typedef struct
-{
-  CamMatrix	r;
-  CamMatrix	g;
-  CamMatrix	b;
-}	CamImageMatrix;
-
-void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, POINTS_TYPE factor);
-void		cam_allocate_matrix(CamMatrix *m, int ncols, int nrows);
-void		cam_disallocate_matrix(CamMatrix *m);
-void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-POINTS_TYPE	cam_matrix_get_value(CamMatrix *m, int x, int y);
-void		cam_matrix_add_value(CamMatrix *m, int x, int y, POINTS_TYPE value);
-void		cam_matrix_add(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_print_matrix(CamMatrix *mat, char *name);
-void		cam_matrix_multiply(CamMatrix *res, CamMatrix *m1, CamMatrix *m2);
-void		cam_matrix_copy(CamMatrix *dst, CamMatrix *src);
-void		cam_matrix_transpose(CamMatrix *dst, CamMatrix *src);
-
-#endif /* __CAM_MATRIX_H__ */
+#endif /* __CAM_MATRIX_TO_PGM_H__ */
