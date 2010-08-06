@@ -48,114 +48,98 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "cam_matrix.h"
-#include "cam_list.h"
-#include "cam_evaluate_tracking.h"
-#include "misc.h"
+#include <string.h>
+#include "cam_pgm_to_matrix.h"
 
-/* TODO : utiliser les CamKeypointsMatch ? */
-
-CamMatrix	*cam_file_to_homography(char *srcFile)
+void	cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows)
 {
-  int		ncols;
-  int		nrows;
-  FILE		*file;
-  CamMatrix	*res;
+  cam_allocate_matrix(&m->r, ncols, nrows);
+  cam_allocate_matrix(&m->g, ncols, nrows);
+  cam_allocate_matrix(&m->b, ncols, nrows);
+}
 
-  file = fopen(srcFile, "r");
+void	cam_disallocate_imagematrix(CamImageMatrix *m)
+{
+  cam_disallocate_matrix(&m->r);
+  cam_disallocate_matrix(&m->g);
+  cam_disallocate_matrix(&m->b);
+}
+
+CamImageMatrix		*cam_pgm_to_matrix(char *path)
+{
+  int			height;
+  int			width;
+  CamImageMatrix	*res;
+  FILE			*file;
+  char			header[3];
+  int			c;
+  int			i;
+  int			j;
+
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  file = fopen(path, "r");
   if (!file)
     {
-      printf("cam_file_to_homography : unable to open file %s\n", srcFile);
+      printf("cam_pgm_to_points : unable to open file %s\n", path);
       exit (-1);
     }
-  if (!fread(&ncols, sizeof(int), 1, file) || !fread(&nrows, sizeof(int), 1, file))
+  fread(header, sizeof(char), 3, file);
+  if (strncmp(header, "P6\n", 3))
     {
-      printf("cam_file_to_homography : incorrect homography header (%s)\n", srcFile);
-      exit (-1);
-    }
-    
-  res = (CamMatrix *)malloc(sizeof(CamMatrix));
-  cam_allocate_matrix(res, ncols, nrows);
-  if (fread(res->data, sizeof(POINTS_TYPE), ncols * nrows, file) != (size_t)(ncols * nrows))
-    {
-      printf("cam_file_to_homography : incorrect homography data (%s)\n", srcFile);
+      printf("cam_pgm_to_points : %s not a PGM file\n", path);
       exit (-1);
     }
 
+  width = 0;
+  c = fgetc(file);
+  while (c != (int)(' '))
+    {
+      width = 10 * width + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  height = 0;
+  c = fgetc(file);
+  while (c != (int)('\n'))
+    {
+      height = 10 * height + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  if (fgetc(file) != (int)('2') || fgetc(file) != (int)('5') || fgetc(file) != (int)('5') || fgetc(file) != (int)('\n'))
+    {
+      printf("cam_pgm_to_points : %s not a valid PGM file\n", path);
+      exit (-1);
+    }
+
+  cam_allocate_imagematrix(res, width, height);
+  for (j = 0 ; j < height ; ++j)
+    {
+      for (i = 0 ; i < width ; ++i)
+	{
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->r, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_pgm_to_points : malformed pgm file (red) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->g, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_pgm_to_points : malformed pgm file (green) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->b, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_pgm_to_points : malformed pgm file (blue) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	}
+    }
   fclose(file);
   return (res);
-}
-
-CamList		*cam_load_points(char *srcFile)
-{
-  CamList	*res;
-  int		nbMatches;
-  FILE		*file;
-  int		index;
-  PointsMatch	tmp;  
-
-  file = fopen(srcFile, "r");
-  if (!file)
-    {
-      printf("cam_load_points : unable to open %s\n", srcFile);
-      exit (-1);
-    }
-  if (!fread(&nbMatches, sizeof(int), 1, file))
-    {
-      printf("cam_load_points : incorrecct header (%s)\n", srcFile);
-      exit (-1);
-    }
-  index = 0;
-  res = NULL;
-  while (index < nbMatches)
-    {
-      res = cam_add_to_linked_list(res, (PointsMatch *)malloc(sizeof(PointsMatch)));
-      if (fread(res->data, sizeof(tmp), 1, file) != 1)
-	{
-	  printf("cam_load_points : %s is not a valid matches file\n", srcFile);
-	  exit (-1);
-	}
-      ++index;
-    }
-   return (res);
-  return (NULL);
-}
-
-void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
-{
-  CamMatrix	pt1;
-  CamMatrix	pt2;
-  CamList	*ptr;
-  POINTS_TYPE	dx;
-  POINTS_TYPE	dy;
-
-  cam_allocate_matrix(&pt1, 1, 3);
-  cam_allocate_matrix(&pt2, 1, 3);
-  cam_matrix_set_value(&pt1, 0, 2, 1.0f);
-  ptr = points;
-  while (ptr)
-    {
-      cam_matrix_set_value(&pt1, 0, 0, ((PointsMatch *)ptr->data)->pt1.x);
-      cam_matrix_set_value(&pt1, 0, 1, ((PointsMatch *)ptr->data)->pt1.y);
-      cam_matrix_multiply(&pt2, H, &pt1);
-      dx = ABSF(cam_matrix_get_value(&pt2, 0, 0) - ((PointsMatch *)ptr->data)->pt2.x);
-      dy = ABSF(cam_matrix_get_value(&pt2, 0, 1) - ((PointsMatch *)ptr->data)->pt2.y);
-      ptr = ptr->next;
-    }
-  cam_disallocate_matrix(&pt1);
-  cam_disallocate_matrix(&pt2);
-}
-
-int		main()
-{
-  CamMatrix	*H;
-  CamList	*points;
-
-  H = cam_file_to_homography("data/tracking/image_euclidian.tr");
-  points = cam_load_points("data/tracking/image_euclidian.matches");
-  cam_compute_tracking_errors(H, points);
-  
-  cam_disallocate_matrix(H);
-  free(H);
-  return (0);
 }

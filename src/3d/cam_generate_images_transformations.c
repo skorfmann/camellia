@@ -1,4 +1,3 @@
-
 /***************************************
  *
  *  Camellia Image Processing Library
@@ -57,6 +56,7 @@
 #include "misc.h"
 #include "cam_pgm_to_points.h"
 #include "cam_points_to_pgm.h"
+#include "cam_pgm_to_matrix.h"
 
 void		cam_homography_to_file(char *dstFile, CamMatrix *H)
 {
@@ -105,7 +105,7 @@ CamList		*cam_apply_transformation(CamList *points, CamMatrix *H)
   return (res);
 }
 
-CamList		*cam_affine_transform(CamList *points, char *dstFile, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE phi, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_affine_transform(CamList *points, char *dir, char *file, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE phi, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamMatrix	D;
@@ -115,7 +115,10 @@ CamList		*cam_affine_transform(CamList *points, char *dstFile, POINTS_TYPE lambd
   CamMatrix	tmp1;
   CamMatrix	tmp2;
   CamList	*res;
+  char		*outputPath;
 
+  outputPath = (char *)malloc((strlen(dir) + strlen(file) + strlen("tr") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, file, "tr");
   cam_allocate_matrix(&H, 3, 3);
   cam_allocate_matrix(&D, 2, 2);
   cam_allocate_matrix(&Rtheta, 2, 2);
@@ -159,7 +162,7 @@ CamList		*cam_affine_transform(CamList *points, char *dstFile, POINTS_TYPE lambd
   cam_matrix_set_value(&H, 2, 2, 1.0f);
 
   res = cam_apply_transformation(points, &H);
-  cam_homography_to_file(dstFile, &H);
+  cam_homography_to_file(outputPath, &H);
 
   cam_disallocate_matrix(&H);
   cam_disallocate_matrix(&D);
@@ -168,14 +171,18 @@ CamList		*cam_affine_transform(CamList *points, char *dstFile, POINTS_TYPE lambd
   cam_disallocate_matrix(&Rminusphi);
   cam_disallocate_matrix(&tmp1);
   cam_disallocate_matrix(&tmp2);
+  free(outputPath);
   return (res);
 }
 
-CamList		*cam_similarity_transform(CamList *points, char *dstFile, POINTS_TYPE s, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_similarity_transform(CamList *points, char *dir, char *file, POINTS_TYPE s, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamList	*res;
+  char		*outputPath;
 
+  outputPath = (char *)malloc((strlen(dir) + strlen(file) + strlen("tr") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, file, "tr");
   cam_allocate_matrix(&H, 3, 3);
   cam_matrix_set_value(&H, 0, 0, s * cos(theta));
   cam_matrix_set_value(&H, 0, 1, s * -sin(theta));
@@ -187,16 +194,20 @@ CamList		*cam_similarity_transform(CamList *points, char *dstFile, POINTS_TYPE s
   cam_matrix_set_value(&H, 2, 1, 0.0f);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
   res = cam_apply_transformation(points, &H);
-  cam_homography_to_file(dstFile, &H);
+  cam_homography_to_file(outputPath, &H);
   cam_disallocate_matrix(&H);
+  free(outputPath);
   return (res);
 }
 
-CamList		*cam_euclidian_transform(CamList *points, char *dstFile, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_euclidian_transform(CamList *points, char *dir, char *file, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamList	*res;
+  char		*outputPath;
 
+  outputPath = (char *)malloc((strlen(dir) + strlen(file) + strlen("tr") + 3) * sizeof(char) );
+  sprintf(outputPath, "%s/%s.%s", dir, file, "tr");
   cam_allocate_matrix(&H, 3, 3);
   cam_matrix_set_value(&H, 0, 0, cos(theta));
   cam_matrix_set_value(&H, 0, 1, -sin(theta));
@@ -208,71 +219,46 @@ CamList		*cam_euclidian_transform(CamList *points, char *dstFile, POINTS_TYPE th
   cam_matrix_set_value(&H, 2, 1, 0.0f);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
   res = cam_apply_transformation(points, &H);
-  cam_homography_to_file(dstFile, &H);
+  cam_homography_to_file(outputPath, &H);
   cam_disallocate_matrix(&H);
+  free(outputPath);
+
   return (res);
 }
 
-int		main()
+int			main()
 {
-  CamList	*pts;
-  CamList	*ptsTransformed;
-  char		outputDir[] = "data/tracking";
-  char		*outputPath;
+  CamList		*pts;
+  CamList		*ptsTransformed;
+  char			outputDir[] = "data/tracking";
+  CamImageMatrix	*image;
+  
+  image = cam_pgm_to_matrix("data/3d/results/manny_viewpoint_1.pgm");
+  
 
-  
   pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");
-  
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_base") + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_base", "pgm");
-  cam_points_to_pgm2(outputPath, pts, 800, 600,
-		     0, 0, 0);
-  free(outputPath);
+  cam_points_to_pathpgm2(pts, outputDir, "image_base", 800, 600, 0, 0, 0);
 
   /* Begin Euclidian transformation */
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_euclidian") + strlen("tr") + 3) * sizeof(char) );
-  sprintf(outputPath, "%s/%s.%s", outputDir, "image_euclidian", "tr");
-  ptsTransformed = cam_euclidian_transform(pts, outputPath, PI/4, 0.0f, 0.0f);
-  free(outputPath);
-  
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_euclidian") + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_euclidian", "pgm");
-  cam_points_to_pgm2(outputPath, ptsTransformed, 800, 600,
-		     0, 0, 0);
-  free(outputPath);
+  ptsTransformed = cam_euclidian_transform(pts, outputDir, "image_euclidian", PI/4, 0.0f, 0.0f);
+  cam_points_to_pathpgm2(ptsTransformed, outputDir, "image_euclidian", 800, 600, 0, 0, 0);
   cam_disallocate_linked_list(ptsTransformed);
   /* End Euclidian transformation */
 
   /* Begin Similarity transformation */
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_similarity") + strlen("tr") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_similarity", "tr");
-  ptsTransformed = cam_similarity_transform(pts, outputPath, 2.0f, PI/2, 0.0f, 0.0f);
-  free(outputPath);
-
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_similarity") + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_similarity", "pgm");
-  cam_points_to_pgm2(outputPath, ptsTransformed, 800, 600,
-		     0, 0, 0);
-  free(outputPath);
+  ptsTransformed = cam_similarity_transform(pts, outputDir, "image_similarity", 2.0f, PI/2, 0.0f, 0.0f);
+  cam_points_to_pathpgm2(ptsTransformed, outputDir, "image_similarity", 800, 600, 0, 0, 0);
   cam_disallocate_linked_list(ptsTransformed);
   /* End Similarity transformation */
 
   /* Begin Similarity transformation */
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_affine") + strlen("tr") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_affine", "tr");
-  ptsTransformed = cam_affine_transform(pts, outputPath, 1.0f, 1.0f, PI/4, 0.0f, 0.0f, 0.0f);
-  free(outputPath);
-
-  outputPath = (char *)malloc((strlen(outputDir) + strlen("image_affine") + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", outputDir, "image_affine", "pgm");
-  cam_points_to_pgm2(outputPath, ptsTransformed, 800, 600,
-		     0, 0, 0);
-  free(outputPath);
+  ptsTransformed = cam_affine_transform(pts, outputDir, "image_affine", 1.0f, 1.0f, PI/4, 0.0f, 0.0f, 0.0f);
+  cam_points_to_pathpgm2(pts, outputDir, "image_affine", 800, 600, 0, 0, 0);
   cam_disallocate_linked_list(ptsTransformed);
   /* End Similarity transformation */
 
-
-
   cam_disallocate_linked_list(pts);
+  cam_disallocate_imagematrix(image);
+  free(image);
   return (0);
 }

@@ -50,6 +50,47 @@
 #include <stdio.h>
 #include "cam_matrix.h"
 
+void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, POINTS_TYPE factor)
+{
+  int		i;
+  int		j;
+  int		k;
+  int		l;
+  POINTS_TYPE	tmp;
+
+  if (!(mask->ncols % 2) || !(mask->nrows % 2))
+    {
+      printf("cam_convolution_matrix : incorrect convolution matrix\n");
+      exit (-1);
+    }
+  if (src->ncols < mask->ncols || src->nrows < mask->ncols)
+    {
+      printf("cam_convolution_matrix : matrix smaller than convolution mask\n");
+      exit (-1);
+    }
+  if  ((src->nrows != dst->nrows) || (src->ncols != dst->ncols))
+    {
+      printf("cam_convolution_matrix : source matrix and destination matrix have different sizes\n");
+      exit (-1);
+    }
+  for (j = mask->nrows / 2 ; j < src->nrows - mask->nrows / 2; ++j)
+    {  
+      for (i = mask->ncols / 2 ; i < src->ncols - mask->ncols / 2 ; ++i)
+	{
+	  tmp = 0.0f;
+	  for (l = 0 ; l < mask->nrows ; ++l)
+	    {
+	      for (k = 0 ; k < mask->ncols ; ++k)
+		{
+		  tmp += cam_matrix_get_value(src, i - mask->ncols / 2 + k, j - mask->nrows / 2 +l) * cam_matrix_get_value(mask, k, l);
+		}
+	    }
+	  tmp *= factor;
+	  cam_matrix_set_value(dst, i, j, tmp);
+	}
+    }
+}
+
 void	cam_allocate_matrix(CamMatrix *m, int ncols, int nrows)
 {
   m->ncols = ncols;

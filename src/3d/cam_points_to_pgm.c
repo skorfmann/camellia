@@ -137,3 +137,14 @@ void		cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
     }
   fclose(file);
 }
+
+void	cam_points_to_pathpgm2(CamList *pts, char *dir, char *fileName, int width, int height,
+			   unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  char	*outputPath;
+  
+  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("pgm") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, fileName, "pgm");
+  cam_points_to_pgm2(outputPath, pts, width, height, bgR, bgG, bgB);
+  free(outputPath);
+}
