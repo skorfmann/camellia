@@ -51,8 +51,6 @@
 
 #include "cam_matrix.h"
 
-void		cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows);
-void		cam_disallocate_imagematrix(CamImageMatrix *m);
 CamImageMatrix	*cam_pgm_to_matrix(char *file);
 
 #endif /* __CAM_PGM_TO_MATRIX_H__ */

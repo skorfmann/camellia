@@ -66,7 +66,10 @@ typedef struct
   CamMatrix	b;
 }	CamImageMatrix;
 
+void		cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows);
+void		cam_disallocate_imagematrix(CamImageMatrix *m);
 void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, POINTS_TYPE factor);
+void		cam_matrix_image_convolution(CamImageMatrix *dst, CamImageMatrix *src, CamMatrix *mask, POINTS_TYPE factor);
 void		cam_allocate_matrix(CamMatrix *m, int ncols, int nrows);
 void		cam_disallocate_matrix(CamMatrix *m);
 void		cam_matrix_set_value(CamMatrix *m, int x, int y, POINTS_TYPE value);

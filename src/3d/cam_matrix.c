@@ -50,6 +50,20 @@
 #include <stdio.h>
 #include "cam_matrix.h"
 
+void	cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows)
+{
+  cam_allocate_matrix(&m->r, ncols, nrows);
+  cam_allocate_matrix(&m->g, ncols, nrows);
+  cam_allocate_matrix(&m->b, ncols, nrows);
+}
+
+void	cam_disallocate_imagematrix(CamImageMatrix *m)
+{
+  cam_disallocate_matrix(&m->r);
+  cam_disallocate_matrix(&m->g);
+  cam_disallocate_matrix(&m->b);
+}
+
 void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, POINTS_TYPE factor)
 {
   int		i;
@@ -89,6 +103,13 @@ void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, PO
 	  cam_matrix_set_value(dst, i, j, tmp);
 	}
     }
+}
+
+void		cam_matrix_image_convolution(CamImageMatrix *dst, CamImageMatrix *src, CamMatrix *mask, POINTS_TYPE factor)
+{
+  cam_matrix_convolution(&dst->r, &src->r, mask, factor);
+  cam_matrix_convolution(&dst->g, &src->g, mask, factor);
+  cam_matrix_convolution(&dst->b, &src->b, mask, factor);
 }
 
 void	cam_allocate_matrix(CamMatrix *m, int ncols, int nrows)

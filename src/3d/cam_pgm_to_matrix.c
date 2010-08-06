@@ -51,20 +51,6 @@
 #include <string.h>
 #include "cam_pgm_to_matrix.h"
 
-void	cam_allocate_imagematrix(CamImageMatrix *m, int ncols, int nrows)
-{
-  cam_allocate_matrix(&m->r, ncols, nrows);
-  cam_allocate_matrix(&m->g, ncols, nrows);
-  cam_allocate_matrix(&m->b, ncols, nrows);
-}
-
-void	cam_disallocate_imagematrix(CamImageMatrix *m)
-{
-  cam_disallocate_matrix(&m->r);
-  cam_disallocate_matrix(&m->g);
-  cam_disallocate_matrix(&m->b);
-}
-
 CamImageMatrix		*cam_pgm_to_matrix(char *path)
 {
   int			height;

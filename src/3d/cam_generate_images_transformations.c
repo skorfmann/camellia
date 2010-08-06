@@ -233,10 +233,17 @@ int			main()
   CamList		*pts;
   CamList		*ptsTransformed;
   char			outputDir[] = "data/tracking";
+  CamMatrix		mask;
   CamImageMatrix	*image;
+  CamImageMatrix	imageTransformed;
+
   
   image = cam_pgm_to_matrix("data/3d/results/manny_viewpoint_1.pgm");
-  cam_matrix_to_pathpgm(outputDir, "toto", image);
+  cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
+  cam_allocate_matrix(&mask, 3, 3);
+  cam_matrix_image_convolution(&imageTransformed, image, &mask, 9.0f);
+  cam_matrix_to_pathpgm(outputDir, "image", image);
+  cam_matrix_to_pathpgm(outputDir, "imageTransformed", &imageTransformed);
 
   pts = cam_matrix_to_points(image);
   /*  pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");*/
@@ -262,6 +269,8 @@ int			main()
 
   cam_disallocate_linked_list(pts);
   cam_disallocate_imagematrix(image);
+  cam_disallocate_imagematrix(&imageTransformed);
+  cam_disallocate_matrix(&mask);
   free(image);
   return (0);
 }
