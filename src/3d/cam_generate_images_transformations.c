@@ -58,6 +58,7 @@
 #include "cam_points_to_pgm.h"
 #include "cam_pgm_to_matrix.h"
 #include "cam_matrix_to_pgm.h"
+#include "cam_matrix_to_points.h"
 
 void		cam_homography_to_file(char *dstFile, CamMatrix *H)
 {
@@ -237,7 +238,8 @@ int			main()
   image = cam_pgm_to_matrix("data/3d/results/manny_viewpoint_1.pgm");
   cam_matrix_to_pathpgm(outputDir, "toto", image);
 
-  pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");
+  pts = cam_matrix_to_points(image);
+  /*  pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");*/
   cam_points_to_pathpgm2(pts, outputDir, "image_base", 800, 600, 0, 0, 0);
 
   /* Begin Euclidian transformation */

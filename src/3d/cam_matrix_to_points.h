@@ -45,3 +45,13 @@
 
   ==========================================================================
 */
+
+#ifndef __CAM_MATRIX_TO_POINTS_H__
+# define __CAM_MATRIX_TO_POINTS_H__
+
+#include "cam_matrix.h"
+#include "cam_list.h"
+
+CamList	*cam_matrix_to_points(CamImageMatrix *m);
+
+#endif /* __CAM_MATRIX_TO_POINTS_H__ */

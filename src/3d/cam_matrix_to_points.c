@@ -45,3 +45,29 @@
 
   ==========================================================================
 */
+
+#include <stdlib.h>
+#include "cam_matrix_to_points.h"
+#include "cam_2d_points.h"
+
+CamList		*cam_matrix_to_points(CamImageMatrix *m)
+{
+  CamList	*res;
+  int		i;
+  int		j;
+
+  res = NULL;
+  for (j = 0 ; j < m->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < m->r.ncols ; ++i)
+	{
+	  res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint)));
+	  ((CamColorized2dPoint *)(res->data))->color.r = (char)cam_matrix_get_value(&m->r, i, j);
+	  ((CamColorized2dPoint *)(res->data))->color.g = (char)cam_matrix_get_value(&m->g, i, j);
+	  ((CamColorized2dPoint *)(res->data))->color.b = (char)cam_matrix_get_value(&m->b, i, j);
+	  ((CamColorized2dPoint *)(res->data))->point.x = (POINTS_TYPE)(i - m->r.ncols / 2);
+	  ((CamColorized2dPoint *)(res->data))->point.y = (POINTS_TYPE)(j - m->r.nrows / 2);
+	}
+    }
+  return (res);
+}
