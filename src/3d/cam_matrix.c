@@ -99,7 +99,7 @@ void		cam_matrix_convolution(CamMatrix *dst, CamMatrix *src, CamMatrix *mask, PO
 		  tmp += cam_matrix_get_value(src, i - mask->ncols / 2 + k, j - mask->nrows / 2 +l) * cam_matrix_get_value(mask, k, l);
 		}
 	    }
-	  tmp *= factor;
+	  tmp /= factor;
 	  cam_matrix_set_value(dst, i, j, tmp);
 	}
     }

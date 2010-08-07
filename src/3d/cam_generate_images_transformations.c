@@ -230,44 +230,21 @@ CamList		*cam_euclidian_transform(CamList *points, char *dir, char *file, POINTS
 
 int			main()
 {
-  CamList		*pts;
-  CamList		*ptsTransformed;
   char			outputDir[] = "data/tracking";
+  POINTS_TYPE		mask_data[] = {1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f};
   CamMatrix		mask;
   CamImageMatrix	*image;
   CamImageMatrix	imageTransformed;
-
   
-  image = cam_pgm_to_matrix("data/3d/results/manny_viewpoint_1.pgm");
+  image = cam_pgm_to_matrix("data/tracking/landscape.ppm");
   cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
   cam_allocate_matrix(&mask, 3, 3);
+  memcpy(mask.data,mask_data,9 * sizeof(POINTS_TYPE));
+
   cam_matrix_image_convolution(&imageTransformed, image, &mask, 9.0f);
   cam_matrix_to_pathpgm(outputDir, "image", image);
   cam_matrix_to_pathpgm(outputDir, "imageTransformed", &imageTransformed);
-
-  pts = cam_matrix_to_points(image);
-  /*  pts = cam_pgm_to_points("data/3d/results/manny_viewpoint_1.pgm");*/
-  cam_points_to_pathpgm2(pts, outputDir, "image_base", 800, 600, 0, 0, 0);
-
-  /* Begin Euclidian transformation */
-  ptsTransformed = cam_euclidian_transform(pts, outputDir, "image_euclidian", PI/4, 0.0f, 0.0f);
-  cam_points_to_pathpgm2(ptsTransformed, outputDir, "image_euclidian", 800, 600, 0, 0, 0);
-  cam_disallocate_linked_list(ptsTransformed);
-  /* End Euclidian transformation */
-
-  /* Begin Similarity transformation */
-  ptsTransformed = cam_similarity_transform(pts, outputDir, "image_similarity", 2.0f, PI/2, 0.0f, 0.0f);
-  cam_points_to_pathpgm2(ptsTransformed, outputDir, "image_similarity", 800, 600, 0, 0, 0);
-  cam_disallocate_linked_list(ptsTransformed);
-  /* End Similarity transformation */
-
-  /* Begin Similarity transformation */
-  ptsTransformed = cam_affine_transform(pts, outputDir, "image_affine", 1.0f, 1.0f, PI/4, 0.0f, 0.0f, 0.0f);
-  cam_points_to_pathpgm2(pts, outputDir, "image_affine", 800, 600, 0, 0, 0);
-  cam_disallocate_linked_list(ptsTransformed);
-  /* End Similarity transformation */
-
-  cam_disallocate_linked_list(pts);
+  
   cam_disallocate_imagematrix(image);
   cam_disallocate_imagematrix(&imageTransformed);
   cam_disallocate_matrix(&mask);
