@@ -51,6 +51,15 @@
 
 #include "cam_matrix.h"
 
+/* internal type */
+typedef struct
+{
+  POINTS_TYPE	red;
+  POINTS_TYPE	green;
+  POINTS_TYPE	blue;
+  POINTS_TYPE	grey;
+}	RGBandGRAY;
+
 CamImageMatrix	*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
 #endif /* __CAM_INTERPOLATE_MISSING_IMAGE_DATA_H__ */

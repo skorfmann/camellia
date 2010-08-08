@@ -48,6 +48,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
 #include "cam_matrix.h"
 #include "cam_list.h"
 #include "cam_evaluate_tracking.h"
@@ -121,19 +123,36 @@ CamList		*cam_load_points(char *srcFile)
   return (NULL);
 }
 
-void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
+POINTS_TYPE	cam_euclidian_distance(POINTS_TYPE dx, POINTS_TYPE dy)
 {
-  CamMatrix	pt1;
-  CamMatrix	pt2;
-  CamList	*ptr;
-  POINTS_TYPE	dx;
-  POINTS_TYPE	dy;
-  POINTS_TYPE	err;
+  return (sqrt((dx * dx) + (dy * dy)));
+}
+
+int error_cmp(const void *a, const void *b)
+{
+  if (*(POINTS_TYPE*)(a) < *(POINTS_TYPE*)(b))
+    return (-1);
+  if (*(POINTS_TYPE*)(a) == *(POINTS_TYPE*)(b))
+    return (0);
+  return (1);
+}
+
+POINTS_TYPE		*cam_compute_tracking_errors(CamMatrix *H, CamList *points)
+{
+  CamMatrix		pt1;
+  CamMatrix		pt2;
+  CamList		*ptr;
+  POINTS_TYPE		dx;
+  POINTS_TYPE		dy;
+  POINTS_TYPE		*err;
+  int			index;
 
   cam_allocate_matrix(&pt1, 1, 3);
   cam_allocate_matrix(&pt2, 1, 3);
   cam_matrix_set_value(&pt1, 0, 2, 1.0f);
   ptr = points;
+  index = 0;
+  err = (POINTS_TYPE *)malloc(points->index * sizeof(POINTS_TYPE));
   while (ptr)
     {
       cam_matrix_set_value(&pt1, 0, 0, ((PointsMatch *)ptr->data)->pt1.x);
@@ -141,22 +160,45 @@ void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
       cam_matrix_multiply(&pt2, H, &pt1);
       dx = ABSF(cam_matrix_get_value(&pt2, 0, 0) - ((PointsMatch *)ptr->data)->pt2.x);
       dy = ABSF(cam_matrix_get_value(&pt2, 0, 1) - ((PointsMatch *)ptr->data)->pt2.y);
-      err = 0.0f;
+      err[index] = cam_euclidian_distance(dx, dy);
+      ++index;
       ptr = ptr->next;
     }
   cam_disallocate_matrix(&pt1);
   cam_disallocate_matrix(&pt2);
+  return (err);
+}
+
+void	cam_errors_to_file(char *dir, char *fileName, POINTS_TYPE *err, int nb)
+{
+  FILE	*file;
+  char	*outputPath;
+  int	index;
+
+  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("err") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, fileName, "err");
+  file = fopen(outputPath, "w+");
+  index = 0;
+  while (index < nb)
+    {
+      fprintf(file, "%f\n", err[index]);
+      ++index;
+    }
+  free(outputPath);
+  fclose(file);
 }
 
 int		main()
 {
   CamMatrix	*H;
   CamList	*points;
+  POINTS_TYPE	*err;
 
   H = cam_file_to_homography("data/tracking/image_euclidian.tr");
   points = cam_load_points("data/tracking/image_euclidian.matches");
-  cam_compute_tracking_errors(H, points);
-  
+  err = cam_compute_tracking_errors(H, points);
+  qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
+  cam_errors_to_file("data/tracking","errors",err, points->index);
   cam_disallocate_matrix(H);
   free(H);
   return (0);

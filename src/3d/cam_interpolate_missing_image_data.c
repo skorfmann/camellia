@@ -50,8 +50,16 @@
 #include <stdio.h>
 #include "cam_interpolate_missing_image_data.h"
 
-/* TODO : debug (strange colors) */
-/* takes average from neightbours */
+int	compare_grayscale(const void *a, const void *b)
+{
+  if (((RGBandGRAY *)a)->grey < ((RGBandGRAY *)b)->grey)
+    return (-1);
+  if (((RGBandGRAY *)a)->grey == ((RGBandGRAY *)b)->grey)
+    return (0);
+  return (-1);
+}
+
+/* takes median from neightbours */
 CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   int			i;
@@ -60,9 +68,7 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigne
   int			k;
   int			l;
   int			nb;
-  POINTS_TYPE		avgR;
-  POINTS_TYPE		avgG;
-  POINTS_TYPE		avgB;
+  RGBandGRAY		pts[8];
 
   res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
   cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
@@ -74,9 +80,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigne
 	      (unsigned char)cam_matrix_get_value(&img->g, i ,j) == bgG &&
 	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
 	    {
-	      avgR = 0.0f;
-	      avgG = 0.0f;
-	      avgB = 0.0f;
 	      nb = 0;
 	      for (k = -1 ; k <= 1 ; ++k)
 		{
@@ -88,20 +91,19 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigne
 			      (unsigned char)cam_matrix_get_value(&img->g, i + k,j + l) != bgG &&
 			      (unsigned char)cam_matrix_get_value(&img->b, i + k,j + l) != bgB)
 			    {
-			      avgR += cam_matrix_get_value(&img->r, i + k, j + l);
-			      avgG += cam_matrix_get_value(&img->g, i + k, j + l);
-			      avgB += cam_matrix_get_value(&img->b, i + k, j + l);
+			      pts[nb].red = cam_matrix_get_value(&img->r, i + k, j + l);
+			      pts[nb].green = cam_matrix_get_value(&img->g, i + k, j + l);
+			      pts[nb].blue = cam_matrix_get_value(&img->b, i + k, j + l);
+			      pts[nb].grey = pts[nb].red * 0.3f + pts[nb].green * 0.59f + pts[nb].blue * 0.11f;
 			      ++nb;
 			    }
 			}
 		    }
 		}
-	      avgR /= (POINTS_TYPE)nb;
-	      avgG /= (POINTS_TYPE)nb;
-	      avgB /= (POINTS_TYPE)nb;
-	      cam_matrix_set_value(&res->r, i ,j, avgR);
-	      cam_matrix_set_value(&res->g, i ,j, avgG);
-	      cam_matrix_set_value(&res->b, i ,j, avgB);
+	      qsort(pts, nb, sizeof(POINTS_TYPE), compare_grayscale);
+	      cam_matrix_set_value(&res->r, i ,j, pts[nb/2].red);
+	      cam_matrix_set_value(&res->g, i ,j, pts[nb/2].green);
+	      cam_matrix_set_value(&res->b, i ,j, pts[nb/2].blue);
 	    }
 	  else
 	    {

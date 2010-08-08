@@ -242,7 +242,7 @@ int			main()
   CamList		*pts;
   CamList		*ptsTransformed;
   
-  image = cam_pgm_to_matrix("data/tracking/landscape.ppm");
+  image = cam_pgm_to_matrix("data/tracking/image2.ppm");
   cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
   cam_allocate_matrix(&mask, 3, 3);
   memcpy(mask.data,mask_data,9 * sizeof(POINTS_TYPE));
@@ -251,8 +251,9 @@ int			main()
   cam_matrix_to_pathpgm(outputDir, "image", image);
   cam_matrix_to_pathpgm(outputDir, "imageTransformed", &imageTransformed);
 
-  pts = cam_matrix_to_points(&imageTransformed);
-  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 0.0f, 0.0f);
+  /*  pts = cam_matrix_to_points(&imageTransformed);*/
+  pts = cam_matrix_to_points(image);
+  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 2.0f, PI/4, 0.0f, 0.0f);
   imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
   cam_matrix_to_pathpgm(outputDir, "img", imageTransformed2);
   imageInterpoled = cam_interpolate_missing_image_data(imageTransformed2, 0, 0, 0);
@@ -267,5 +268,6 @@ int			main()
   cam_disallocate_matrix(&mask);
   free(image);
   free(imageTransformed2);
+  free(imageInterpoled);
   return (0);
 }
