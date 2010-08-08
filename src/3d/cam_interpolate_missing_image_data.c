@@ -60,7 +60,7 @@ int	compare_grayscale(const void *a, const void *b)
 }
 
 /* takes median from neightbours */
-CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, int neighborhood, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   int			i;
   int			j;
@@ -68,22 +68,23 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigne
   int			k;
   int			l;
   int			nb;
-  RGBandGRAY		pts[8];
+  RGBandGRAY		*pts;
 
+  pts = (RGBandGRAY *)malloc((2*neighborhood+1)*(2*neighborhood+1)*sizeof(RGBandGRAY));
   res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
   cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
-  for (j = 1 ; j < img->r.nrows - 1 ; ++j)
+  for (j = neighborhood ; j < img->r.nrows - neighborhood ; ++j)
     {
-      for (i = 1 ; i < img->r.ncols - 1 ; ++i)
+      for (i = neighborhood ; i < img->r.ncols - neighborhood ; ++i)
 	{
 	  if ((unsigned char)cam_matrix_get_value(&img->r, i ,j) == bgR &&
 	      (unsigned char)cam_matrix_get_value(&img->g, i ,j) == bgG &&
 	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
 	    {
 	      nb = 0;
-	      for (k = -1 ; k <= 1 ; ++k)
+	      for (k = -neighborhood ; k <= neighborhood ; ++k)
 		{
-		  for (l = -1 ; l <= 1 ; ++l)
+		  for (l = -neighborhood ; l <= neighborhood ; ++l)
 		    {
 		      if (k || l)
 			{
@@ -113,5 +114,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigne
 	    }
 	}
     }
+  free (pts);
   return (res);
 }

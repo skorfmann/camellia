@@ -256,7 +256,7 @@ int			main()
   ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 2.0f, PI/4, 0.0f, 0.0f);
   imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
   cam_matrix_to_pathpgm(outputDir, "img", imageTransformed2);
-  imageInterpoled = cam_interpolate_missing_image_data(imageTransformed2, 0, 0, 0);
+  imageInterpoled = cam_interpolate_missing_image_data(imageTransformed2, 2, 0, 0, 0);
   cam_matrix_to_pathpgm(outputDir, "imgInt", imageInterpoled);
   
   cam_disallocate_linked_list(pts);
