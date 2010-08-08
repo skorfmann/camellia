@@ -50,17 +50,22 @@
 #include <stdio.h>
 #include "cam_interpolate_missing_image_data.h"
 
+/* TODO : debug (strange colors) */
 /* takes average from neightbours */
-void		cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
-  int		i;
-  int		j;
-  int		k;
-  int		l;
-  POINTS_TYPE	avgR;
-  POINTS_TYPE	avgG;
-  POINTS_TYPE	avgB;
+  int			i;
+  int			j;
+  CamImageMatrix	*res;
+  int			k;
+  int			l;
+  int			nb;
+  POINTS_TYPE		avgR;
+  POINTS_TYPE		avgG;
+  POINTS_TYPE		avgB;
 
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
   for (j = 1 ; j < img->r.nrows - 1 ; ++j)
     {
       for (i = 1 ; i < img->r.ncols - 1 ; ++i)
@@ -72,6 +77,7 @@ void		cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR,
 	      avgR = 0.0f;
 	      avgG = 0.0f;
 	      avgB = 0.0f;
+	      nb = 0;
 	      for (k = -1 ; k <= 1 ; ++k)
 		{
 		  for (l = -1 ; l <= 1 ; ++l)
@@ -81,20 +87,29 @@ void		cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR,
 			  if ((unsigned char)cam_matrix_get_value(&img->r, i + k,j + l) != bgR &&
 			      (unsigned char)cam_matrix_get_value(&img->g, i + k,j + l) != bgG &&
 			      (unsigned char)cam_matrix_get_value(&img->b, i + k,j + l) != bgB)
-			  avgR += cam_matrix_get_value(&img->r, i + k, j + l);
-			  avgG += cam_matrix_get_value(&img->r, i + k, j + l);
-			  avgB += cam_matrix_get_value(&img->r, i + k, j + l);
+			    {
+			      avgR += cam_matrix_get_value(&img->r, i + k, j + l);
+			      avgG += cam_matrix_get_value(&img->g, i + k, j + l);
+			      avgB += cam_matrix_get_value(&img->b, i + k, j + l);
+			      ++nb;
+			    }
 			}
 		    }
 		}
-	      avgR /= 8.0f;
-	      avgG /= 8.0f;
-	      avgB /= 8.0f;
-	      cam_matrix_set_value(&img->r, i ,j, avgR);
-	      cam_matrix_set_value(&img->g, i ,j, avgG);
-	      cam_matrix_set_value(&img->b, i ,j, avgB);
+	      avgR /= (POINTS_TYPE)nb;
+	      avgG /= (POINTS_TYPE)nb;
+	      avgB /= (POINTS_TYPE)nb;
+	      cam_matrix_set_value(&res->r, i ,j, avgR);
+	      cam_matrix_set_value(&res->g, i ,j, avgG);
+	      cam_matrix_set_value(&res->b, i ,j, avgB);
+	    }
+	  else
+	    {
+	      cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
+	      cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
+	      cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));
 	    }
 	}
     }
-    
+  return (res);
 }

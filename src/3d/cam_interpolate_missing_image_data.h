@@ -51,6 +51,6 @@
 
 #include "cam_matrix.h"
 
-void	cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB);
+CamImageMatrix	*cam_interpolate_missing_image_data(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
 #endif /* __CAM_INTERPOLATE_MISSING_IMAGE_DATA_H__ */
