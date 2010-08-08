@@ -48,27 +48,30 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "cam_matrix_to_points.h"
+#include "cam_points_to_matrix.h"
 #include "cam_2d_points.h"
 
-CamList		*cam_matrix_to_points(CamImageMatrix *m)
+CamImageMatrix		*cam_points_to_matrix(CamList *l, int ncols, int nrows)
 {
-  CamList	*res;
-  int		i;
-  int		j;
+  CamList		*pts;
+  CamImageMatrix	*res;
+  int			x;
+  int			y;
 
-  res = NULL;
-  for (j = 0 ; j < m->r.nrows ; ++j)
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  cam_allocate_imagematrix(res, ncols, nrows);
+  pts = l;
+  while (pts)
     {
-      for (i = 0 ; i < m->r.ncols ; ++i)
+      x = (int)(((CamColorized2dPoint *)pts->data)->point.x) + ncols / 2;
+      y = (int)(((CamColorized2dPoint *)pts->data)->point.y) + nrows / 2;
+      if (x >= 0 && x < ncols && y >= 0 && y < nrows)
 	{
-	  res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint)));
-	  ((CamColorized2dPoint *)(res->data))->color.r = (char)cam_matrix_get_value(&m->r, i, j);
-	  ((CamColorized2dPoint *)(res->data))->color.g = (char)cam_matrix_get_value(&m->g, i, j);
-	  ((CamColorized2dPoint *)(res->data))->color.b = (char)cam_matrix_get_value(&m->b, i, j);
-	  ((CamColorized2dPoint *)(res->data))->point.x = (POINTS_TYPE)(i - m->r.ncols / 2);
-	  ((CamColorized2dPoint *)(res->data))->point.y = (POINTS_TYPE)(j - m->r.nrows / 2);
+	  cam_matrix_set_value(&res->r, x, y, ((CamColorized2dPoint *)pts->data)->color.r);
+	  cam_matrix_set_value(&res->g, x, y, ((CamColorized2dPoint *)pts->data)->color.g);
+	  cam_matrix_set_value(&res->b, x, y, ((CamColorized2dPoint *)pts->data)->color.b);
 	}
+      pts = pts->next;
     }
   return (res);
 }

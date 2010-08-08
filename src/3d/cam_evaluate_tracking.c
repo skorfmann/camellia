@@ -128,6 +128,7 @@ void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
   CamList	*ptr;
   POINTS_TYPE	dx;
   POINTS_TYPE	dy;
+  POINTS_TYPE	err;
 
   cam_allocate_matrix(&pt1, 1, 3);
   cam_allocate_matrix(&pt2, 1, 3);
@@ -140,6 +141,7 @@ void		cam_compute_tracking_errors(CamMatrix *H, CamList *points)
       cam_matrix_multiply(&pt2, H, &pt1);
       dx = ABSF(cam_matrix_get_value(&pt2, 0, 0) - ((PointsMatch *)ptr->data)->pt2.x);
       dy = ABSF(cam_matrix_get_value(&pt2, 0, 1) - ((PointsMatch *)ptr->data)->pt2.y);
+      err = 0.0f;
       ptr = ptr->next;
     }
   cam_disallocate_matrix(&pt1);

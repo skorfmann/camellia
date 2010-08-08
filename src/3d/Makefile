@@ -7,7 +7,8 @@ SRC_MISC	=	cam_matrix.c		\
 			cam_pgm_to_points.c	\
 			cam_pgm_to_matrix.c	\
 			cam_matrix_to_pgm.c	\
-			cam_matrix_to_points.c
+			cam_matrix_to_points.c	\
+			cam_points_to_matrix.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c
@@ -44,7 +45,7 @@ NAME_VIEWER			=	viewer
 NAME_SFM			=	sfm
 NAME_NON_REGRESSION		=	non_regression
 NAME_EVALUATE_TRACKING		=	evaluate_tracking
-NAME_IMAGES_TRANSFORMATION	=	images_transformation
+NAME_IMAGES_TRANSFORMATION	=	generate_images_transformation
 
 CFLAGS		=	-W -Wall -pedantic -ansi -Werror -g3
 

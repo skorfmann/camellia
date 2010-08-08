@@ -59,6 +59,7 @@
 #include "cam_pgm_to_matrix.h"
 #include "cam_matrix_to_pgm.h"
 #include "cam_matrix_to_points.h"
+#include "cam_points_to_matrix.h"
 
 void		cam_homography_to_file(char *dstFile, CamMatrix *H)
 {
@@ -235,6 +236,9 @@ int			main()
   CamMatrix		mask;
   CamImageMatrix	*image;
   CamImageMatrix	imageTransformed;
+  CamImageMatrix	*imageTransformed2;
+  CamList		*pts;
+  CamList		*ptsTransformed;
   
   image = cam_pgm_to_matrix("data/tracking/landscape.ppm");
   cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
@@ -244,10 +248,21 @@ int			main()
   cam_matrix_image_convolution(&imageTransformed, image, &mask, 9.0f);
   cam_matrix_to_pathpgm(outputDir, "image", image);
   cam_matrix_to_pathpgm(outputDir, "imageTransformed", &imageTransformed);
+
+  pts = cam_matrix_to_points(&imageTransformed);
+  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 0.0f, 0.0f);
+  imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
+  cam_points_to_pathpgm2(ptsTransformed, outputDir, "img", image->r.ncols, image->r.nrows,
+			 0, 0, 0);
+  cam_matrix_to_pathpgm(outputDir, "img2", imageTransformed2);
   
+  cam_disallocate_linked_list(pts);
+  cam_disallocate_linked_list(ptsTransformed);
   cam_disallocate_imagematrix(image);
   cam_disallocate_imagematrix(&imageTransformed);
+  cam_disallocate_imagematrix(imageTransformed2);
   cam_disallocate_matrix(&mask);
   free(image);
+  free(imageTransformed2);
   return (0);
 }
