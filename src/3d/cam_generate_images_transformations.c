@@ -60,6 +60,7 @@
 #include "cam_matrix_to_pgm.h"
 #include "cam_matrix_to_points.h"
 #include "cam_points_to_matrix.h"
+#include "cam_interpolate_missing_image_data.h"
 
 void		cam_homography_to_file(char *dstFile, CamMatrix *H)
 {
@@ -252,9 +253,9 @@ int			main()
   pts = cam_matrix_to_points(&imageTransformed);
   ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 0.0f, 0.0f);
   imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
-  cam_points_to_pathpgm2(ptsTransformed, outputDir, "img", image->r.ncols, image->r.nrows,
-			 0, 0, 0);
-  cam_matrix_to_pathpgm(outputDir, "img2", imageTransformed2);
+  cam_matrix_to_pathpgm(outputDir, "img", imageTransformed2);
+  cam_interpolate_missing_image_data(imageTransformed2, 0, 0, 0);
+  cam_matrix_to_pathpgm(outputDir, "imgInt", imageTransformed2);
   
   cam_disallocate_linked_list(pts);
   cam_disallocate_linked_list(ptsTransformed);

@@ -8,7 +8,8 @@ SRC_MISC	=	cam_matrix.c		\
 			cam_pgm_to_matrix.c	\
 			cam_matrix_to_pgm.c	\
 			cam_matrix_to_points.c	\
-			cam_points_to_matrix.c
+			cam_points_to_matrix.c	\
+			cam_interpolate_missing_image_data.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\
 			cam_3d_viewer.c
