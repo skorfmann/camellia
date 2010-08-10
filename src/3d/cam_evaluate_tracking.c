@@ -119,8 +119,8 @@ CamList		*cam_load_points(char *srcFile)
 	}
       ++index;
     }
-   return (res);
-  return (NULL);
+  fclose (file);
+  return (res);
 }
 
 POINTS_TYPE	cam_euclidian_distance(POINTS_TYPE dx, POINTS_TYPE dy)
@@ -194,12 +194,16 @@ int		main()
   CamList	*points;
   POINTS_TYPE	*err;
 
-  H = cam_file_to_homography("data/tracking/image_euclidian.tr");
-  points = cam_load_points("data/tracking/image_euclidian.matches");
+  H = cam_file_to_homography("data/tracking/homo1.tr");
+  points = cam_load_points("data/tracking/test.matches");
   err = cam_compute_tracking_errors(H, points);
   qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
   cam_errors_to_file("data/tracking","errors",err, points->index);
+
   cam_disallocate_matrix(H);
   free(H);
+  cam_disallocate_linked_list(points);
+  free (err);
+
   return (0);
 }

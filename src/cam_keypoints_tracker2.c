@@ -81,7 +81,7 @@ extern double camSigmaParam;
 #define SEARCH_AMPLIFICATION_FACTOR	1
 
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
-//#define CAM_TRACKING2_KEYPOINTS
+#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
 //#define CAM_TRACKING2_TIMINGS2
@@ -1545,11 +1545,29 @@ void		cam_keypoints_tracking2_print_matches(CamImage *img1, CamImage *img2, char
   camDeallocateImage(&res);
 }
 
-void	cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *outFile, int nb)
+/* TODO : make something clean with those datatypes */
+#define POINTS_TYPE	double
+
+typedef struct
 {
-  FILE	*file;
-  char	filename[256];
-  
+  POINTS_TYPE	x;
+  POINTS_TYPE	y;
+}		Cam2dPoint;
+
+typedef struct
+{
+  Cam2dPoint	pt1;
+  Cam2dPoint	pt2;
+}	PointsMatch;
+
+
+void		cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *outFile, int nb)
+{
+  FILE		*file;
+  char		filename[256];
+  int		i;
+  POINTS_TYPE	tmp;
+
   sprintf(filename, "output/%s%i.matches", outFile, nb);
   file = fopen(filename, "w");
   if (!file)
@@ -1557,7 +1575,22 @@ void	cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *o
       printf("cam_keypoints_tracking2_matches_to_file : unable to open %s\n", filename);
       exit (-1);
     }
-  
+  fwrite(&track->nbMatches, sizeof(int), 1, file);
+  for (i = 0 ; i < track->nbMatches + track->nbOutliers ; ++i)
+    {
+	if (track->pairs[i].mark)
+	  {
+	    tmp = (POINTS_TYPE)track->pairs[i].p1->x;
+	    fwrite(&tmp, sizeof(POINTS_TYPE), 1, file);
+	    tmp = (POINTS_TYPE)track->pairs[i].p1->y;
+	    fwrite(&tmp, sizeof(POINTS_TYPE), 1, file);
+	    tmp = (POINTS_TYPE)track->pairs[i].p2->x;
+	    fwrite(&tmp, sizeof(POINTS_TYPE), 1, file);
+	    tmp = (POINTS_TYPE)track->pairs[i].p2->y;
+	    fwrite(&tmp, sizeof(POINTS_TYPE), 1, file);
+	  }
+    }
+  fclose(file);
 }
 
 void			test_cam_keypoints_tracking2()
@@ -1575,13 +1608,13 @@ void			test_cam_keypoints_tracking2()
   CamKeypointsMatches	*track2;
   CamKeypointsMatches	*track3;
   CamKeypointsMatches	*track4;
-  char			img1[] = "./resources/klt/img1.bmp";
-  char			img2[] = "./resources/klt/img2.bmp";
+  /*char			img1[] = "./resources/klt/img1.bmp";*/
+  char			img1[] = "./src/3d/data/tracking/img0.ppm";
+  /*  char			img2[] = "./resources/klt/img2.bmp";*/
+  char			img2[] = "./src/3d/data/tracking/img1.ppm";
   char			img3[] = "./resources/klt/img3.bmp";
   char			img4[] = "./resources/klt/img2.bmp";
   char			img5[] = "./resources/klt/img3.bmp";
-  //char			img1[] = "./resources/chess.bmp";
-  //char			img2[] = "./resources/chess.bmp";
 #ifdef CAM_TRACKING2_TIMINGS1
   int			t1;
   int			t2;
@@ -1592,11 +1625,11 @@ void			test_cam_keypoints_tracking2()
 #endif
 
   modelImage.imageData = NULL;
-  camLoadBMP(&modelImage, img1);
+  camLoadPGM(&modelImage, img1);
   camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &firstImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img2);
+  camLoadPGM(&modelImage, img2);
   camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &secondImage);
   camDeallocateImage(&modelImage);
@@ -1652,8 +1685,10 @@ void			test_cam_keypoints_tracking2()
 
   cam_keypoints_tracking2_free_context(&tc);
   
-  camLoadBMP(&firstImage, img1);
-  camLoadBMP(&secondImage, img2);
+  /*  camLoadBMP(&firstImage, img1);*/
+  camLoadPGM(&firstImage, img1);
+  /*  camLoadBMP(&secondImage, img2);*/
+  camLoadPGM(&secondImage, img2);
   camLoadBMP(&thirdImage, img3);
   camLoadBMP(&fourthImage, img4);
   camLoadBMP(&fifthImage, img5);
