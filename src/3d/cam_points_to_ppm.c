@@ -54,7 +54,7 @@
 #include "cam_2d_points.h"
 
 /* for a Cam2dPoint list */
-void		cam_points_to_pgm(char *filename, CamList *points, int width, int height,
+void		cam_points_to_ppm(char *filename, CamList *points, int width, int height,
 				unsigned char ptR, unsigned char ptG, unsigned char ptB,
 				unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
@@ -67,7 +67,7 @@ void		cam_points_to_pgm(char *filename, CamList *points, int width, int height,
   file = fopen(filename, "w+");
   if (!file)
     {
-      printf("cam_write_points_to_pgm : unable to open the destination image file\n");
+      printf("cam_write_points_to_ppm : unable to open the destination image file\n");
       exit (-1);
     }
   pts = points;
@@ -96,7 +96,7 @@ void		cam_points_to_pgm(char *filename, CamList *points, int width, int height,
 }
 
 /* for a CamColorized2dPoint list */
-void		cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
+void		cam_points_to_ppm2(char *filename, CamList *points, int width, int height,
 				   unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
  FILE		*file;
@@ -108,7 +108,7 @@ void		cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
   file = fopen(filename, "w+");
   if (!file)
     {
-      printf("cam_write_points_to_pgm : unable to open the destination image file\n");
+      printf("cam_write_points_to_ppm : unable to open the destination image file\n");
       exit (-1);
     }
   pts = points;
@@ -138,13 +138,13 @@ void		cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
   fclose(file);
 }
 
-void	cam_points_to_pathpgm2(CamList *pts, char *dir, char *fileName, int width, int height,
+void	cam_points_to_pathppm2(CamList *pts, char *dir, char *fileName, int width, int height,
 			   unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   char	*outputPath;
   
-  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", dir, fileName, "pgm");
-  cam_points_to_pgm2(outputPath, pts, width, height, bgR, bgG, bgB);
+  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("ppm") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, fileName, "ppm");
+  cam_points_to_ppm2(outputPath, pts, width, height, bgR, bgG, bgB);
   free(outputPath);
 }

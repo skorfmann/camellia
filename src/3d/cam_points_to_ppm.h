@@ -46,18 +46,18 @@
   ==========================================================================
 */
 
-#ifndef __CAM_WRITE_POINTS_TO_PGM_H__
-# define __CAM_WRITE_POINTS_TO_PGM_H__
+#ifndef __CAM_WRITE_POINTS_TO_PPM_H__
+# define __CAM_WRITE_POINTS_TO_PPM_H__
 
 /* for a Cam2dPoint list */
-void	cam_points_to_pgm(char *filename, CamList *points, int width, int height,
+void	cam_points_to_ppm(char *filename, CamList *points, int width, int height,
 				unsigned char ptR, unsigned char ptG, unsigned char ptB,
 				unsigned char bgR, unsigned char bgG, unsigned char bgB);
 /* for a CamColorized2dPoint list */
-void	cam_points_to_pgm2(char *filename, CamList *points, int width, int height,
+void	cam_points_to_ppm2(char *filename, CamList *points, int width, int height,
 				unsigned char bgR, unsigned char bgG, unsigned char bgB);
-/* call cam_points_to_pgm2 but builds dir/filename string */
-void	cam_points_to_pathpgm2(CamList *pts, char *dir, char *fileName, int width, int height,
+/* call cam_points_to_ppm2 but builds dir/filename string */
+void	cam_points_to_pathppm2(CamList *pts, char *dir, char *fileName, int width, int height,
 			       unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
-#endif /* __CAM_WRITE_POINTS_TO_PGM_H__ */
+#endif /* __CAM_WRITE_POINTS_TO_PPM_H__ */

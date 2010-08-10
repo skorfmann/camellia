@@ -1,6 +1,5 @@
 TODO list :
 
 grep TODO *
-remplacer pgm par ppm
 cam_matrix_* a utiliser pour toutes les utilisations de matrices
 supprimer l'utilisation de matrix pour la génération des transformations (inutile)

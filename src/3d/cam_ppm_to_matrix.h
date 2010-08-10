@@ -46,11 +46,11 @@
   ==========================================================================
 */
 
-#ifndef __CAM_PGM_TO_MATRIX_H__
-# define __CAM_PGM_TO_MATRIX_H__
+#ifndef __CAM_PPM_TO_MATRIX_H__
+# define __CAM_PPM_TO_MATRIX_H__
 
 #include "cam_matrix.h"
 
-CamImageMatrix	*cam_pgm_to_matrix(char *file);
+CamImageMatrix	*cam_ppm_to_matrix(char *file);
 
-#endif /* __CAM_PGM_TO_MATRIX_H__ */
+#endif /* __CAM_PPM_TO_MATRIX_H__ */

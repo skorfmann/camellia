@@ -55,10 +55,10 @@
 #include "cam_2d_points.h"
 #include "cam_list.h"
 #include "misc.h"
-#include "cam_pgm_to_points.h"
-#include "cam_points_to_pgm.h"
-#include "cam_pgm_to_matrix.h"
-#include "cam_matrix_to_pgm.h"
+#include "cam_ppm_to_points.h"
+#include "cam_points_to_ppm.h"
+#include "cam_ppm_to_matrix.h"
+#include "cam_matrix_to_ppm.h"
 #include "cam_matrix_to_points.h"
 #include "cam_points_to_matrix.h"
 #include "cam_interpolate_missing_image_data.h"
@@ -243,22 +243,22 @@ int			main()
   CamList		*pts;
   CamList		*ptsTransformed;
   
-  image = cam_pgm_to_matrix("data/tracking/img0.ppm");
+  image = cam_ppm_to_matrix("data/tracking/img0.ppm");
   cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
   cam_allocate_matrix(&mask, 3, 3);
   memcpy(mask.data,mask_data,9 * sizeof(POINTS_TYPE));
 
   cam_matrix_image_convolution(&imageTransformed, image, &mask, 9.0f);
-  /*  cam_matrix_to_pathpgm(outputDir, "image", image);
-      cam_matrix_to_pathpgm(outputDir, "imageTransformed", &imageTransformed);*/
+  /*  cam_matrix_to_pathppm(outputDir, "image", image);
+      cam_matrix_to_pathppm(outputDir, "imageTransformed", &imageTransformed);*/
 
   /*  pts = cam_matrix_to_points(&imageTransformed);*/
   pts = cam_matrix_to_points(image);
-  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 20.0f, 10.0f);
+  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 0.0f, 0.0f);
   imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
-  /*cam_matrix_to_pathpgm(outputDir, "img", imageTransformed2);*/
+  /*cam_matrix_to_pathppm(outputDir, "img", imageTransformed2);*/
   imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);
-  cam_matrix_to_pathpgm(outputDir, "img1", imageTransformed2);
+  cam_matrix_to_pathppm(outputDir, "img1", imageInterpoled);
   
   cam_disallocate_linked_list(pts);
   cam_disallocate_linked_list(ptsTransformed);

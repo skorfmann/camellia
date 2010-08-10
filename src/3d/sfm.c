@@ -52,7 +52,7 @@
 #include	"cam_2d_points.h"
 #include	"cam_matrix.h"
 #include	"cam_list.h"
-#include	"cam_points_to_pgm.h"
+#include	"cam_points_to_ppm.h"
 #include	"cam_3d_points_loaders.h"
 #include	"cam_project_3d_to_2d.h"
 #include	"cam_project_2d_to_3d.h"
@@ -93,7 +93,7 @@ void		main_project_and_write_points()
   printf("Result point : %f %f\n", ((Cam2dPoint *)(res->data))->x, ((Cam2dPoint *)(res->data))->y);
 
   cam_center_2d_points(res, 800, 600);
-  cam_points_to_pgm("pts.pgm", res, 800, 600,
+  cam_points_to_ppm("pts.ppm", res, 800, 600,
 			  255, 255, 255,
 			  0, 0, 0);
   cam_disallocate_linked_list(res);
@@ -223,15 +223,15 @@ void			main_triangulate_2d_points()
       ppts2 = ppts2->next;
     }
 
-  path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.pgm")  + 1) * sizeof (char));
-  sprintf(path1, "data/3d/results/%s_viewpoint_1.pgm", filename);
+  path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
+  sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
   cam_center_2d_points(pts1, 800, 600);
-  cam_points_to_pgm(path1, pts1, 800, 600,
+  cam_points_to_ppm(path1, pts1, 800, 600,
 			  255, 255, 255,
 			  0, 0, 0);
-  sprintf(path1, "data/3d/results/%s_viewpoint_2.pgm", filename);
+  sprintf(path1, "data/3d/results/%s_viewpoint_2.ppm", filename);
   cam_center_2d_points(pts2, 800, 600);
-  cam_points_to_pgm(path1, pts2, 800, 600,
+  cam_points_to_ppm(path1, pts2, 800, 600,
 			  255, 255, 255,
 			  0, 0, 0);
   free(path1);

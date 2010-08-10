@@ -46,86 +46,12 @@
   ==========================================================================
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "cam_pgm_to_matrix.h"
+#ifndef __CAM_MATRIX_TO_PPM_H__
+# define __CAM_MATRIX_TO_PPM_H__
 
-CamImageMatrix		*cam_pgm_to_matrix(char *path)
-{
-  int			height;
-  int			width;
-  CamImageMatrix	*res;
-  FILE			*file;
-  char			header[3];
-  int			c;
-  int			i;
-  int			j;
+#include "cam_matrix.h"
 
-  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
-  file = fopen(path, "r");
-  if (!file)
-    {
-      printf("cam_pgm_to_points : unable to open file %s\n", path);
-      exit (-1);
-    }
-  fread(header, sizeof(char), 3, file);
-  if (strncmp(header, "P6\n", 3))
-    {
-      printf("cam_pgm_to_points : %s not a PGM file\n", path);
-      exit (-1);
-    }
+void	cam_matrix_to_ppm(char *filename, CamImageMatrix *m);
+void	cam_matrix_to_pathppm(char *dir, char *fileName, CamImageMatrix *m);
 
-  width = 0;
-  c = fgetc(file);
-  while (c != (int)(' '))
-    {
-      width = 10 * width + (c - (int)('0'));
-      c = fgetc(file);
-    }
-
-  height = 0;
-  c = fgetc(file);
-  while (c != (int)('\n'))
-    {
-      height = 10 * height + (c - (int)('0'));
-      c = fgetc(file);
-    }
-
-  if (fgetc(file) != (int)('2') || fgetc(file) != (int)('5') || fgetc(file) != (int)('5') || fgetc(file) != (int)('\n'))
-    {
-      printf("cam_pgm_to_points : %s not a valid PGM file\n", path);
-      exit (-1);
-    }
-
-  cam_allocate_imagematrix(res, width, height);
-  for (j = 0 ; j < height ; ++j)
-    {
-      for (i = 0 ; i < width ; ++i)
-	{
-	  if ((c = fgetc(file)) != EOF)
-	    cam_matrix_set_value(&res->r, i, j, (POINTS_TYPE)c);
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (red) %s (%i, %i)\n", path, i, j);
-	      exit (-1);
-	    }
-	  if ((c = fgetc(file)) != EOF)
-	    cam_matrix_set_value(&res->g, i, j, (POINTS_TYPE)c);
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (green) %s (%i, %i)\n", path, i, j);
-	      exit (-1);
-	    }
-	  if ((c = fgetc(file)) != EOF)
-	    cam_matrix_set_value(&res->b, i, j, (POINTS_TYPE)c);
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (blue) %s (%i, %i)\n", path, i, j);
-	      exit (-1);
-	    }
-	}
-    }
-  fclose(file);
-  return (res);
-}
+#endif /* __CAM_MATRIX_TO_PPM_H__ */

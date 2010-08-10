@@ -46,91 +46,11 @@
   ==========================================================================
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "cam_pgm_to_points.h"
-#include "cam_2d_points.h"
+#ifndef __CAM_PPM_TO_POINTS_H__
+# define __CAM_PPM_TO_POINTS_H__
 
-CamList		*cam_pgm_to_points(char *path)
-{
-  int		height;
-  int		width;
-  CamList	*res;
-  FILE		*file;
-  char		header[3];
-  int		c;
-  int		i;
-  int		j;
+#include "cam_list.h"
 
-  res = NULL;
-  file = fopen(path, "r");
-  if (!file)
-    {
-      printf("cam_pgm_to_points : unable to open file %s\n", path);
-      exit (-1);
-    }
-  
-  fread(header, sizeof(char), 3, file);
-  if (strncmp(header, "P6\n", 3))
-    {
-      printf("cam_pgm_to_points : %s not a PGM file\n", path);
-      exit (-1);
-    }
+CamList	*cam_ppm_to_points(char *file);
 
-  width = 0;
-  c = fgetc(file);
-  while (c != (int)(' '))
-    {
-      width = 10 * width + (c - (int)('0'));
-      c = fgetc(file);
-    }
-
-  height = 0;
-  c = fgetc(file);
-  while (c != (int)('\n'))
-    {
-      height = 10 * height + (c - (int)('0'));
-      c = fgetc(file);
-    }
-
-  if (fgetc(file) != (int)('2') || fgetc(file) != (int)('5') || fgetc(file) != (int)('5') || fgetc(file) != (int)('\n'))
-    {
-      printf("cam_pgm_to_points : %s not a valid PGM file\n", path);
-      exit (-1);
-    }
-
-  for (j = 0 ; j < height ; ++j)
-    {
-      for (i = 0 ; i < width ; ++i)
-	{
-	  res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint)));
-	  ((CamColorized2dPoint *)(res->data))->point.x = i - width / 2;
-	  ((CamColorized2dPoint *)(res->data))->point.y = j - height / 2;
-	  if ((c = fgetc(file)) != EOF)
-	    ((CamColorized2dPoint *)(res->data))->color.r = (char)c;
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (red) %s (%i, %i)\n", path, i, j);
-	      exit (-1);
-	    }
-	  if ((c = fgetc(file)) != EOF)
-	    ((CamColorized2dPoint *)(res->data))->color.g = (char)c;
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (green) %s\n", path);
-	      exit (-1);
-	    }
-	  if ((c = fgetc(file)) != EOF)
-	    ((CamColorized2dPoint *)(res->data))->color.b = (char)c;
-	  else
-	    {
-	      printf("cam_pgm_to_points : malformed pgm file (blue) %s\n", path);
-	      exit (-1);
-	    }
-	}
-    }
-
-  fclose(file);
-  return (res);
-}
+#endif /* __CAM_PPM_TO_POINTS_H__ */

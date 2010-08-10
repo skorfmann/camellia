@@ -46,11 +46,86 @@
   ==========================================================================
 */
 
-#ifndef __CAM_PGM_TO_POINTS_H__
-# define __CAM_PGM_TO_POINTS_H__
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cam_ppm_to_matrix.h"
 
-#include "cam_list.h"
+CamImageMatrix		*cam_ppm_to_matrix(char *path)
+{
+  int			height;
+  int			width;
+  CamImageMatrix	*res;
+  FILE			*file;
+  char			header[3];
+  int			c;
+  int			i;
+  int			j;
 
-CamList	*cam_pgm_to_points(char *file);
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  file = fopen(path, "r");
+  if (!file)
+    {
+      printf("cam_ppm_to_points : unable to open file %s\n", path);
+      exit (-1);
+    }
+  fread(header, sizeof(char), 3, file);
+  if (strncmp(header, "P6\n", 3))
+    {
+      printf("cam_ppm_to_points : %s not a PPM file\n", path);
+      exit (-1);
+    }
 
-#endif /* __CAM_PGM_TO_POINTS_H__ */
+  width = 0;
+  c = fgetc(file);
+  while (c != (int)(' '))
+    {
+      width = 10 * width + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  height = 0;
+  c = fgetc(file);
+  while (c != (int)('\n'))
+    {
+      height = 10 * height + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  if (fgetc(file) != (int)('2') || fgetc(file) != (int)('5') || fgetc(file) != (int)('5') || fgetc(file) != (int)('\n'))
+    {
+      printf("cam_ppm_to_points : %s not a valid PPM file\n", path);
+      exit (-1);
+    }
+
+  cam_allocate_imagematrix(res, width, height);
+  for (j = 0 ; j < height ; ++j)
+    {
+      for (i = 0 ; i < width ; ++i)
+	{
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->r, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (red) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->g, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (green) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    cam_matrix_set_value(&res->b, i, j, (POINTS_TYPE)c);
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (blue) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	}
+    }
+  fclose(file);
+  return (res);
+}

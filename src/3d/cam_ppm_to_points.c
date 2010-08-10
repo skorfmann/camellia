@@ -47,45 +47,90 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include "cam_matrix_to_pgm.h"
-#include "cam_matrix.h"
+#include <stdlib.h>
+#include "cam_ppm_to_points.h"
+#include "cam_2d_points.h"
 
-void	cam_matrix_to_pgm(char *filename, CamImageMatrix *m)
+CamList		*cam_ppm_to_points(char *path)
 {
-  int	i;
-  int	j;
-  FILE	*file;
-  char	header[20];
-  
-  file = fopen(filename, "w+");
+  int		height;
+  int		width;
+  CamList	*res;
+  FILE		*file;
+  char		header[3];
+  int		c;
+  int		i;
+  int		j;
+
+  res = NULL;
+  file = fopen(path, "r");
   if (!file)
     {
-      printf("cam_write_points_to_pgm : unable to open the destination image file\n");
+      printf("cam_ppm_to_points : unable to open file %s\n", path);
       exit (-1);
     }
-  sprintf(header, "P6\n%i %i\n255\n", m->r.ncols, m->r.nrows);
-  fwrite(header, sizeof(char), strlen(header), file);
-  for (j = 0 ; j < m->r.nrows ; ++j)
+  
+  fread(header, sizeof(char), 3, file);
+  if (strncmp(header, "P6\n", 3))
     {
-      for (i = 0 ; i < m->r.ncols ; ++i)
+      printf("cam_ppm_to_points : %s not a PPM file\n", path);
+      exit (-1);
+    }
+
+  width = 0;
+  c = fgetc(file);
+  while (c != (int)(' '))
+    {
+      width = 10 * width + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  height = 0;
+  c = fgetc(file);
+  while (c != (int)('\n'))
+    {
+      height = 10 * height + (c - (int)('0'));
+      c = fgetc(file);
+    }
+
+  if (fgetc(file) != (int)('2') || fgetc(file) != (int)('5') || fgetc(file) != (int)('5') || fgetc(file) != (int)('\n'))
+    {
+      printf("cam_ppm_to_points : %s not a valid PPM file\n", path);
+      exit (-1);
+    }
+
+  for (j = 0 ; j < height ; ++j)
+    {
+      for (i = 0 ; i < width ; ++i)
 	{
-	  fprintf(file, "%c%c%c",
-		  (char)cam_matrix_get_value(&m->r, i, j),
-		  (char)cam_matrix_get_value(&m->g, i, j),
-		  (char)cam_matrix_get_value(&m->b, i, j));
+	  res = cam_add_to_linked_list(res, (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint)));
+	  ((CamColorized2dPoint *)(res->data))->point.x = i - width / 2;
+	  ((CamColorized2dPoint *)(res->data))->point.y = j - height / 2;
+	  if ((c = fgetc(file)) != EOF)
+	    ((CamColorized2dPoint *)(res->data))->color.r = (char)c;
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (red) %s (%i, %i)\n", path, i, j);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    ((CamColorized2dPoint *)(res->data))->color.g = (char)c;
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (green) %s\n", path);
+	      exit (-1);
+	    }
+	  if ((c = fgetc(file)) != EOF)
+	    ((CamColorized2dPoint *)(res->data))->color.b = (char)c;
+	  else
+	    {
+	      printf("cam_ppm_to_points : malformed ppm file (blue) %s\n", path);
+	      exit (-1);
+	    }
 	}
     }
+
   fclose(file);
-}
-
-void	cam_matrix_to_pathpgm(char *dir, char *fileName, CamImageMatrix *m)
-{
-  char	*outputPath;
-
-  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("pgm") + 3) * sizeof(char) );
-  sprintf(outputPath,"%s/%s.%s", dir, fileName, "pgm");
-  cam_matrix_to_pgm(outputPath, m);
-  free(outputPath);
+  return (res);
 }

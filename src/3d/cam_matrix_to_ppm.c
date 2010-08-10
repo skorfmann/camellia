@@ -46,12 +46,46 @@
   ==========================================================================
 */
 
-#ifndef __CAM_MATRIX_TO_PGM_H__
-# define __CAM_MATRIX_TO_PGM_H__
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cam_matrix_to_ppm.h"
 #include "cam_matrix.h"
 
-void	cam_matrix_to_pgm(char *filename, CamImageMatrix *m);
-void	cam_matrix_to_pathpgm(char *dir, char *fileName, CamImageMatrix *m);
+void	cam_matrix_to_ppm(char *filename, CamImageMatrix *m)
+{
+  int	i;
+  int	j;
+  FILE	*file;
+  char	header[20];
+  
+  file = fopen(filename, "w+");
+  if (!file)
+    {
+      printf("cam_write_points_to_ppm : unable to open the destination image file\n");
+      exit (-1);
+    }
+  sprintf(header, "P6\n%i %i\n255\n", m->r.ncols, m->r.nrows);
+  fwrite(header, sizeof(char), strlen(header), file);
+  for (j = 0 ; j < m->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < m->r.ncols ; ++i)
+	{
+	  fprintf(file, "%c%c%c",
+		  (char)cam_matrix_get_value(&m->r, i, j),
+		  (char)cam_matrix_get_value(&m->g, i, j),
+		  (char)cam_matrix_get_value(&m->b, i, j));
+	}
+    }
+  fclose(file);
+}
 
-#endif /* __CAM_MATRIX_TO_PGM_H__ */
+void	cam_matrix_to_pathppm(char *dir, char *fileName, CamImageMatrix *m)
+{
+  char	*outputPath;
+
+  outputPath = (char *)malloc((strlen(dir) + strlen(fileName) + strlen("ppm") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, fileName, "ppm");
+  cam_matrix_to_ppm(outputPath, m);
+  free(outputPath);
+}
