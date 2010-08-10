@@ -195,7 +195,7 @@ int		main()
   POINTS_TYPE	*err;
 
   H = cam_file_to_homography("data/tracking/homo1.tr");
-  points = cam_load_points("data/tracking/test.matches");
+  points = cam_load_points("data/tracking/matches0.matches");
   err = cam_compute_tracking_errors(H, points);
   qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
   cam_errors_to_file("data/tracking","errors",err, points->index);

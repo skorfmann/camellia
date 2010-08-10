@@ -60,7 +60,7 @@ int	compare_grayscale(const void *a, const void *b)
 }
 
 /* takes median from neightbours */
-CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, int neighborhood, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+CamImageMatrix		*cam_interpolate_missing_image_data_median(CamImageMatrix *img, int neighborhood, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   int			i;
   int			j;
@@ -116,4 +116,14 @@ CamImageMatrix		*cam_interpolate_missing_image_data(CamImageMatrix *img, int nei
     }
   free (pts);
   return (res);
+}
+
+CamImageMatrix		*cam_interpolate_missing_image_data_back_projection(CamImageMatrix *img, CamImageMatrix *origin, CamMatrix *inverseHomography, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  img = img;
+  origin = origin;
+  inverseHomography = inverseHomography;
+  bgR = bgB = bgG;
+
+  return (NULL);
 }
