@@ -62,5 +62,6 @@ typedef struct
 
 CamImageMatrix	*cam_interpolate_missing_image_data_median(CamImageMatrix *img, int neighborhood, unsigned char bgR, unsigned char bgG, unsigned char bgB);
 CamImageMatrix	*cam_interpolate_missing_image_data_back_projection(CamImageMatrix *img, CamImageMatrix *origin, CamMatrix *inverseHomography, unsigned char bgR, unsigned char bgG, unsigned char bgB);
+CamImageMatrix	*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
 #endif /* __CAM_INTERPOLATE_MISSING_IMAGE_DATA_H__ */

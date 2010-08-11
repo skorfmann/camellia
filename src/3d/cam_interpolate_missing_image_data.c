@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "misc.h"
+#include "cam_2d_points.h"
 #include "cam_interpolate_missing_image_data.h"
 
 POINTS_TYPE	cam_round(POINTS_TYPE a)
@@ -161,8 +162,8 @@ CamImageMatrix		*cam_interpolate_missing_image_data_back_projection(CamImageMatr
 	      (unsigned char)cam_matrix_get_value(&img->g, i ,j) == bgG &&
 	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
 	    {
-	      cam_matrix_set_value(&pt1, 0, 0, (POINTS_TYPE)i - img->r.ncols / 2);
-	      cam_matrix_set_value(&pt1, 0, 1, (POINTS_TYPE)j - img->r.nrows / 2);
+	      cam_matrix_set_value(&pt1, 0, 0, (POINTS_TYPE)(i - img->r.ncols / 2));
+	      cam_matrix_set_value(&pt1, 0, 1, (POINTS_TYPE)(j - img->r.nrows / 2));
 	      cam_matrix_multiply(&pt2, inverseHomography, &pt1);
 	      roundX = (int)cam_round(cam_matrix_get_value(&pt2, 0, 0)) + img->r.ncols / 2;
 	      roundY = (int)cam_round(cam_matrix_get_value(&pt2, 0, 1)) + img->r.nrows / 2;
@@ -173,11 +174,11 @@ CamImageMatrix		*cam_interpolate_missing_image_data_back_projection(CamImageMatr
 		  cam_matrix_set_value(&res->b, i, j, cam_matrix_get_value(&origin->b, roundX, roundY));
 		}
 	      else
-		{
-		  cam_matrix_set_value(&res->r, i ,j, bgR);
-		  cam_matrix_set_value(&res->g, i ,j, bgG);
-		  cam_matrix_set_value(&res->b, i ,j, bgB);
-		}
+	      {
+		cam_matrix_set_value(&res->r, i ,j, (POINTS_TYPE)bgR);
+		cam_matrix_set_value(&res->g, i ,j, (POINTS_TYPE)bgG);
+		cam_matrix_set_value(&res->b, i ,j, (POINTS_TYPE)bgB);
+	      }
 	    }
 	  else
 	    {
@@ -189,5 +190,133 @@ CamImageMatrix		*cam_interpolate_missing_image_data_back_projection(CamImageMatr
     }
   cam_disallocate_matrix(&pt1);
   cam_disallocate_matrix(&pt2);
+  return (res);
+}
+
+/* following : http://en.wikipedia.org/wiki/Bilinear_interpolation */
+/* a--b */
+/* |  | */
+/* c--d */
+CamColorized2dPoint	*cam_bilinear_interpolation(Cam2dPoint *dst, CamColorized2dPoint *a, CamColorized2dPoint *b, CamColorized2dPoint *c, CamColorized2dPoint *d)
+{
+  CamColorized2dPoint	*res;
+  POINTS_TYPE		x1;
+  POINTS_TYPE		x2;
+  POINTS_TYPE		y1;
+  POINTS_TYPE		y2;
+  POINTS_TYPE		x;
+  POINTS_TYPE		y;
+  POINTS_TYPE		denominator;
+
+  x = dst->x;
+  y = dst->y;
+  x1 = a->point.x;
+  x2 = b->point.x;
+  y1 = d->point.y;
+  y2 = b->point.y;
+  denominator = (x2 - x1) * (y2 - y1);
+  res = (CamColorized2dPoint *)malloc(sizeof(CamColorized2dPoint));
+  res->point.x = dst->x;
+  res->point.y = dst->y;
+  res->color.r = c->color.r * (x2 - x) * (y2 - y) / denominator +
+    d->color.r * (x - x1) * (y2 - y) / denominator+
+    a->color.r * (x2 - x) * (y - y1) / denominator+
+    b->color.r * (x - x1) * (y - y1) / denominator;
+  res->color.g = c->color.g * (x2 - x) * (y2 - y) / denominator +
+    d->color.g * (x - x1) * (y2 - y) / denominator+
+    a->color.g * (x2 - x) * (y - y1) / denominator+
+    b->color.g * (x - x1) * (y - y1) / denominator;
+  res->color.b = c->color.b * (x2 - x) * (y2 - y) / denominator +
+    d->color.b * (x - x1) * (y2 - y) / denominator+
+    a->color.b * (x2 - x) * (y - y1) / denominator+
+    b->color.b * (x - x1) * (y - y1) / denominator;
+
+  return (res);
+}
+
+CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  CamColorized2dPoint	a, b, c, d, *interpoled;
+  CamImageMatrix	*res;
+  Cam2dPoint		pt;
+  int			i;
+  int			j;
+  
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
+  for (j = 1 ; j < img->r.nrows - 1 ; ++j)
+    {
+      for (i = 1 ; i < img->r.ncols - 1 ; ++i)
+	{
+	  if ((unsigned char)cam_matrix_get_value(&img->r, i ,j) == bgR &&
+	      (unsigned char)cam_matrix_get_value(&img->g, i ,j) == bgG &&
+	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
+	    {
+	      if ((unsigned char)cam_matrix_get_value(&img->r, i - 1, j - 1) != bgR &&
+		  (unsigned char)cam_matrix_get_value(&img->g, i - 1, j - 1) != bgG &&
+		  (unsigned char)cam_matrix_get_value(&img->b, i - 1, j - 1) != bgB &&
+
+		  (unsigned char)cam_matrix_get_value(&img->r, i - 1,j+1) != bgR &&
+		  (unsigned char)cam_matrix_get_value(&img->g, i - 1,j+1) != bgG &&
+		  (unsigned char)cam_matrix_get_value(&img->b, i - 1,j+1) != bgB &&
+
+		  (unsigned char)cam_matrix_get_value(&img->r, i + 1,j-1) != bgR &&
+		  (unsigned char)cam_matrix_get_value(&img->g, i + 1,j-1) != bgG &&
+		  (unsigned char)cam_matrix_get_value(&img->b, i +1,j-1) != bgB &&
+
+		  (unsigned char)cam_matrix_get_value(&img->r, i +1,j+1) != bgR &&
+		  (unsigned char)cam_matrix_get_value(&img->g, i +1,j+1) != bgG &&
+		  (unsigned char)cam_matrix_get_value(&img->b, i +1,j+1) != bgB)
+		{
+		  /*printf("%i %i\n", i, j);*/
+		  pt.x = i;
+		  pt.y = j;
+		  c.point.x = i - 1;
+		  c.point.y = j - 1;
+		  c.color.r = (unsigned char)cam_matrix_get_value(&img->r, (int)c.point.x , (int)c.point.y);
+		  c.color.g = (unsigned char)cam_matrix_get_value(&img->g, (int)c.point.x , (int)c.point.y);
+		  c.color.b = (unsigned char)cam_matrix_get_value(&img->b, (int)c.point.x , (int)c.point.y);
+		  /*printf("c : %f %f // %i %i %i\n", c.point.x, c.point.y, c.color.r, c.color.g, c.color.b);*/
+		  b.point.x = i + 1;
+		  b.point.y = j + 1;
+		  b.color.r = (unsigned char)cam_matrix_get_value(&img->r, (int)b.point.x , (int)c.point.y);
+		  b.color.g = (unsigned char)cam_matrix_get_value(&img->g, (int)b.point.x , (int)c.point.y);
+		  b.color.b = (unsigned char)cam_matrix_get_value(&img->b, (int)b.point.x , (int)c.point.y);
+		  /*printf("b : %f %f // %i %i %i\n", b.point.x, b.point.y, b.color.r, b.color.g, b.color.b);*/
+		  a.point.x = i - 1;
+		  a.point.y = j + 1;
+		  a.color.r = (unsigned char)cam_matrix_get_value(&img->r, (int)a.point.x , (int)a.point.y);
+		  a.color.g = (unsigned char)cam_matrix_get_value(&img->g, (int)a.point.x , (int)c.point.y);
+		  a.color.b = (unsigned char)cam_matrix_get_value(&img->b, (int)a.point.x , (int)a.point.y);
+		  /*printf("a : %f %f // %i %i %i\n", a.point.x, a.point.y, a.color.r, a.color.g, a.color.b);*/
+		  d.point.x = i + 1;
+		  d.point.y = j - 1;
+		  d.color.r = (unsigned char)cam_matrix_get_value(&img->r, (int)d.point.x , (int)d.point.y);
+		  d.color.g = (unsigned char)cam_matrix_get_value(&img->g, (int)d.point.x , (int)d.point.y);
+		  d.color.b = (unsigned char)cam_matrix_get_value(&img->b, (int)d.point.x , (int)d.point.y);
+		  /*printf("d : %f %f // %i %i %i\n", d.point.x, d.point.y, d.color.r, d.color.g, d.color.b);*/
+		  interpoled = cam_bilinear_interpolation(&pt, &a, &b, &c, &d);
+		  /*printf("res : %i %i %i\n", interpoled->color.r, interpoled->color.g, interpoled->color.b);*/
+		  cam_matrix_set_value(&res->r, i ,j, (POINTS_TYPE)interpoled->color.r);
+		  cam_matrix_set_value(&res->g, i ,j, (POINTS_TYPE)interpoled->color.g);
+		  cam_matrix_set_value(&res->b, i ,j, (POINTS_TYPE)interpoled->color.b);
+		  free (interpoled);
+		}
+	      else
+		{
+		  printf ("here\n");
+		  cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
+		  cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
+		  cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));
+		}
+	    } 
+	  else
+	    {
+	      cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
+	      cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
+	      cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));
+	    }
+	}
+    }
   return (res);
 }

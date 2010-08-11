@@ -68,7 +68,7 @@ typedef enum
 
 typedef struct
 {
-  char r,g,b;
+  unsigned char r,g,b;
 }	RGB;
 
 #endif /* __MISC_H__ */
