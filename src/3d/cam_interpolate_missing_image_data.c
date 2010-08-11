@@ -48,7 +48,18 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "misc.h"
 #include "cam_interpolate_missing_image_data.h"
+
+POINTS_TYPE	cam_round(POINTS_TYPE a)
+{
+  POINTS_TYPE	b;
+
+  b = (POINTS_TYPE)((int)a);
+  if (ABSF(a - b) >= 0.5f)
+    return (b + 1.0f);
+  return (b);
+}
 
 int	compare_grayscale(const void *a, const void *b)
 {
@@ -101,10 +112,19 @@ CamImageMatrix		*cam_interpolate_missing_image_data_median(CamImageMatrix *img, 
 			}
 		    }
 		}
-	      qsort(pts, nb, sizeof(POINTS_TYPE), compare_grayscale);
-	      cam_matrix_set_value(&res->r, i ,j, pts[nb/2].red);
-	      cam_matrix_set_value(&res->g, i ,j, pts[nb/2].green);
-	      cam_matrix_set_value(&res->b, i ,j, pts[nb/2].blue);
+	      if (!nb)
+		{
+		  cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
+		  cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
+		  cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));
+		}
+	      else
+		{
+		  qsort(pts, nb, sizeof(POINTS_TYPE), compare_grayscale);
+		  cam_matrix_set_value(&res->r, i ,j, pts[nb/2].red);
+		  cam_matrix_set_value(&res->g, i ,j, pts[nb/2].green);
+		  cam_matrix_set_value(&res->b, i ,j, pts[nb/2].blue);
+		}
 	    }
 	  else
 	    {
@@ -120,10 +140,54 @@ CamImageMatrix		*cam_interpolate_missing_image_data_median(CamImageMatrix *img, 
 
 CamImageMatrix		*cam_interpolate_missing_image_data_back_projection(CamImageMatrix *img, CamImageMatrix *origin, CamMatrix *inverseHomography, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
-  img = img;
-  origin = origin;
-  inverseHomography = inverseHomography;
-  bgR = bgB = bgG;
+  CamImageMatrix	*res;
+  int			i;
+  int			j;
+  CamMatrix		pt1;
+  CamMatrix		pt2;
+  int			roundX;
+  int			roundY;
 
-  return (NULL);
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
+  cam_allocate_matrix(&pt1, 1, 3);
+  cam_allocate_matrix(&pt2, 1, 3);
+  cam_matrix_set_value(&pt1, 0 , 2 , 1.0f);
+  for (j = 0 ; j < img->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < img->r.ncols ; ++i)
+	{
+	  if ((unsigned char)cam_matrix_get_value(&img->r, i ,j) == bgR &&
+	      (unsigned char)cam_matrix_get_value(&img->g, i ,j) == bgG &&
+	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
+	    {
+	      cam_matrix_set_value(&pt1, 0, 0, (POINTS_TYPE)i - img->r.ncols / 2);
+	      cam_matrix_set_value(&pt1, 0, 1, (POINTS_TYPE)j - img->r.nrows / 2);
+	      cam_matrix_multiply(&pt2, inverseHomography, &pt1);
+	      roundX = (int)cam_round(cam_matrix_get_value(&pt2, 0, 0)) + img->r.ncols / 2;
+	      roundY = (int)cam_round(cam_matrix_get_value(&pt2, 0, 1)) + img->r.nrows / 2;
+	      if (roundX >= 0 && roundX < img->r.ncols && roundY >= 0 && roundY < img->r.nrows)
+		{
+		  cam_matrix_set_value(&res->r, i, j, cam_matrix_get_value(&origin->r, roundX, roundY));
+		  cam_matrix_set_value(&res->g, i, j, cam_matrix_get_value(&origin->g, roundX, roundY));
+		  cam_matrix_set_value(&res->b, i, j, cam_matrix_get_value(&origin->b, roundX, roundY));
+		}
+	      else
+		{
+		  cam_matrix_set_value(&res->r, i ,j, bgR);
+		  cam_matrix_set_value(&res->g, i ,j, bgG);
+		  cam_matrix_set_value(&res->b, i ,j, bgB);
+		}
+	    }
+	  else
+	    {
+	      cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
+	      cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
+	      cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));
+	    }
+	}
+    }
+  cam_disallocate_matrix(&pt1);
+  cam_disallocate_matrix(&pt2);
+  return (res);
 }

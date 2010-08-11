@@ -52,7 +52,7 @@
 #include "cam_matrix.h"
 #include "cam_list.h"
 
-CamImageMatrix	*cam_points_to_matrix(CamList *l, int ncols, int nrows);
+CamImageMatrix	*cam_points_to_matrix(CamList *l, int ncols, int nrows, unsigned char bgR, unsigned char bgG, unsigned char bgB);
 
 
 #endif /* __CAM_POINTS_TO_MATRIX_H__ */

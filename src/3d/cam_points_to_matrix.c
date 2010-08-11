@@ -51,16 +51,27 @@
 #include "cam_points_to_matrix.h"
 #include "cam_2d_points.h"
 
-CamImageMatrix		*cam_points_to_matrix(CamList *l, int ncols, int nrows)
+CamImageMatrix	*cam_points_to_matrix(CamList *l, int ncols, int nrows, unsigned char bgR, unsigned char bgG, unsigned char bgB)
 {
   CamList		*pts;
   CamImageMatrix	*res;
   int			x;
   int			y;
+  int			i;
+  int			j;
 
   res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
   cam_allocate_imagematrix(res, ncols, nrows);
   pts = l;
+  for (j = 0 ; j < nrows ; ++j)
+    {
+      for (i = 0 ; i < ncols ; ++i)
+	{
+	  cam_matrix_set_value(&res->r, i, j, (POINTS_TYPE)bgR);
+	  cam_matrix_set_value(&res->g, i, j, (POINTS_TYPE)bgG);
+	  cam_matrix_set_value(&res->b, i, j, (POINTS_TYPE)bgB);
+	}
+    }
   while (pts)
     {
       x = (int)(((CamColorized2dPoint *)pts->data)->point.x) + ncols / 2;

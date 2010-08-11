@@ -231,42 +231,54 @@ CamList		*cam_euclidian_transform(CamList *points, char *dir, char *file, POINTS
   return (res);
 }
 
+
+/* TODO ou est set le bg à part à l'init ?? */
 int			main()
 {
   char			outputDir[] = "data/tracking";
-  POINTS_TYPE		mask_data[] = {1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f,1.0f};
-  CamMatrix		mask;
   CamImageMatrix	*image;
-  CamImageMatrix	imageTransformed;
   CamImageMatrix	*imageTransformed2;
   CamImageMatrix	*imageInterpoled;
   CamList		*pts;
   CamList		*ptsTransformed;
-  
+  CamMatrix		inverseHomography;
+  POINTS_TYPE		angle1;
+  POINTS_TYPE		tx1;
+  POINTS_TYPE		ty1;
+  unsigned char		bgR, bgG, bgB;
+
+  angle1 = PI/4;
+  tx1 = 0.0f;
+  ty1 = 0.0f;
+  bgR = 0;
+  bgG = 0;
+  bgB = 0;
+
   image = cam_ppm_to_matrix("data/tracking/img0.ppm");
-  cam_allocate_imagematrix(&imageTransformed, image->r.ncols, image->r.nrows);
-  cam_allocate_matrix(&mask, 3, 3);
-  memcpy(mask.data,mask_data,9 * sizeof(POINTS_TYPE));
-
-  cam_matrix_image_convolution(&imageTransformed, image, &mask, 9.0f);
-  /*  cam_matrix_to_pathppm(outputDir, "image", image);
-      cam_matrix_to_pathppm(outputDir, "imageTransformed", &imageTransformed);*/
-
-  /*  pts = cam_matrix_to_points(&imageTransformed);*/
+  cam_allocate_matrix(&inverseHomography, 3, 3);
   pts = cam_matrix_to_points(image);
-  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, PI/4, 0.0f, 0.0f);
-  imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows);
-  /*cam_matrix_to_pathppm(outputDir, "img", imageTransformed2);*/
-  imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);
+  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", 1.0f, angle1, tx1, ty1);
+  imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows, bgR, bgG, bgB);
+  /*  imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);*/
+  cam_matrix_set_value(&inverseHomography, 0, 0, cos(-angle1));
+  cam_matrix_set_value(&inverseHomography, 0, 1, -sin(-angle1));
+  cam_matrix_set_value(&inverseHomography, 0, 2, 0.0f);
+  cam_matrix_set_value(&inverseHomography, 1, 0, sin(-angle1));
+  cam_matrix_set_value(&inverseHomography, 1, 1, cos(-angle1));
+  cam_matrix_set_value(&inverseHomography, 1, 2, 0.0f);
+  cam_matrix_set_value(&inverseHomography, 2, 0, -tx1);
+  cam_matrix_set_value(&inverseHomography, 2, 1, -ty1);
+  cam_matrix_set_value(&inverseHomography, 2, 2, 1.0f);
+  imageInterpoled = cam_interpolate_missing_image_data_back_projection(imageTransformed2, image, &inverseHomography, bgR, bgG, bgB);
+  cam_matrix_to_pathppm(outputDir, "transformed", imageTransformed2);
   cam_matrix_to_pathppm(outputDir, "img1", imageInterpoled);
   
   cam_disallocate_linked_list(pts);
   cam_disallocate_linked_list(ptsTransformed);
   cam_disallocate_imagematrix(image);
-  cam_disallocate_imagematrix(&imageTransformed);
   cam_disallocate_imagematrix(imageTransformed2);
   cam_disallocate_imagematrix(imageInterpoled);
-  cam_disallocate_matrix(&mask);
+  cam_disallocate_matrix(&inverseHomography);
   free(image);
   free(imageTransformed2);
   free(imageInterpoled);
