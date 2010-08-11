@@ -79,8 +79,7 @@ void		cam_homography_to_file(char *dstFile, CamMatrix *H)
   fclose (file);
 }
 
-
-CamList		*cam_apply_transformation(CamList *points, CamMatrix *H)
+CamList		*cam_apply_transformation_list(CamList *points, CamMatrix *H)
 {
   CamList	*res;
   CamMatrix	pt;
@@ -110,7 +109,56 @@ CamList		*cam_apply_transformation(CamList *points, CamMatrix *H)
   return (res);
 }
 
-CamList		*cam_affine_transform(CamList *points, char *dir, char *file, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE phi, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamImageMatrix		*cam_apply_transformation_imagematrix(CamImageMatrix *img, CamMatrix *H, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  CamImageMatrix	*res;
+  CamMatrix		pt;
+  CamMatrix		ptTransformed;
+  int			i;
+  int			j;
+
+  cam_allocate_matrix(&pt, 1, 3);
+  cam_allocate_matrix(&ptTransformed, 1, 3);
+  res = (CamImageMatrix *)malloc(sizeof(CamImageMatrix));
+  cam_allocate_imagematrix(res, img->r.ncols, img->r.nrows);
+  cam_matrix_set_value(&pt, 0, 2, 1.0f);
+  for (j = 0 ; j < img->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < img->r.ncols ; ++i)
+	{
+	  cam_matrix_set_value(&res->r, i, j, bgR);
+	  cam_matrix_set_value(&res->g, i, j, bgG);
+	  cam_matrix_set_value(&res->b, i, j, bgB);
+	}
+    }
+  for (j = 0 ; j < img->r.nrows ; ++j)
+    {
+      for (i = 0 ; i < img->r.ncols ; ++i)
+	{
+	  cam_matrix_set_value(&pt, 0, 0, (POINTS_TYPE)i - img->r.ncols / 2);
+	  cam_matrix_set_value(&pt, 0, 1, (POINTS_TYPE)j - img->r.nrows / 2);
+	  cam_matrix_multiply(&ptTransformed, H, &pt);
+	  cam_matrix_add_value(&ptTransformed, 0, 0, (POINTS_TYPE)img->r.ncols / 2);
+	  cam_matrix_add_value(&ptTransformed, 0, 1, (POINTS_TYPE)img->r.nrows / 2);
+	  if ((int)cam_matrix_get_value(&ptTransformed, 0, 0) >= 0 && (int)cam_matrix_get_value(&ptTransformed, 0, 0) < img->r.ncols &&
+	      (int)cam_matrix_get_value(&ptTransformed, 0, 1) >= 0 && (int)cam_matrix_get_value(&ptTransformed, 0, 1) < img->r.nrows)
+	    {
+	      /*cam_print_matrix(&ptTransformed,"tr");*/
+	      cam_matrix_set_value(&res->r, cam_matrix_get_value(&ptTransformed, 0, 0), cam_matrix_get_value(&ptTransformed, 0, 1),
+				   cam_matrix_get_value(&img->r, i, j));
+	      cam_matrix_set_value(&res->g, cam_matrix_get_value(&ptTransformed, 0, 0), cam_matrix_get_value(&ptTransformed, 0, 1),
+				   cam_matrix_get_value(&img->g, i, j));
+	      cam_matrix_set_value(&res->b, cam_matrix_get_value(&ptTransformed, 0, 0), cam_matrix_get_value(&ptTransformed, 0, 1),
+				   cam_matrix_get_value(&img->b, i, j));
+	    }
+	}
+    }
+  cam_disallocate_matrix(&pt);
+  cam_disallocate_matrix(&ptTransformed);
+  return (res);
+}
+
+CamList		*cam_affine_transform_list(CamList *points, char *dir, char *file, POINTS_TYPE lambda1, POINTS_TYPE lambda2, POINTS_TYPE phi, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamMatrix	D;
@@ -166,7 +214,7 @@ CamList		*cam_affine_transform(CamList *points, char *dir, char *file, POINTS_TY
   cam_matrix_set_value(&H, 2, 1, ty);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
 
-  res = cam_apply_transformation(points, &H);
+  res = cam_apply_transformation_list(points, &H);
   cam_homography_to_file(outputPath, &H);
 
   cam_disallocate_matrix(&H);
@@ -180,7 +228,7 @@ CamList		*cam_affine_transform(CamList *points, char *dir, char *file, POINTS_TY
   return (res);
 }
 
-CamList		*cam_similarity_transform(CamList *points, char *dir, char *file, POINTS_TYPE s, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamList		*cam_similarity_transform_list(CamList *points, char *dir, char *file, POINTS_TYPE s, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamList	*res;
@@ -198,14 +246,39 @@ CamList		*cam_similarity_transform(CamList *points, char *dir, char *file, POINT
   cam_matrix_set_value(&H, 2, 0, tx);
   cam_matrix_set_value(&H, 2, 1, ty);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
-  res = cam_apply_transformation(points, &H);
+  res = cam_apply_transformation_list(points, &H);
   cam_homography_to_file(outputPath, &H);
   cam_disallocate_matrix(&H);
   free(outputPath);
   return (res);
 }
 
-CamList		*cam_euclidian_transform(CamList *points, char *dir, char *file, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
+CamImageMatrix		*cam_similarity_transform_imagematrix(CamImageMatrix *img, char *dir, char *file, POINTS_TYPE s, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty, unsigned char bgR, unsigned char bgG, unsigned char bgB)
+{
+  CamMatrix		H;
+  CamImageMatrix	*res;
+  char			*outputPath;
+
+  outputPath = (char *)malloc((strlen(dir) + strlen(file) + strlen("tr") + 3) * sizeof(char) );
+  sprintf(outputPath,"%s/%s.%s", dir, file, "tr");
+  cam_allocate_matrix(&H, 3, 3);
+  cam_matrix_set_value(&H, 0, 0, s * cos(theta));
+  cam_matrix_set_value(&H, 0, 1, s * -sin(theta));
+  cam_matrix_set_value(&H, 0, 2, 0.0f);
+  cam_matrix_set_value(&H, 1, 0, s * sin(theta));
+  cam_matrix_set_value(&H, 1, 1, s * cos(theta));
+  cam_matrix_set_value(&H, 1, 2, 0.0f);
+  cam_matrix_set_value(&H, 2, 0, tx);
+  cam_matrix_set_value(&H, 2, 1, ty);
+  cam_matrix_set_value(&H, 2, 2, 1.0f);
+  res = cam_apply_transformation_imagematrix(img, &H, bgR, bgG, bgB);
+  cam_homography_to_file(outputPath, &H);
+  cam_disallocate_matrix(&H);
+  free(outputPath);
+  return (res);
+}
+
+CamList		*cam_euclidian_transform_list(CamList *points, char *dir, char *file, POINTS_TYPE theta, POINTS_TYPE tx, POINTS_TYPE ty)
 {
   CamMatrix	H;
   CamList	*res;
@@ -223,7 +296,7 @@ CamList		*cam_euclidian_transform(CamList *points, char *dir, char *file, POINTS
   cam_matrix_set_value(&H, 2, 0, tx);
   cam_matrix_set_value(&H, 2, 1, ty);
   cam_matrix_set_value(&H, 2, 2, 1.0f);
-  res = cam_apply_transformation(points, &H);
+  res = cam_apply_transformation_list(points, &H);
   cam_homography_to_file(outputPath, &H);
   cam_disallocate_matrix(&H);
   free(outputPath);
@@ -250,16 +323,18 @@ int			main()
   ratio = 2.0f;
   tx1 = 0.0f;
   ty1 = 0.0f;
-  bgR = 0;
+
+  bgR = 255;
   bgG = 0;
   bgB = 0;
 
   image = cam_ppm_to_matrix("data/tracking/img0.ppm");
   cam_allocate_matrix(&inverseHomography, 3, 3);
   pts = cam_matrix_to_points(image);
-  ptsTransformed = cam_similarity_transform(pts, outputDir, "homo1", ratio, angle1, tx1, ty1);
-  imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows, bgR, bgG, bgB);
-  /*  imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);*/
+  imageTransformed2 = cam_similarity_transform_imagematrix(image, outputDir, "homo1", ratio, angle1, tx1, ty1, bgR, bgG, bgB);
+  ptsTransformed = cam_similarity_transform_list(pts, outputDir, "homo1", ratio, angle1, tx1, ty1);
+  /*imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows, bgR, bgG, bgB);*/
+  imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);
   cam_matrix_set_value(&inverseHomography, 0, 0, cos(-angle1) / ratio);
   cam_matrix_set_value(&inverseHomography, 0, 1, -sin(-angle1) / ratio);
   cam_matrix_set_value(&inverseHomography, 0, 2, 0.0f);
