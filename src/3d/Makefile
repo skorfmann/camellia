@@ -48,7 +48,7 @@ NAME_NON_REGRESSION		=	non_regression
 NAME_EVALUATE_TRACKING		=	evaluate_tracking
 NAME_IMAGES_TRANSFORMATION	=	generate_images_transformation
 
-CFLAGS		=	-W -Wall -pedantic -ansi -g3
+CFLAGS		=	-W -Wall -pedantic -ansi -Werror -g3
 
 CC		=	gcc
 

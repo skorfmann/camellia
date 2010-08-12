@@ -316,15 +316,38 @@ int			main()
   POINTS_TYPE		ty1;
   POINTS_TYPE		ratio;
   unsigned char		bgR, bgG, bgB;
+  CamImageMatrix	tst;
+  
+ 
+  int	i;
+  int	j;
 
-  angle1 = PI/6;
+  angle1 = PI/20;
   ratio = 1.0f;
-  tx1 = 0.0f;
-  ty1 = 0.0f;
+  tx1 = 10.0f;
+  ty1 = 10.0f;
 
   bgR = 0;
   bgG = 0;
   bgB = 255;
+
+  cam_allocate_imagematrix(&tst, 255, 255);
+  for (j = 0 ; j < 255 ; ++j)
+    {
+      for (i = 0 ; i < 255 ; ++i)
+	{
+	  if (i > 128)
+	    cam_matrix_set_value(&tst.r, i , j, (POINTS_TYPE)0);
+	  else
+	    cam_matrix_set_value(&tst.r, i , j, (POINTS_TYPE)255);
+	  if (j > 128)
+	    cam_matrix_set_value(&tst.g, i , j, (POINTS_TYPE)255);
+	  else
+	    cam_matrix_set_value(&tst.g, i , j, (POINTS_TYPE)0);
+	  cam_matrix_set_value(&tst.b, i , j, 0.0f);
+	}
+    }
+  cam_matrix_to_pathppm(outputDir, "testimg", &tst);
 
   image = cam_ppm_to_matrix("data/tracking/img0.ppm");
   cam_allocate_matrix(&inverseHomography, 3, 3);
@@ -341,7 +364,7 @@ int			main()
   cam_matrix_set_value(&inverseHomography, 2, 2, 1.0f);
   /*imageInterpoled = cam_interpolate_missing_image_data_back_projection(imageTransformed2, image, &inverseHomography, bgR, bgG, bgB);*/
   /*imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 2, bgR, bgG, bgB);*/
-  imageInterpoled = cam_interpolate_missing_image_data_bilinear(imageTransformed2, bgR, bgG, bgB);
+  imageInterpoled = cam_interpolate_missing_image_data_bilinear(imageTransformed2, image, &inverseHomography, bgR, bgG, bgB);
   cam_matrix_to_pathppm(outputDir, "transformed", imageTransformed2);
   cam_matrix_to_pathppm(outputDir, "img1", imageInterpoled);
   
