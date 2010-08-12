@@ -52,7 +52,7 @@
 #include "cam_2d_points.h"
 #include "cam_interpolate_missing_image_data.h"
 
-#define	BILINEAR_SEARCH_ZONE	5
+#define	BILINEAR_SEARCH_ZONE	10
 
 POINTS_TYPE	cam_round(POINTS_TYPE a)
 {
@@ -260,14 +260,13 @@ CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img
 	      (unsigned char)cam_matrix_get_value(&img->b, i ,j) == bgB)
 	    {
 	      found = FALSE;
-	      printf("1 : %i %i\n", i, j);
-	      for (x1 = i - 1 ; x1 > i - BILINEAR_SEARCH_ZONE && found == FALSE ; --x1)
+	      for (x1 = i - 1 ; x1 > i - BILINEAR_SEARCH_ZONE && x1 >= 0 && found == FALSE ; --x1)
 		{
-		  for (x2 = i + 1 ; x2 < i + BILINEAR_SEARCH_ZONE && found == FALSE ; ++x2)
+		  for (x2 = i + 1 ; x2 < i + BILINEAR_SEARCH_ZONE && x2 < img->r.ncols && found == FALSE ; ++x2)
 		    {
-		      for (y1 = j - 1 ; y1 > j - BILINEAR_SEARCH_ZONE && found == FALSE ; --y1)
+		      for (y1 = j - 1 ; y1 > j - BILINEAR_SEARCH_ZONE && y1 >= 0 && found == FALSE ; --y1)
 			{
-			  for (y2 = j + 1 ; y2 < j + BILINEAR_SEARCH_ZONE && found == FALSE ; ++y2)
+			  for (y2 = j + 1 ; y2 < j + BILINEAR_SEARCH_ZONE && y2 < img->r.nrows && found == FALSE ; ++y2)
 			    {
 			      if ((unsigned char)cam_matrix_get_value(&img->r, x1 ,y1) != bgR &&
 				  (unsigned char)cam_matrix_get_value(&img->g, x1 ,y1) != bgG &&
@@ -282,7 +281,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img
 				  (unsigned char)cam_matrix_get_value(&img->g, x2 ,y2) != bgG &&
 				  (unsigned char)cam_matrix_get_value(&img->b, x2 ,y2) != bgB)
 				{
-				  printf("found : %i %i // %i %i %i %i\n", i, j, x1, x2, y1 , y2);
 				  pt.x = (POINTS_TYPE)i;
 				  pt.y = (POINTS_TYPE)j;
 			  
@@ -311,7 +309,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img
 				  d.color.b = (unsigned char)cam_matrix_get_value(&img->b, (int)d.point.x, (int)d.point.y);
 
 				  interpoled = cam_bilinear_interpolation(&pt, &a, &b, &c, &d);
-				  printf("%i // %i %i %i %i\n", interpoled->color.r, a.color.r, b.color.r, c.color.r, d.color.r);
 				  
 				  cam_matrix_set_value(&res->r, i, j, (POINTS_TYPE)interpoled->color.r);
 				  cam_matrix_set_value(&res->g, i, j, (POINTS_TYPE)interpoled->color.g);
@@ -328,7 +325,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img
 	      /* no quare found */
 	      if (found == FALSE)
 		{
-		  printf ("not found : %i %i %i %i\n", x1, x2, y1, y2);
 		  cam_matrix_set_value(&res->r, i ,j, cam_matrix_get_value(&img->r, i, j));
 		  cam_matrix_set_value(&res->g, i ,j, cam_matrix_get_value(&img->g, i, j));
 		  cam_matrix_set_value(&res->b, i ,j, cam_matrix_get_value(&img->b, i, j));

@@ -143,7 +143,6 @@ CamImageMatrix		*cam_apply_transformation_imagematrix(CamImageMatrix *img, CamMa
 	  if ((int)cam_matrix_get_value(&ptTransformed, 0, 0) >= 0 && (int)cam_matrix_get_value(&ptTransformed, 0, 0) < img->r.ncols &&
 	      (int)cam_matrix_get_value(&ptTransformed, 0, 1) >= 0 && (int)cam_matrix_get_value(&ptTransformed, 0, 1) < img->r.nrows)
 	    {
-	      /*cam_print_matrix(&ptTransformed,"tr");*/
 	      cam_matrix_set_value(&res->r, cam_matrix_get_value(&ptTransformed, 0, 0), cam_matrix_get_value(&ptTransformed, 0, 1),
 				   cam_matrix_get_value(&img->r, i, j));
 	      cam_matrix_set_value(&res->g, cam_matrix_get_value(&ptTransformed, 0, 0), cam_matrix_get_value(&ptTransformed, 0, 1),
@@ -311,7 +310,6 @@ int			main()
   CamImageMatrix	*imageTransformed2;
   CamImageMatrix	*imageInterpoled;
   CamList		*pts;
-  CamList		*ptsTransformed;
   CamMatrix		inverseHomography;
   POINTS_TYPE		angle1;
   POINTS_TYPE		tx1;
@@ -319,8 +317,8 @@ int			main()
   POINTS_TYPE		ratio;
   unsigned char		bgR, bgG, bgB;
 
-  angle1 = 0.0f;
-  ratio = 2.0f;
+  angle1 = PI/6;
+  ratio = 1.0f;
   tx1 = 0.0f;
   ty1 = 0.0f;
 
@@ -332,9 +330,6 @@ int			main()
   cam_allocate_matrix(&inverseHomography, 3, 3);
   pts = cam_matrix_to_points(image);
   imageTransformed2 = cam_similarity_transform_imagematrix(image, outputDir, "homo1", ratio, angle1, tx1, ty1, bgR, bgG, bgB);
-  ptsTransformed = cam_similarity_transform_list(pts, outputDir, "homo1", ratio, angle1, tx1, ty1);
-  /*imageTransformed2 = cam_points_to_matrix(ptsTransformed, image->r.ncols, image->r.nrows, bgR, bgG, bgB);*/
-  imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 1, 0, 0, 0);
   cam_matrix_set_value(&inverseHomography, 0, 0, cos(-angle1) / ratio);
   cam_matrix_set_value(&inverseHomography, 0, 1, -sin(-angle1) / ratio);
   cam_matrix_set_value(&inverseHomography, 0, 2, 0.0f);
@@ -351,7 +346,6 @@ int			main()
   cam_matrix_to_pathppm(outputDir, "img1", imageInterpoled);
   
   cam_disallocate_linked_list(pts);
-  cam_disallocate_linked_list(ptsTransformed);
   cam_disallocate_imagematrix(image);
   cam_disallocate_imagematrix(imageTransformed2);
   cam_disallocate_imagematrix(imageInterpoled);
