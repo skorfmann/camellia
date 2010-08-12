@@ -324,9 +324,9 @@ int			main()
   tx1 = 0.0f;
   ty1 = 0.0f;
 
-  bgR = 255;
+  bgR = 0;
   bgG = 0;
-  bgB = 0;
+  bgB = 255;
 
   image = cam_ppm_to_matrix("data/tracking/img0.ppm");
   cam_allocate_matrix(&inverseHomography, 3, 3);
