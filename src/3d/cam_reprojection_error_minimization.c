@@ -46,10 +46,12 @@
   ==========================================================================
 */
 
+#include <stdlib.h>
 #include "cam_reprojection_error_minimization.h"
 
 /* implementation algorithm p.318 in multiple view geometry in computer vision */
 
+/* begin step 1 */
 CamMatrix	*cam_transformation_matrix(CamMatrix *pt)
 {
   CamMatrix	*res;
@@ -65,4 +67,84 @@ CamMatrix	*cam_transformation_matrix(CamMatrix *pt)
   cam_matrix_set_value(res, 2, 0, -cam_matrix_get_value(pt, 0, 0));
   cam_matrix_set_value(res, 2, 1, -cam_matrix_get_value(pt, 0, 1));
   cam_matrix_set_value(res, 2, 2, 1.0f);
+  return (res);
 }
+/* end step 1 */
+
+/* begin step 2 */
+void		cam_transform_f_with_transformation(CamMatrix *F, CamMatrix *T, CamMatrix *Tprime)
+{
+  CamMatrix	tmp;
+  CamMatrix	Tinverse;
+  CamMatrix	Tprimeinverse;
+  CamMatrix	Tprimeinversetranspose;
+
+  cam_allocate_matrix(&tmp, 3, 3);
+  cam_allocate_matrix(&Tinverse, 3, 3);
+  cam_allocate_matrix(&Tprimeinverse, 3, 3);
+  cam_allocate_matrix(&Tprimeinversetranspose, 3, 3);
+  
+  cam_matrix_inverse_3x3(&Tinverse, T);
+  cam_matrix_inverse_3x3(&Tprimeinverse, Tprime);
+  cam_matrix_transpose(&Tprimeinversetranspose, &Tprimeinverse);
+  
+  cam_matrix_multiply(&tmp, &Tprimeinversetranspose, F);
+  cam_matrix_multiply(F, &tmp, &Tinverse);
+  
+  cam_disallocate_matrix(&tmp);
+  cam_disallocate_matrix(&Tinverse);
+  cam_disallocate_matrix(&Tprimeinverse);
+  cam_disallocate_matrix(&Tprimeinversetranspose);
+}
+/* end step 2 */
+
+/* begin step 3 */
+void		cam_normalize_epipole(CamMatrix *e)
+{
+  POINTS_TYPE	s;
+
+  s = sqrt(1.0f / (cam_matrix_get_value(e, 0, 0) * cam_matrix_get_value(e, 0, 0) +
+		   cam_matrix_get_value(e, 0, 1) * cam_matrix_get_value(e, 0, 1)));
+  cam_matrix_set_value(e, 0, 0, s * cam_matrix_get_value(e, 0, 0));
+  cam_matrix_set_value(e, 0, 1, s * cam_matrix_get_value(e, 0, 1));
+}
+
+void	cam_normalize_epipoles(CamEpipoles *e)
+{
+  cam_normalize_epipole(&e->eFirst);
+  cam_normalize_epipole(&e->eSecond);
+}
+
+CamEpipoles	*cam_compute_normalized_epipoles(CamMatrix *f)
+{
+  CamEpipoles	*res;
+
+  res = cam_compute_epipoles(f);
+  cam_normalize_epipoles(res);
+  return (res);
+}
+/* end step 3 */
+
+/* begin step 4 */
+CamMatrix	*cam_form_rotation_matrix(CamMatrix *epipole)
+{
+  CamMatrix	*res;
+
+  res = malloc(sizeof(CamMatrix));
+  cam_allocate_matrix(res, 3 , 3);
+  cam_matrix_set_value(res, 0, 0, cam_matrix_get_value(epipole, 0, 0));
+  cam_matrix_set_value(res, 1, 0, cam_matrix_get_value(epipole, 0, 1));
+  cam_matrix_set_value(res, 2, 0, 0.0f);
+  cam_matrix_set_value(res, 0, 1, -cam_matrix_get_value(epipole, 0, 1));
+  cam_matrix_set_value(res, 1, 1, cam_matrix_get_value(epipole, 0, 0));
+  cam_matrix_set_value(res, 2, 1, 0.0f);
+  cam_matrix_set_value(res, 0, 2, 0.0f);
+  cam_matrix_set_value(res, 1, 2, 0.0f);
+  cam_matrix_set_value(res, 2, 2, 1.0f);
+  return (res);
+}
+/* end step 4 */
+
+/* begin step 5 */
+
+/* end step 5 */

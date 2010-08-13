@@ -19,6 +19,7 @@ SRC_SFM		=	$(SRC_MISC)		\
 			cam_p_from_f.c		\
 			cam_project_2d_to_3d.c	\
 			cam_project_3d_to_2d.c	\
+			cam_reprojection_error_minimization.c \
 			sfm.c
 
 SRC_NON_REGRESSION	=	$(SRC_MISC)		\

@@ -256,3 +256,50 @@ void		cam_matrix_transpose(CamMatrix *dst, CamMatrix *src)
 	cam_matrix_set_value(dst, j, i, cam_matrix_get_value(src, i , j));
       }
 }
+
+/****************************************************************************************/
+/* inverse a 3x3 matrix following http://en.wikipedia.org/wiki/Invertible_matrix	*/
+/* [a b c]										*/
+/* [d e f]										*/
+/* [g h k]										*/
+/****************************************************************************************/
+void	cam_matrix_inverse_3x3(CamMatrix *dst, CamMatrix *src)
+{
+  POINTS_TYPE	a, b ,c ,d ,e ,f ,g ,h ,k;
+  POINTS_TYPE	A, B ,C ,D ,E ,F ,G ,H ,K;
+  POINTS_TYPE	Z;
+  
+  if (dst->ncols != 3 || dst->nrows != 3 || dst->ncols != src->ncols || dst->nrows != src->nrows)
+    {
+      printf("cam_matrix_inverse_3x3 : m1->ncols != m2->cols != 3 || m1->nrows != m2->nrows != 3");
+      exit (-1);
+    }
+  a = cam_matrix_get_value(src, 0 , 0);
+  b = cam_matrix_get_value(src, 1 , 0);
+  c = cam_matrix_get_value(src, 2 , 0);
+  d = cam_matrix_get_value(src, 0 , 1);
+  e = cam_matrix_get_value(src, 1 , 1);
+  f = cam_matrix_get_value(src, 2 , 1);
+  g = cam_matrix_get_value(src, 0 , 2);
+  h = cam_matrix_get_value(src, 1 , 2);
+  k = cam_matrix_get_value(src, 2 , 2);
+  Z = a * (e * k - f * h) + b * (f * g - d * k) + c * (d * h - e * g);
+  A = (e * k - f * h) / Z;
+  B = (c * h - b * k) / Z;
+  C = (b * f - c * e) / Z;
+  D = (f * g - d * k) / Z;
+  E = (a * k - c * g) / Z;
+  F = (c * d - a * f) / Z;
+  G = (d * h - e * g) / Z;
+  H = (b * g - a * h) / Z;
+  K = (a * e - b * d) / Z;
+  cam_matrix_set_value(dst, 0, 0, A);
+  cam_matrix_set_value(dst, 1, 0, B);
+  cam_matrix_set_value(dst, 2, 0, C);
+  cam_matrix_set_value(dst, 0, 1, D);
+  cam_matrix_set_value(dst, 1, 1, E);
+  cam_matrix_set_value(dst, 2, 1, F);
+  cam_matrix_set_value(dst, 0, 2, G);
+  cam_matrix_set_value(dst, 1, 2, H);
+  cam_matrix_set_value(dst, 2, 2, K);
+}

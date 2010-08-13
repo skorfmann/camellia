@@ -49,8 +49,10 @@
 #ifndef __CAM_REPROJECTION_ERROR_MINIMIZATION_H__
 # define __CAM_REPROJECTION_ERROR_MINIMIZATION_H__
 
+#include "cam_epipoles.h"
 #include "cam_matrix.h"
 
 CamMatrix	*cam_transformation_matrix(CamMatrix *pt);
+void		cam_transform_f(CamMatrix *F, CamMatrix *T, CamMatrix *Tprime);
 
 #endif /* __CAM_REPROJECTION_ERROR_MINIMIZATION_H__ */
