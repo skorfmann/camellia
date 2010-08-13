@@ -322,10 +322,10 @@ int			main()
   int	i;
   int	j;
 
-  angle1 = PI/20;
+  angle1 = PI/70;
   ratio = 1.0f;
-  tx1 = 10.0f;
-  ty1 = 10.0f;
+  tx1 = 0.0f;
+  ty1 = 0.0f;
 
   bgR = 0;
   bgG = 0;
@@ -362,8 +362,6 @@ int			main()
   cam_matrix_set_value(&inverseHomography, 2, 0, -tx1);
   cam_matrix_set_value(&inverseHomography, 2, 1, -ty1);
   cam_matrix_set_value(&inverseHomography, 2, 2, 1.0f);
-  /*imageInterpoled = cam_interpolate_missing_image_data_back_projection(imageTransformed2, image, &inverseHomography, bgR, bgG, bgB);*/
-  /*imageInterpoled = cam_interpolate_missing_image_data_median(imageTransformed2, 2, bgR, bgG, bgB);*/
   imageInterpoled = cam_interpolate_missing_image_data_bilinear(imageTransformed2, image, &inverseHomography, bgR, bgG, bgB);
   cam_matrix_to_pathppm(outputDir, "transformed", imageTransformed2);
   cam_matrix_to_pathppm(outputDir, "img1", imageInterpoled);
