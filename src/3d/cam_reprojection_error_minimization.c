@@ -47,6 +47,7 @@
 */
 
 #include <stdlib.h>
+#include <math.h>
 #include "cam_reprojection_error_minimization.h"
 
 /* implementation algorithm p.318 in multiple view geometry in computer vision */
@@ -146,5 +147,47 @@ CamMatrix	*cam_form_rotation_matrix(CamMatrix *epipole)
 /* end step 4 */
 
 /* begin step 5 */
+void		cam_transform_f_with_rotation(CamMatrix *F, CamMatrix *R, CamMatrix *Rprime)
+{
+  CamMatrix	tmp;
+  CamMatrix	Rtranspose;
 
+  cam_allocate_matrix(&tmp, 3, 3);
+  cam_allocate_matrix(&Rtranspose, 3, 3);
+  cam_matrix_transpose(&Rtranspose, R);
+  cam_matrix_multiply(&tmp, Rprime, F);
+  cam_matrix_multiply(F, &tmp, &Rtranspose);
+  cam_disallocate_matrix(&tmp);
+  cam_disallocate_matrix(&Rtranspose);
+}
 /* end step 5 */
+
+/* begin step 6 */
+void		cam_replace_data_in_f(CamMatrix *F, CamMatrix *e, CamMatrix *eprime)
+{
+  POINTS_TYPE	f;
+  POINTS_TYPE	fprime;
+  POINTS_TYPE	a;
+  POINTS_TYPE	b;
+  POINTS_TYPE	c;
+  POINTS_TYPE	d;
+  
+  f = cam_matrix_get_value(e, 0, 2);
+  fprime = cam_matrix_get_value(eprime, 0, 2);
+  a = cam_matrix_get_value(F, 1, 1);
+  b = cam_matrix_get_value(F, 2, 1);
+  c = cam_matrix_get_value(F, 1, 2);
+  d = cam_matrix_get_value(F, 2, 2);
+  cam_matrix_set_value(F, 0, 0, f * fprime * d);
+  cam_matrix_set_value(F, 0, 1, -f * b);
+  cam_matrix_set_value(F, 0, 2, -f * d);
+  cam_matrix_set_value(F, 1, 0, -fprime * c);
+  cam_matrix_set_value(F, 2, 0, -fprime * d);
+}
+/* end step 6 */
+
+/* begin step 7 */
+void		cam_solve_polynom(CamMatrix *F)
+{
+  F = F;
+}
