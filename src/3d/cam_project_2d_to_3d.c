@@ -369,7 +369,7 @@ void		cam_compute_vector_to_3d_point(CamMatrix *v, CamMatrix *t, CamMatrix *Rt, 
 /* [t1x t1y t1z] + alpha * [v1x v1y v1z] = [t2x t2y t2z] + beta * [v2x v2y v2z] */
 /********************************************************************************/
 
-Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2, CamMatrix *t2)
+Cam3dPoint	*cam_vectors_intersection_perfect(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2, CamMatrix *t2)
 {
   Cam3dPoint	*res;
   POINTS_TYPE	X;
@@ -458,7 +458,7 @@ Cam3dPoint	*cam_vectors_intersection(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2
   return (res);
 }
 
-Cam3dPoint	*cam_triangulate_one_3d_point(CamProjectionsPair *projectionPair, CamMatrix *t1, CamMatrix *t2, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b)
+Cam3dPoint	*cam_triangulate_one_perfect_3d_point(CamProjectionsPair *projectionPair, CamMatrix *t1, CamMatrix *t2, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b)
 {
   CamMatrix	v1;
   CamMatrix	v2;
@@ -471,8 +471,22 @@ Cam3dPoint	*cam_triangulate_one_3d_point(CamProjectionsPair *projectionPair, Cam
   K = K;
   cam_compute_vector_to_3d_point(&v1, t1, &projectionPair->p1, a);
   cam_compute_vector_to_3d_point(&v2, t2, &projectionPair->p2, b);
-  res = cam_vectors_intersection(&v1, t1, &v2, t2);
+  res = cam_vectors_intersection_perfect(&v1, t1, &v2, t2);
   cam_disallocate_matrix(&v1);
   cam_disallocate_matrix(&v2);
   return (res);
+}
+
+Cam3dPoint	*cam_vectors_intersection_noisy(CamMatrix *v1, CamMatrix *t1, CamMatrix *v2, CamMatrix *t2)
+{
+  v1 = v2 = t1 = t2;
+  return (NULL);
+}
+
+Cam3dPoint      *cam_triangulate_one_noisy_3d_point(CamProjectionsPair *projectionPair, CamMatrix *t1, CamMatrix *t2, CamMatrix *K, Cam2dPoint *a, Cam2dPoint *b)
+{
+  projectionPair = projectionPair;
+  t1 = t2 = K;
+  a = b;
+  return (NULL);
 }

@@ -134,7 +134,7 @@ void			main_triangulate_2d_points_tests()
 	  R = compute_rotation_matrix(a, b, c);
 	  cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t);
 	  cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t);
-	  cam_triangulate_one_3d_point(&projectionPair, &t, &t, &K, &pt, &pt);
+	  cam_triangulate_one_perfect_3d_point(&projectionPair, &t, &t, &K, &pt, &pt);
 	}
     
   cam_disallocate_projections_pair(&projectionPair);
@@ -212,7 +212,7 @@ void			main_triangulate_2d_points()
   ppts2 = pts2;
   while (ppts1 && ppts2)
     {
-      pt3d = cam_triangulate_one_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
+      pt3d = cam_triangulate_one_perfect_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
 
       if (pt3d)
 	{

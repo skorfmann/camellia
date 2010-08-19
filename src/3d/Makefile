@@ -54,7 +54,7 @@ CFLAGS		=	-W -Wall -pedantic -ansi -Werror -g3
 CC		=	gcc
 
 LIBS_VIEWER			=	-lGLU -lglut -lGL
-LIBS_SFM			=	-lm
+LIBS_SFM			=	-lm -lgsl -lgslcblas
 LIBS_NON_REGRESSION		=	-lm
 LIBS_EVALUATE_TRACKING		=	-lm
 LIBS_IMAGES_TRANSFORMATION	=	-lm

@@ -48,6 +48,8 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
+#include <gsl/gsl_poly.h>
 #include "cam_reprojection_error_minimization.h"
 
 /* implementation algorithm p.318 in multiple view geometry in computer vision */
@@ -187,7 +189,49 @@ void		cam_replace_data_in_f(CamMatrix *F, CamMatrix *e, CamMatrix *eprime)
 /* end step 6 */
 
 /* begin step 7 */
-void		cam_solve_polynom(CamMatrix *F)
+void				cam_solve_polynom(CamMatrix *F)
 {
-  F = F;
+  double			coeffs[7];
+  double			z[12];
+  POINTS_TYPE			a;
+  POINTS_TYPE			b;
+  POINTS_TYPE			c;
+  POINTS_TYPE			d;
+  POINTS_TYPE			f;
+  POINTS_TYPE			fprime;
+  gsl_poly_complex_workspace	*w;
+
+  w = gsl_poly_complex_workspace_alloc(7);
+
+  a = cam_matrix_get_value(F, 1, 1);
+  b = cam_matrix_get_value(F, 2, 1);
+  c = cam_matrix_get_value(F, 1, 2);
+  d = cam_matrix_get_value(F, 2, 2);
+  f = -cam_matrix_get_value(F, 0, 1) / b;
+  fprime = -cam_matrix_get_value(F, 1, 0) / c;
+
+  /* begin integrity check */
+  if (-cam_matrix_get_value(F, 2, 0) / d != fprime || -cam_matrix_get_value(F, 0, 2) / d != f || cam_matrix_get_value(F, 0, 0) / d != f * fprime)
+    {
+      printf("cam_solve_polynom : failed the integrity check\n");
+      exit (-1);
+    }
+  /* end integrity check */
+  
+  coeffs[6] = -pow(f, 4) * pow(a, 2) * c * d + pow(f, 4) * a * b * pow(c, 2);
+  coeffs[5] = -pow(f, 4) * pow(a, 2) * pow(d, 2) + pow(f, 4)* pow(b, 2) * pow(c, 2) + pow(a, 4) +
+    2 * pow(fprime, 2) * pow(a, 2) * pow(c, 2) + pow(fprime, 4) * pow(c, 4);;
+  coeffs[4] = - pow(f, 4) * pow(a, 2) * pow(d, 2) + pow(f, 4) * pow(b , 2) * c * d - 2 * pow(f, 2) * pow(a, 2) * c * d +
+    2 * pow(f, 2) * a * b * pow(c, 2) + 4 * pow(fprime, 2) * a *b * pow(c, 2) + 4 * pow(a, 3) * b + 4 * pow(fprime, 2) * pow(a, 2) * c * d +
+    4 * pow(fprime, 4) * pow(c, 3) * d;
+  coeffs[3] = -2 * pow(f, 2) * pow(a, 2) * pow(d, 2) + 2 * pow(f, 2) * pow(b, 2) * pow(c, 2) + 8 * pow(fprime, 2) * a * b *c * d +
+    2 * pow(fprime, 2) * pow(b ,2) * pow(c, 2) + 6 * pow(a, 2) * pow(b, 2) + 2 * pow(fprime, 2) * pow(a, 2) * pow(d, 2) +
+    6 * pow(fprime, 4) * pow(c, 2) * pow(d, 2);;
+  coeffs[2] = -2 * pow(f, 2) * a * b * pow(d, 2) + 2 * pow(f, 2) * pow(b, 2) * c * d + 4 * a * pow(b, 3) + 4* pow(fprime, 2) * a * b * pow(d, 2) +
+    4 * pow(fprime, 2) * pow(b , 2) * c * d - pow(a, 2) * c * d + pow(a, 2) * b * d + a * b * pow(c, 2) + 4 * pow(fprime, 4) * c * pow(d, 3);
+  coeffs[1] = pow(b, 4) - pow(a, 2) * pow(d, 2) + pow(b, 2) * pow(c, 2) + 2 * pow(fprime, 2) * pow(b, 2) * pow(d, 2) + pow(fprime, 4) * pow(d, 4);
+  coeffs[0] = -a * b * pow(d, 2) + pow(b, 2) * c * d;
+
+  gsl_poly_complex_solve(coeffs, 7, w, z);
+  gsl_poly_complex_workspace_free(w);
 }

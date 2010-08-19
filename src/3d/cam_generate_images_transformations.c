@@ -322,8 +322,8 @@ int			main()
   int	i;
   int	j;
 
-  angle1 = PI/70;
-  ratio = 1.0f;
+  angle1 = PI/8;
+  ratio = 2.0f;
   tx1 = 0.0f;
   ty1 = 0.0f;
 
