@@ -49,12 +49,12 @@ NAME_NON_REGRESSION		=	non_regression
 NAME_EVALUATE_TRACKING		=	evaluate_tracking
 NAME_IMAGES_TRANSFORMATION	=	generate_images_transformation
 
-CFLAGS		=	-W -Wall -pedantic -ansi -Werror -g3
+CFLAGS		=	-W -Wall -pedantic -std=c99 -g3 `pkg-config --cflags opencv`
 
 CC		=	gcc
 
 LIBS_VIEWER			=	-lGLU -lglut -lGL
-LIBS_SFM			=	-lm -lgsl -lgslcblas
+LIBS_SFM			=	-lm -lgsl -lgslcblas `pkg-config --libs opencv`
 LIBS_NON_REGRESSION		=	-lm
 LIBS_EVALUATE_TRACKING		=	-lm
 LIBS_IMAGES_TRANSFORMATION	=	-lm

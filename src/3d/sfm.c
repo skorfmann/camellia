@@ -49,6 +49,7 @@
 #include	<string.h>
 #include	<stdlib.h>
 #include	<stdio.h>
+#include	<cv.h>
 #include	"cam_2d_points.h"
 #include	"cam_matrix.h"
 #include	"cam_list.h"
@@ -140,7 +141,7 @@ void			main_triangulate_2d_points_tests()
   cam_disallocate_projections_pair(&projectionPair);
 }
 
-void			main_triangulate_2d_points()
+void			main_triangulate_2d_points_perfect()
 {
   CamProjectionsPair	projectionPair;
   CamMatrix		K;
@@ -248,11 +249,150 @@ void			main_triangulate_2d_points()
   fclose(file);
 }
 
+void			main_triangulate_2d_points_noisy()
+{
+  CamProjectionsPair	projectionPair;
+  CamMatrix		K;
+  POINTS_TYPE		Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
+  POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
+  POINTS_TYPE		Tdata2[3] = {1.0f,0.0f,0.0f};
+  CamMatrix		*R;
+  CamMatrix		t1;
+  CamMatrix		t2;
+  CamList		*pts1;
+  CamList		*pts2;
+  CamList		*ppts1;
+  CamList		*ppts2;
+  CamList		*points;
+  CvMat			*points1;
+  CvMat			*points2;
+  CvMat			*status;
+  CvMat			*fundamental_matrix;
+  int			fm_count;
+  int			i;
+  Cam3dPoint		*pt3d;
+  FILE			*file;
+  char			*filename = "manny";
+  char			*path1;
+  char			*path2;
+#ifdef DEBUG
+  FILE			*debug_file;
+  CamList		*tailPoints;
+#endif
+
+  path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
+  path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
+  sprintf(path1, "data/3d/3dmodels/%s", filename);
+  sprintf(path2, "data/3d/results/%s", filename);
+  points = loadPoints1(path1);
+  file = fopen(path2, "w");
+  free(path1);
+  free(path2);
+
+  cam_allocate_matrix(&projectionPair.p1, 4, 3);
+  cam_allocate_matrix(&projectionPair.p2, 4, 3);
+  cam_allocate_matrix(&K, 3, 3);
+  cam_allocate_matrix(&t1, 1, 3);
+  cam_allocate_matrix(&t2, 1, 3);
+  memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
+
+  memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
+  pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
+  cam_disallocate_matrix(R);
+  free(R);
+
+  memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
+  pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
+  cam_disallocate_matrix(R);
+  free(R);
+
+#ifdef DEBUG
+  tailPoints = points;
+  while (tailPoints->next)
+    tailPoints = tailPoints->next;
+  printf("3D point : %f %f %f\n", ((Cam3dPoint *)tailPoints->data)->x, ((Cam3dPoint *)tailPoints->data)->y, ((Cam3dPoint *)tailPoints->data)->z);
+  debug_file = fopen("debug_vectors", "w");
+  fwrite(t1.data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(tailPoints->data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(t2.data, sizeof(POINTS_TYPE), 3, debug_file);
+  fwrite(tailPoints->data, sizeof(POINTS_TYPE), 3, debug_file);
+  fclose(debug_file);
+#endif
+
+  points1 = cvCreateMat(1, 2*pts1->index, CV_32FC2);
+  points2 = cvCreateMat(1, 2*pts2->index, CV_32FC2);
+  status = cvCreateMat(1, pts1->index,CV_8UC1);  
+  ppts1 = pts1;
+  ppts2 = pts2;
+
+  printf("1 %i\n", pts1->index);
+  for( i = 0; i < pts1->index && ppts1 && ppts2 ; i++ )
+    {
+      points1->data.db[i*2] = ((Cam2dPoint *)(ppts1->data))->x;
+      points1->data.db[i*2+1] = ((Cam2dPoint *)(ppts1->data))->y;
+      points2->data.db[i*2] = ((Cam2dPoint *)(ppts2->data))->x;
+      points2->data.db[i*2+1] = ((Cam2dPoint *)(ppts2->data))->y;
+      ppts1 = ppts1->next;
+      ppts2 = ppts2->next;
+    }
+  printf("2\n");
+
+  fundamental_matrix = cvCreateMat(3,3,CV_32FC1);
+  fm_count = cvFindFundamentalMat(points1,points2,fundamental_matrix,CV_FM_RANSAC,1.0,0.99,status);
+
+  printf("count %i\n", fm_count);
+
+  ppts1 = pts1;
+  ppts2 = pts2;
+
+  while (ppts1 && ppts2)
+    {
+      pt3d = cam_triangulate_one_perfect_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
+
+      if (pt3d)
+	{
+	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
+	  free(pt3d);
+	}
+      ppts1 = ppts1->next;
+      ppts2 = ppts2->next;
+    }
+
+  path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
+  sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
+  cam_center_2d_points(pts1, 800, 600);
+  cam_points_to_ppm(path1, pts1, 800, 600,
+			  255, 255, 255,
+			  0, 0, 0);
+  sprintf(path1, "data/3d/results/%s_viewpoint_2.ppm", filename);
+  cam_center_2d_points(pts2, 800, 600);
+  cam_points_to_ppm(path1, pts2, 800, 600,
+			  255, 255, 255,
+			  0, 0, 0);
+  free(path1);
+
+    
+  cam_disallocate_projections_pair(&projectionPair);
+  cam_disallocate_linked_list(pts1);
+  cam_disallocate_linked_list(pts2);
+  cam_disallocate_linked_list(points);
+  cam_disallocate_matrix(&t1);
+  cam_disallocate_matrix(&t2);
+  cam_disallocate_matrix(&K);
+
+  fclose(file);
+}
+
 int		main()
 {
   /*main_project_and_write_points();*/
   /*main_triangulate_2d_points_tests();*/
-  main_triangulate_2d_points();
+  /*  main_triangulate_2d_points_perfect();*/
+  main_triangulate_2d_points_noisy();
   
   return (0);
 }
