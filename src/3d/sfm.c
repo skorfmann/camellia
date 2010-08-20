@@ -259,22 +259,29 @@ void			main_triangulate_2d_points_noisy()
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
+  CamMatrix		F;
   CamList		*pts1;
   CamList		*pts2;
   CamList		*ppts1;
   CamList		*ppts2;
   CamList		*points;
-  CvMat			*points1;
-  CvMat			*points2;
-  CvMat			*status;
-  CvMat			*fundamental_matrix;
-  int			fm_count;
-  int			i;
   Cam3dPoint		*pt3d;
   FILE			*file;
   char			*filename = "manny";
   char			*path1;
   char			*path2;
+  CvMat			*proj1;
+  CvMat			*proj2;
+  CvMat			*points4d;
+  CvMat			*points1;
+  CvMat			*points2;
+  CvMat			*status;
+  CvMat			*fundamental_matrix;
+  CvMat			*new_points1;
+  CvMat			*new_points2;
+  int			fm_count;
+  int			i;
+  int			j;
 #ifdef DEBUG
   FILE			*debug_file;
   CamList		*tailPoints;
@@ -294,6 +301,7 @@ void			main_triangulate_2d_points_noisy()
   cam_allocate_matrix(&K, 3, 3);
   cam_allocate_matrix(&t1, 1, 3);
   cam_allocate_matrix(&t2, 1, 3);
+  cam_allocate_matrix(&F, 3, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
 
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
@@ -304,7 +312,7 @@ void			main_triangulate_2d_points_noisy()
   free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(PI/6, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
   cam_disallocate_matrix(R);
@@ -323,44 +331,55 @@ void			main_triangulate_2d_points_noisy()
   fclose(debug_file);
 #endif
 
-  points1 = cvCreateMat(1, 2*pts1->index, CV_32FC2);
-  points2 = cvCreateMat(1, 2*pts2->index, CV_32FC2);
-  status = cvCreateMat(1, pts1->index,CV_8UC1);  
   ppts1 = pts1;
   ppts2 = pts2;
+  printf("%i\n", pts1->index);
+  pts1->index = 100;
+  points1 = cvCreateMat(1,pts1->index,CV_32FC2);
+  points2 = cvCreateMat(1,pts1->index,CV_32FC2);
+  status = cvCreateMat(1,pts1->index,CV_8UC1);
+  new_points1 = cvCreateMat(1,pts1->index,CV_32FC2);
+  new_points2 = cvCreateMat(1,pts1->index,CV_32FC2);
 
-  printf("1 %i\n", pts1->index);
-  for( i = 0; i < pts1->index && ppts1 && ppts2 ; i++ )
+  for( i = 0; i < pts1->index; i++ )
     {
-      points1->data.db[i*2] = ((Cam2dPoint *)(ppts1->data))->x;
-      points1->data.db[i*2+1] = ((Cam2dPoint *)(ppts1->data))->y;
-      points2->data.db[i*2] = ((Cam2dPoint *)(ppts2->data))->x;
-      points2->data.db[i*2+1] = ((Cam2dPoint *)(ppts2->data))->y;
+      points1->data.fl[i*2] = ((Cam2dPoint *)(ppts1->data))->x;
+      points1->data.fl[i*2+1] = ((Cam2dPoint *)(ppts1->data))->y;
+      points2->data.fl[i*2] = ((Cam2dPoint *)(ppts2->data))->x;
+      points2->data.fl[i*2+1] = ((Cam2dPoint *)(ppts2->data))->y;
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
     }
-  printf("2\n");
-
   fundamental_matrix = cvCreateMat(3,3,CV_32FC1);
-  fm_count = cvFindFundamentalMat(points1,points2,fundamental_matrix,CV_FM_RANSAC,1.0,0.99,status);
-
-  printf("count %i\n", fm_count);
-
-  ppts1 = pts1;
-  ppts2 = pts2;
-
-  while (ppts1 && ppts2)
+  fm_count = cvFindFundamentalMat( points1,points2,fundamental_matrix,
+				   CV_FM_RANSAC,1.0,0.99,status );
+  if (!fm_count)
     {
-      pt3d = cam_triangulate_one_perfect_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
-
-      if (pt3d)
-	{
-	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
-	  free(pt3d);
-	}
-      ppts1 = ppts1->next;
-      ppts2 = ppts2->next;
+      printf("main_triangulate_2d_points_noisy : no fundamental matrix found\n");
+      exit (-1);
     }
+
+  proj1 = cvCreateMat(3,4,CV_32FC1);
+  proj2 = cvCreateMat(3,4,CV_32FC1);
+
+  for (j = 0 ; j < 3 ; ++j)
+    for (i = 0 ; i < 3 ; ++i)
+      cam_matrix_set_value(&F, i, j, cvmGet(fundamental_matrix, j, i));
+  
+  cam_compute_p_from_f(&F, &projectionPair);
+
+  for (j = 0 ; j < 3 ; ++j)
+    for (i = 0 ; i < 4 ; ++i)
+      {
+	cvmSet(proj1, j, i, cam_matrix_get_value(&projectionPair.p1, i, j));
+	cvmSet(proj2, j, i, cam_matrix_get_value(&projectionPair.p2, i, j));
+      }
+
+  cvCorrectMatches(fundamental_matrix, points1, points2, new_points1, new_points2);
+  points4d = cvCreateMat(2,pts1->index,CV_32FC1);
+  cvTriangulatePoints(proj1, proj2, points1, points2, points4d);
+
+
 
   path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
   sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
@@ -375,7 +394,14 @@ void			main_triangulate_2d_points_noisy()
 			  0, 0, 0);
   free(path1);
 
-    
+  cvReleaseMat(&proj1);
+  cvReleaseMat(&proj2);
+  cvReleaseMat(&status);
+  cvReleaseMat(&points1);
+  cvReleaseMat(&points2);
+  cvReleaseMat(&fundamental_matrix);
+  cvReleaseMat(&new_points1);
+  cvReleaseMat(&new_points2);
   cam_disallocate_projections_pair(&projectionPair);
   cam_disallocate_linked_list(pts1);
   cam_disallocate_linked_list(pts2);
@@ -383,7 +409,7 @@ void			main_triangulate_2d_points_noisy()
   cam_disallocate_matrix(&t1);
   cam_disallocate_matrix(&t2);
   cam_disallocate_matrix(&K);
-
+  cam_disallocate_matrix(&F);
   fclose(file);
 }
 
@@ -391,8 +417,8 @@ int		main()
 {
   /*main_project_and_write_points();*/
   /*main_triangulate_2d_points_tests();*/
-  /*  main_triangulate_2d_points_perfect();*/
-  main_triangulate_2d_points_noisy();
-  
+  /*main_triangulate_2d_points_perfect();*/
+  main_triangulate_2d_points_noisy();  
+
   return (0);
 }

@@ -57,7 +57,7 @@
 #define	POINTS_TYPE	double
 
 #define PI		3.1415926535897932384626433832795f
-#define	SUP0		0.0001f
+#define	SUP0		0.0000001f
 
 
 typedef enum

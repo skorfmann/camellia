@@ -77,13 +77,13 @@ CamMatrix	*cam_compute_epipole(CamMatrix *f)
   e = (CamMatrix *)malloc(sizeof(CamMatrix));
   cam_allocate_matrix(e, 1, 3);
   f1c = cam_matrix_get_value(f, 0, 0);
-  f2c = cam_matrix_get_value(f, 0, 1);
-  f3c = cam_matrix_get_value(f, 0, 2);
-  f4c = cam_matrix_get_value(f, 1, 0);
+  f2c = cam_matrix_get_value(f, 1, 0);
+  f3c = cam_matrix_get_value(f, 2, 0);
+  f4c = cam_matrix_get_value(f, 0, 1);
   f5c = cam_matrix_get_value(f, 1, 1);
-  f6c = cam_matrix_get_value(f, 1, 2);
-  f7c = cam_matrix_get_value(f, 2, 0);
-  f8c = cam_matrix_get_value(f, 2, 1);
+  f6c = cam_matrix_get_value(f, 2, 1);
+  f7c = cam_matrix_get_value(f, 0, 2);
+  f8c = cam_matrix_get_value(f, 1, 2);
   f9c = cam_matrix_get_value(f, 2, 2);
 
   /* 1&2 */
@@ -118,7 +118,7 @@ CamMatrix	*cam_compute_epipole(CamMatrix *f)
     }
   else
     {
-      printf("cam_compute_e : unable to determine y");
+      printf("cam_compute_epipole : unable to determine y\n");
       exit (-1);
     }
 
@@ -144,7 +144,7 @@ CamMatrix	*cam_compute_epipole(CamMatrix *f)
     }
   else
     {
-      printf("cam_compute_e : unable to determine x");
+      printf("cam_compute_epipole : unable to determine x\n");
       exit (-1);
     }
   x = (-f2 * y -f3) / f1;
@@ -178,23 +178,55 @@ CamMatrix	*cam_compute_eprime(CamMatrix *f)
 
 /* TODO : test me */
 
-CamProjectionsPair	*cam_compute_p_from_f(CamMatrix *f)
+void		cam_compute_p_from_f(CamMatrix *f, CamProjectionsPair *p)
 {
-  CamProjectionsPair	*res;
-  CamMatrix		*ePrime;
-  CamMatrix		ePrimeSkew;
-
+  CamMatrix	*ePrime;
+  CamMatrix	ePrimeSkew;
+  CamMatrix	tmp;
+  int		i;
+  int		j;
 
   ePrime = cam_compute_eprime(f);
-  res = (CamProjectionsPair *)malloc(sizeof(CamProjectionsPair));
   cam_allocate_matrix(&ePrimeSkew, 3, 3);
-  cam_allocate_matrix(&res->p1, 4, 3);
-  cam_allocate_matrix(&res->p2, 4, 3);
+  cam_allocate_matrix(&tmp, 3, 3);
+
+  cam_matrix_set_value(&ePrimeSkew, 0, 0, 0.0f);
+  cam_matrix_set_value(&ePrimeSkew, 1, 0, -cam_matrix_get_value(ePrime, 0, 2));
+  cam_matrix_set_value(&ePrimeSkew, 2, 0, cam_matrix_get_value(ePrime, 0, 1));
+  cam_matrix_set_value(&ePrimeSkew, 0, 1, cam_matrix_get_value(ePrime, 0, 2));
+  cam_matrix_set_value(&ePrimeSkew, 1, 1, 0.0f);
+  cam_matrix_set_value(&ePrimeSkew, 2, 1, -cam_matrix_get_value(ePrime, 0, 0));
+  cam_matrix_set_value(&ePrimeSkew, 0, 2, -cam_matrix_get_value(ePrime, 0, 1));
+  cam_matrix_set_value(&ePrimeSkew, 1, 2, cam_matrix_get_value(ePrime, 0, 0));
+  cam_matrix_set_value(&ePrimeSkew, 2, 2, 0.0f);
   
+  cam_matrix_set_value(&p->p1, 0, 0, 1.0f);
+  cam_matrix_set_value(&p->p1, 1, 0, 0.0f);
+  cam_matrix_set_value(&p->p1, 2, 0, 0.0f);
+  cam_matrix_set_value(&p->p1, 0, 1, 0.0f);
+  cam_matrix_set_value(&p->p1, 1, 1, 1.0f);
+  cam_matrix_set_value(&p->p1, 2, 1, 0.0f);
+  cam_matrix_set_value(&p->p1, 0, 2, 0.0f);
+  cam_matrix_set_value(&p->p1, 1, 2, 0.0f);
+  cam_matrix_set_value(&p->p1, 2, 2, 1.0f);
+  cam_matrix_set_value(&p->p1, 3, 0, 0.0f);
+  cam_matrix_set_value(&p->p1, 3, 1, 0.0f);
+  cam_matrix_set_value(&p->p1, 3, 2, 0.0f);
+
+  cam_matrix_multiply(&tmp, &ePrimeSkew, f);
+
+  for (j = 0 ; j < 3 ; ++j)
+    {
+      for (i = 0 ; i < 3 ; ++i)
+        {
+          cam_matrix_set_value(&p->p2, i, j, cam_matrix_get_value(&tmp, i, j));
+        }
+      cam_matrix_set_value(&p->p2, i, j, -cam_matrix_get_value(ePrime, 0, j));
+    }
   cam_disallocate_matrix(&ePrimeSkew);
   cam_disallocate_matrix(ePrime);
+  cam_disallocate_matrix(&tmp);
   free(ePrime);
-  return (res);
 }
 
 void	cam_disallocate_projections_pair(CamProjectionsPair *p)
