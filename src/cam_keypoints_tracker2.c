@@ -82,7 +82,7 @@ extern double camSigmaParam;
 #define SEARCH_AMPLIFICATION_FACTOR	1
 
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
-//#define CAM_TRACKING2_KEYPOINTS
+#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
 //#define CAM_TRACKING2_TIMINGS2
@@ -1275,9 +1275,9 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	  estimedX = (int)x2;
 	  estimedY = (int)y2;
 	  curMax = 0.0f;
-	  for (y = estimedY - RESARCH_WINDOW_HEIGHT / 2 ; y < estimedY + RESARCH_WINDOW_HEIGHT / 2 ; y += 1)
+	  for (y = estimedY - window_hh ; y < estimedY + window_hh ; y += 1)
 	    {
-	      for (x = estimedX - RESARCH_WINDOW_WIDTH / 2 ; x < estimedX + RESARCH_WINDOW_WIDTH / 2 ; x += 1)
+	      for (x = estimedX - window_hw ; x < estimedX + window_hw ; x += 1)
 		{
 		  gxx = 0.0f;
 		  gxy = 0.0f;
@@ -1286,8 +1286,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 		    {
 		      for (xx = x - window_hw ; xx <= x + window_hw ; ++xx)
 			{
-			  gx = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradX.data + ncols * yy + xx);
-			  gy = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradY.data + ncols * yy + xx);
+			  gx = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img2->gradX.data + ncols * yy + xx);
+			  gy = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img2->gradY.data + ncols * yy + xx);
 			  gxx += gx * gx;
 			  gxy += gx * gy;
 			  gyy += gy * gy;
