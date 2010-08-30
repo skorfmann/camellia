@@ -137,9 +137,9 @@ int error_cmp(const void *a, const void *b)
   return (1);
 }
 
-POINTS_TYPE		*cam_compute_tracking_errors(CamMatrix *H, CamList *points)
+POINTS_TYPE		*cam_compute_tracking_endpoint_errors(CamMatrix *H, CamList *points)
 {
-  CamMatrix		pt1;
+ CamMatrix		pt1;
   CamMatrix		pt2;
   CamList		*ptr;
   POINTS_TYPE		dx;
@@ -169,6 +169,40 @@ POINTS_TYPE		*cam_compute_tracking_errors(CamMatrix *H, CamList *points)
   return (err);
 }
 
+POINTS_TYPE		*cam_compute_tracking_angular_errors(CamMatrix *H, CamList *points)
+{
+  CamMatrix		pt1;
+  CamMatrix		pt2;
+  CamList		*ptr;
+  POINTS_TYPE		u, v;
+  POINTS_TYPE		uGT, vGT;
+  POINTS_TYPE		*err;
+  int			index;
+
+  cam_allocate_matrix(&pt1, 1, 3);
+  cam_allocate_matrix(&pt2, 1, 3);
+  cam_matrix_set_value(&pt1, 0, 2, 1.0f);
+  ptr = points;
+  index = 0;
+  err = (POINTS_TYPE *)malloc(points->index * sizeof(POINTS_TYPE));
+  while (ptr)
+    {
+      cam_matrix_set_value(&pt1, 0, 0, ((PointsMatch *)ptr->data)->pt1.x);
+      cam_matrix_set_value(&pt1, 0, 1, ((PointsMatch *)ptr->data)->pt1.y);
+      cam_matrix_multiply(&pt2, H, &pt1);
+      u = ((PointsMatch *)ptr->data)->pt2.x - ((PointsMatch *)ptr->data)->pt1.x;
+      v = ((PointsMatch *)ptr->data)->pt2.y - ((PointsMatch *)ptr->data)->pt1.y;
+      uGT = cam_matrix_get_value(&pt2, 0, 0) - ((PointsMatch *)ptr->data)->pt1.x;
+      vGT = cam_matrix_get_value(&pt2, 0, 1) - ((PointsMatch *)ptr->data)->pt1.y;
+      err[index] = acos( (1.0f + u * uGT + v * vGT) /  (sqrt(1.0f + u * u + v * v) * sqrt(1.0f + uGT * uGT + vGT * vGT) ) );
+      ++index;
+      ptr = ptr->next;
+    }
+  cam_disallocate_matrix(&pt1);
+  cam_disallocate_matrix(&pt2);
+  return (err);
+}
+
 void	cam_errors_to_file(char *dir, char *fileName, POINTS_TYPE *err, int nb)
 {
   FILE	*file;
@@ -188,22 +222,82 @@ void	cam_errors_to_file(char *dir, char *fileName, POINTS_TYPE *err, int nb)
   fclose(file);
 }
 
-int		main()
+void	print_evaluate_tracking_usage()
 {
+  printf("./evaluate_tracking number_of_evaluations\n");
+  printf("Nb : the .tr and .matches files have to be in data/tracking and have their figure starting from 0\n");
+  printf("eg : homography0.tr matches0.matches homography1.tr matches1.matches\n");
+}
+
+int		main(int ac, char **av)
+{
+  int		i;
   CamMatrix	*H;
   CamList	*points;
   POINTS_TYPE	*err;
+  int		nbFiles;
+  int		index;
+  char		path[] = "data/tracking";
+  char		file[50];
+  POINTS_TYPE	treshold = 10;
+  int		foo;
+  POINTS_TYPE	*angular_averages;
+  POINTS_TYPE	*endpoint_averages;
 
-  H = cam_file_to_homography("data/tracking/homo1.tr");
-  points = cam_load_points("data/tracking/matches0.matches");
-  err = cam_compute_tracking_errors(H, points);
-  qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
-  cam_errors_to_file("data/tracking","errors",err, points->index);
+  if (ac != 2)
+    {
+      print_evaluate_tracking_usage();
+      exit (-1);
+    }
+  nbFiles = atoi(av[1]);
+  angular_averages = (POINTS_TYPE *)malloc(nbFiles * sizeof(POINTS_TYPE));
+  endpoint_averages = (POINTS_TYPE *)malloc(nbFiles * sizeof(POINTS_TYPE));
+  index = 0;
+  while (index < nbFiles)
+    {
+      sprintf(file, "%s/homography%i.tr", path, index);
+      H = cam_file_to_homography(file);
+      sprintf(file, "%s/matches%i.matches", path, index);
+      points = cam_load_points(file);
 
-  cam_disallocate_matrix(H);
-  free(H);
-  cam_disallocate_linked_list(points);
-  free (err);
+      err = cam_compute_tracking_endpoint_errors(H, points);
+      qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
+      foo = 0;
+      endpoint_averages[index] = 0.0f;
+      while (err[foo] < 10 && foo < points->index)
+	{
+	  endpoint_averages[index] += err[foo];
+	  ++foo;
+	}
+      endpoint_averages[index] /= foo;
+      sprintf(file, "endpoint_errors%i", index);
+      cam_errors_to_file(path, file, err, points->index);
+      free (err);
 
+      err = cam_compute_tracking_angular_errors(H, points);
+      qsort(err, points->index, sizeof(POINTS_TYPE), error_cmp);
+      angular_averages[index] = 0.0f;
+      i = 0;
+      while (i < foo)
+	{
+	  angular_averages[index] += err[i];
+	  ++i;
+	}
+      angular_averages[index] /= foo;
+      sprintf(file, "angular_errors%i", index);
+      cam_errors_to_file(path, file, err, points->index);
+      free (err);
+
+      cam_disallocate_matrix(H);
+      free(H);
+      cam_disallocate_linked_list(points);
+      ++index;
+    }
+  
+  cam_errors_to_file(path, "angular_averages.avg", angular_averages, nbFiles);
+  cam_errors_to_file(path, "endpoint_averages.avg", endpoint_averages, nbFiles);
+      
+  free(angular_averages);
+  free(endpoint_averages);
   return (0);
 }

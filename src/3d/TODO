@@ -3,3 +3,4 @@ TODO list :
 grep TODO *
 merge 3d repo with src repo
 cam_matrix_* a utiliser pour toutes les utilisations de matrices
+fix bug in image interpolation (occurs on rotation + translation)

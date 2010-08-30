@@ -282,6 +282,9 @@ void			main_triangulate_2d_points_noisy()
   int			fm_count;
   int			i;
   int			j;
+  int			nbPoints;
+  int			curNbPoints;
+  Cam3dPoint		tmp3d;
 #ifdef DEBUG
   FILE			*debug_file;
   CamList		*tailPoints;
@@ -315,6 +318,7 @@ void			main_triangulate_2d_points_noisy()
   R = compute_rotation_matrix(PI/6, 0.0f, 0.0f);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
+  cam_add_noise_to_2d_points(pts2, 500.0f, 30);
   cam_disallocate_matrix(R);
   free(R);
 
@@ -333,13 +337,11 @@ void			main_triangulate_2d_points_noisy()
 
   ppts1 = pts1;
   ppts2 = pts2;
-  printf("%i\n", pts1->index);
-  pts1->index = 100;
   points1 = cvCreateMat(1,pts1->index,CV_32FC2);
   points2 = cvCreateMat(1,pts1->index,CV_32FC2);
   status = cvCreateMat(1,pts1->index,CV_8UC1);
-  new_points1 = cvCreateMat(1,pts1->index,CV_32FC2);
-  new_points2 = cvCreateMat(1,pts1->index,CV_32FC2);
+  new_points1 = cvCreateMat(2,pts1->index,CV_32FC1);
+  new_points2 = cvCreateMat(2,pts1->index,CV_32FC1);
 
   for( i = 0; i < pts1->index; i++ )
     {
@@ -353,6 +355,7 @@ void			main_triangulate_2d_points_noisy()
   fundamental_matrix = cvCreateMat(3,3,CV_32FC1);
   fm_count = cvFindFundamentalMat( points1,points2,fundamental_matrix,
 				   CV_FM_RANSAC,1.0,0.99,status );
+
   if (!fm_count)
     {
       printf("main_triangulate_2d_points_noisy : no fundamental matrix found\n");
@@ -375,11 +378,61 @@ void			main_triangulate_2d_points_noisy()
 	cvmSet(proj2, j, i, cam_matrix_get_value(&projectionPair.p2, i, j));
       }
 
-  cvCorrectMatches(fundamental_matrix, points1, points2, new_points1, new_points2);
-  points4d = cvCreateMat(2,pts1->index,CV_32FC1);
-  cvTriangulatePoints(proj1, proj2, points1, points2, points4d);
+  cvReleaseMat(&points1);
+  cvReleaseMat(&points2);
+  /* the method cvCorrectMatches is bugging for a large amout of point, we then have to split */
+  curNbPoints = 0;
+  ppts1 = pts1;
+  ppts2 = pts2;
+  while (curNbPoints < pts1->index)
+    {
+      nbPoints = MIN((pts1->index - curNbPoints), 10000);
+      points1 = cvCreateMat(1,nbPoints,CV_32FC2);
+      points2 = cvCreateMat(1,nbPoints,CV_32FC2);
+      new_points1 = cvCreateMat(2,nbPoints,CV_32FC1);
+      new_points2 = cvCreateMat(2,nbPoints,CV_32FC1);
 
+      for( i = 0 ; i < nbPoints ; i++ )
+	{
+	  if (i + curNbPoints == 44186 || i + curNbPoints == 44185 || i + curNbPoints == 44187)
+	    continue;
+	  points1->data.fl[i*2] = ((Cam2dPoint *)(ppts1->data))->x;
+	  points1->data.fl[i*2+1] = ((Cam2dPoint *)(ppts1->data))->y;
+	  points2->data.fl[i*2] = ((Cam2dPoint *)(ppts2->data))->x;
+	  points2->data.fl[i*2+1] = ((Cam2dPoint *)(ppts2->data))->y;
+	  ppts1 = ppts1->next;
+	  ppts2 = ppts2->next;
+	}
 
+      printf("before %i\n", curNbPoints);
+      cvCorrectMatches(fundamental_matrix, points1, points2, NULL, NULL);
+      points4d = cvCreateMat(4,nbPoints,CV_32FC1);
+      printf("after %i\n", curNbPoints);      
+
+      for (i = 0 ; i < nbPoints ; ++i)
+	{
+	  cvmSet(new_points1,0,i,points1->data.fl[i*2]);
+	  cvmSet(new_points1,1,i,points1->data.fl[i*2+1]);
+	  cvmSet(new_points2,0,i,points2->data.fl[i*2]);
+	  cvmSet(new_points2,1,i,points2->data.fl[i*2+1]);
+	}
+      
+      cvTriangulatePoints(proj1, proj2, new_points1, new_points2, points4d);
+      
+      for (i = 0 ; i < nbPoints ; ++i)
+	{
+	  tmp3d.x = (POINTS_TYPE)cvmGet(points4d,0,i);
+	  tmp3d.y = (POINTS_TYPE)cvmGet(points4d,1,i);
+	  tmp3d.z = (POINTS_TYPE)cvmGet(points4d,2,i);
+	  fwrite(&tmp3d, sizeof(POINTS_TYPE), 3, file);
+	}
+      curNbPoints += nbPoints;
+      cvReleaseMat(&points1);
+      cvReleaseMat(&points2);
+      cvReleaseMat(&new_points1);
+      cvReleaseMat(&new_points2);
+      cvReleaseMat(&points4d);
+    }
 
   path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
   sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
@@ -397,8 +450,6 @@ void			main_triangulate_2d_points_noisy()
   cvReleaseMat(&proj1);
   cvReleaseMat(&proj2);
   cvReleaseMat(&status);
-  cvReleaseMat(&points1);
-  cvReleaseMat(&points2);
   cvReleaseMat(&fundamental_matrix);
   cvReleaseMat(&new_points1);
   cvReleaseMat(&new_points2);

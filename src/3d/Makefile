@@ -1,14 +1,15 @@
-SRC_MISC	=	cam_matrix.c		\
-			cam_vector.c		\
-			cam_list.c		\
-			cam_3d_points_loaders.c	\
-			cam_projection_matrix.c \
-			cam_points_to_ppm.c	\
-			cam_ppm_to_points.c	\
-			cam_ppm_to_matrix.c	\
-			cam_matrix_to_ppm.c	\
-			cam_matrix_to_points.c	\
-			cam_points_to_matrix.c	\
+SRC_MISC	=	cam_matrix.c			\
+			cam_vector.c			\
+			cam_list.c			\
+			cam_3d_points_loaders.c		\
+			cam_projection_matrix.c 	\
+			cam_points_to_ppm.c		\
+			cam_ppm_to_points.c		\
+			cam_ppm_to_matrix.c		\
+			cam_matrix_to_ppm.c		\
+			cam_matrix_to_points.c		\
+			cam_points_to_matrix.c		\
+			cam_add_noise_to_points.c	\
 			cam_interpolate_missing_image_data.c
 
 SRC_VIEWER	=	$(SRC_MISC)	\

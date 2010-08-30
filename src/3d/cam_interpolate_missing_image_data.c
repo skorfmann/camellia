@@ -303,12 +303,6 @@ CamImageMatrix		*cam_interpolate_missing_image_data_bilinear(CamImageMatrix *img
 
 	      if (x1 >= 0 && x2 < img->r.ncols && y1 >= 0 && y2 < img->r.nrows)
 		{
-		  if (cam_matrix_get_value(&pt1, 0, 0)  == -3.0f &&
-		      cam_matrix_get_value(&pt1, 0, 1) == -2.0f)
-		    {
-		      cam_print_matrix(&pt2, "pt2");
-		    }
-
 		  c.point.x = x1;
 		  c.point.y = y1;
 		  c.color.r = (unsigned char)cam_matrix_get_value(&src->r, (int)c.point.x, (int)c.point.y);

@@ -78,10 +78,11 @@ extern double camSigmaParam;
 #define	CORNER_SEARCH_SCALE	2
 
 /* Augmentation de l'aire de recherche autour du corner considéré; 1 semble donner de meilleurs résultats */
+/* pas utilisé pour le moment */
 #define SEARCH_AMPLIFICATION_FACTOR	1
 
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
-#define CAM_TRACKING2_KEYPOINTS
+//#define CAM_TRACKING2_KEYPOINTS
 
 /* timing level of details */
 //#define CAM_TRACKING2_TIMINGS2
@@ -1210,6 +1211,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
   CamKeypointsMatches	*res;
   CamKeypoint		tmp;
   register int		i;
+  float			estimedX;
+  float			estimedY;
   float			x1;
   float			y1;
   float			x2;
@@ -1220,6 +1223,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
   float			gxx;
   float			gxy;
   float			gyy;
+  int			x;
+  int			y;
   int			yy;
   int			xx;
   float			gx;
@@ -1228,6 +1233,12 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
   int			window_hw;
   int			ncols;
   int			nrows;
+  CamKeypointShort	*pointsList;
+  CamKeypointShort	*ptr;
+  float			curMinVal;
+  float			curMaxVal;
+  float			curVal;
+  float			curMax;
 
   res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
   res->nbMatches = 0;
@@ -1261,27 +1272,58 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	}
       if (status == TRACKED)
 	{
-	  tmp.x = (int)x2;
-	  tmp.y = (int)y2;
-	  gxx = 0.0f;
-	  gxy = 0.0f;
-	  gyy = 0.0f;
-	  for (yy = tmp.y - window_hh ; yy <= tmp.y + window_hh ; ++yy)
+	  estimedX = (int)x2;
+	  estimedY = (int)y2;
+	  curMax = 0.0f;
+	  for (y = estimedY - RESARCH_WINDOW_HEIGHT / 2 ; y < estimedY + RESARCH_WINDOW_HEIGHT / 2 ; y += 1)
 	    {
-	      for (xx = tmp.x - window_hw ; xx <= tmp.x + window_hw ; ++xx)
+	      for (x = estimedX - RESARCH_WINDOW_WIDTH / 2 ; x < estimedX + RESARCH_WINDOW_WIDTH / 2 ; x += 1)
 		{
-		  gx = *(tc->pyramidImages->levels[1].img2->gradX.data + ncols * yy + xx);
-		  gy = *(tc->pyramidImages->levels[1].img2->gradY.data + ncols * yy + xx);
-		  gxx += gx * gx;
-		  gxy += gx * gy;
-		  gyy += gy * gy;
+		  gxx = 0.0f;
+		  gxy = 0.0f;
+		  gyy = 0.0f;
+		  for (yy = y - window_hh ; yy <= y + window_hh ; ++yy)
+		    {
+		      for (xx = x - window_hw ; xx <= x + window_hw ; ++xx)
+			{
+			  gx = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradX.data + ncols * yy + xx);
+			  gy = *(tc->pyramidImages->levels[tc->pyramidImages->nbLevels - 1].img1->gradY.data + ncols * yy + xx);
+			  gxx += gx * gx;
+			  gxy += gx * gy;
+			  gyy += gy * gy;
+			}
+		    }
+#if defined(CAM_CORNERS_USE_UPPER_EIGEN_VALUE) || defined(CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE)
+		  curMaxVal = cam_keypoints_tracking2_max_eigen_value(gxx, gxy, gyy);
+#endif
+#if defined(CAM_CORNERS_USE_LOWER_EIGEN_VALUE) || defined(CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE)
+		  curMinVal = cam_keypoints_tracking2_min_eigen_value(gxx, gxy, gyy);
+#endif
+#ifdef CAM_CORNERS_USE_UPPER_EIGEN_VALUE
+		  curVal = curMaxVal;
+#endif
+#ifdef CAM_CORNERS_USE_LOWER_EIGEN_VALUE
+		  curVal = curMinVal;
+#endif
+#ifdef CAM_CORNERS_USE_AVERAGE_EIGEN_VALUE
+		  curVal = (curMinVal + curMaxVal) / 2;
+#endif
+		  if (curVal > (float)INT_MAX)
+		    curVal = (float)INT_MAX;
+		  if (curVal > curMax)
+		    {
+		      tmp.x = x;
+		      tmp.y = y;
+		      tmp.value = (int)curVal;
+		      tmp.scale = tc->previousCorners->keypoint[i]->scale;
+		      tmp.angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
+		      curMax = curVal;
+		    }
 		}
 	    }
-	  tmp.scale = tc->previousCorners->keypoint[i]->scale;
 	  res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
 	  res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
 	  res->pairs[i].mark = 1;
-	  tmp.angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
 	  memcpy(res->pairs[i].p1, tc->previousCorners->keypoint[i], sizeof(CamKeypoint));
 	  memcpy(res->pairs[i].p2, &tmp, sizeof(CamKeypoint));
 	  ++res->nbMatches;
@@ -1561,6 +1603,33 @@ typedef struct
 }	PointsMatch;
 
 
+void	cam_keypoints_tracking2_scales_to_file(CamKeypointsMatches *track, char *outFile, int nb)
+{
+  FILE		*file;
+  char		filename[256];
+  int		i;
+  POINTS_TYPE	tmp;
+
+  sprintf(filename, "src/3d/data/tracking/%s%i.scales", outFile, nb);
+  file = fopen(filename, "w");
+  if (!file)
+    {
+      printf("cam_keypoints_tracking2_matches_to_file : unable to open %s\n", filename);
+      exit (-1);
+    }
+  fwrite(&track->nbMatches, sizeof(int), 1, file);
+  /*
+    for (i = 0 ; i < track->nbMatches + track->nbOutliers ; ++i)
+    {
+    if (track->pairs[i].mark)
+    {
+    printf("scale : %i\n",track->pairs[i].p1->scale / 4);
+    }
+    }
+  */
+  fclose(file);
+}
+
 void		cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *outFile, int nb)
 {
   FILE		*file;
@@ -1568,7 +1637,7 @@ void		cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *
   int		i;
   POINTS_TYPE	tmp;
 
-  sprintf(filename, "output/%s%i.matches", outFile, nb);
+  sprintf(filename, "src/3d/data/tracking/%s%i.matches", outFile, nb);
   file = fopen(filename, "w");
   if (!file)
     {
@@ -1593,6 +1662,66 @@ void		cam_keypoints_tracking2_matches_to_file(CamKeypointsMatches *track, char *
   fclose(file);
 }
 
+void			evaluate_cam_keypoints_tracking2(int nb)
+{
+  char			path[] = "./src/3d/data/tracking";
+  char			img[50];
+  CamImage		image1;
+  CamImage		image2;
+  CamImage		modelImage;
+  CamTrackingContext	tc;
+  CamList		*scales;
+  int			index;
+  CamKeypointsMatches	*track;
+  
+  scales = NULL;
+  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)1);
+  scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)4);
+  
+  index = 0;
+  while (index < nb)
+    {
+      modelImage.imageData = NULL;
+      sprintf(img, "%s/%s.ppm", path, "img");
+      camLoadPGM(&modelImage, img);
+      camAllocateYUVImage(&image1, modelImage.width, modelImage.height);
+      camRGB2YUV(&modelImage, &image1);
+      camDeallocateImage(&modelImage);
+
+      sprintf(img, "%s/%s%i.ppm", path, "img", index);
+      camLoadPGM(&modelImage, img);
+      camAllocateYUVImage(&image2, modelImage.width, modelImage.height);
+      camRGB2YUV(&modelImage, &image2);
+      camDeallocateImage(&modelImage);
+      
+      cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, RESARCH_WINDOW_HEIGHT, RESARCH_WINDOW_WIDTH, 3, 3, 3, scales, &image1);
+      cam_keypoints_tracking2(&tc, &image1, CAM_UPRIGHT);
+
+      track = cam_keypoints_tracking2(&tc, &image2, CAM_UPRIGHT);
+      cam_keypoints_tracking2_free_context(&tc);
+
+      sprintf(img, "%s/%s.ppm", path, "img");
+      camLoadPGM(&image1, img);
+      sprintf(img, "%s/%s%i.ppm", path, "img", index);
+      camLoadPGM(&image2, img);
+
+      if (track)
+	{
+	  cam_keypoints_tracking2_matches_to_file(track, "matches", index);
+	  cam_keypoints_tracking2_scales_to_file(track, "scales", index);
+	  cam_keypoints_tracking2_print_matches(&image1, &image2, "track", track, index);
+	  cam_keypoints_tracking2_release_matches(track);
+	  camFreeKeypointsMatches(track);
+	  free(track);
+	}
+
+      camDeallocateImage(&image1);
+      camDeallocateImage(&image2);
+      ++index;
+    }
+  cam_keypoints_tracking2_free_linked_list(scales);
+}
+
 void			test_cam_keypoints_tracking2()
 {
   CamImage		modelImage;
@@ -1608,13 +1737,11 @@ void			test_cam_keypoints_tracking2()
   CamKeypointsMatches	*track2;
   CamKeypointsMatches	*track3;
   CamKeypointsMatches	*track4;
-  /*char			img1[] = "./resources/klt/img1.bmp";*/
   char			img1[] = "./src/3d/data/tracking/img0.ppm";
-  /*  char			img2[] = "./resources/klt/img2.bmp";*/
-  char			img2[] = "./src/3d/data/tracking/img1.ppm";
-  char			img3[] = "./resources/klt/img3.bmp";
-  char			img4[] = "./resources/klt/img2.bmp";
-  char			img5[] = "./resources/klt/img3.bmp";
+  char			img2[] = "./src/3d/data/tracking/img0.ppm";
+  char			img3[] = "./src/3d/data/tracking/img2.ppm";
+  char			img4[] = "./src/3d/data/tracking/img2.ppm";
+  char			img5[] = "./src/3d/data/tracking/img4.ppm";
 #ifdef CAM_TRACKING2_TIMINGS1
   int			t1;
   int			t2;
@@ -1629,19 +1756,20 @@ void			test_cam_keypoints_tracking2()
   camAllocateYUVImage(&firstImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &firstImage);
   camDeallocateImage(&modelImage);
+
   camLoadPGM(&modelImage, img2);
   camAllocateYUVImage(&secondImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &secondImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img3);
+  camLoadPGM(&modelImage, img3);
   camAllocateYUVImage(&thirdImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &thirdImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img4);
+  camLoadPGM(&modelImage, img4);
   camAllocateYUVImage(&fourthImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &fourthImage);
   camDeallocateImage(&modelImage);
-  camLoadBMP(&modelImage, img5);
+  camLoadPGM(&modelImage, img5);
   camAllocateYUVImage(&fifthImage, modelImage.width, modelImage.height);
   camRGB2YUV(&modelImage, &fifthImage);
   camDeallocateImage(&modelImage);
@@ -1685,13 +1813,11 @@ void			test_cam_keypoints_tracking2()
 
   cam_keypoints_tracking2_free_context(&tc);
   
-  /*  camLoadBMP(&firstImage, img1);*/
   camLoadPGM(&firstImage, img1);
-  /*  camLoadBMP(&secondImage, img2);*/
   camLoadPGM(&secondImage, img2);
-  camLoadBMP(&thirdImage, img3);
-  camLoadBMP(&fourthImage, img4);
-  camLoadBMP(&fifthImage, img5);
+  camLoadPGM(&thirdImage, img3);
+  camLoadPGM(&fourthImage, img4);
+  camLoadPGM(&fifthImage, img5);
   if (track1)
     cam_keypoints_tracking2_print_matches(&firstImage, &secondImage, "track", track1, 0);
   if (track2)
@@ -1708,6 +1834,7 @@ void			test_cam_keypoints_tracking2()
   if (track1)
     {
       cam_keypoints_tracking2_matches_to_file(track1, "matches", 0);
+      cam_keypoints_tracking2_scales_to_file(track1, "scales", 0);
       cam_keypoints_tracking2_release_matches(track1);
       camFreeKeypointsMatches(track1);
       free(track1);

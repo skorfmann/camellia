@@ -1429,7 +1429,7 @@ int main()
     camInitBenchmark();
 
     // Tracking examples
-    test_cam_keypoints_tracking2();
+    evaluate_cam_keypoints_tracking2(20);
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();
