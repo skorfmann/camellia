@@ -237,9 +237,9 @@ CamList		*cam_similarity_transform_list(CamList *points, char *dir, char *file, 
   sprintf(outputPath,"%s/%s.%s", dir, file, "tr");
   cam_allocate_matrix(&H, 3, 3);
   cam_matrix_set_value(&H, 0, 0, s * cos(theta));
-  cam_matrix_set_value(&H, 0, 1, s * -sin(theta));
+  cam_matrix_set_value(&H, 0, 1, s * sin(theta));
   cam_matrix_set_value(&H, 0, 2, 0.0f);
-  cam_matrix_set_value(&H, 1, 0, s * sin(theta));
+  cam_matrix_set_value(&H, 1, 0, s * -sin(theta));
   cam_matrix_set_value(&H, 1, 1, s * cos(theta));
   cam_matrix_set_value(&H, 1, 2, 0.0f);
   cam_matrix_set_value(&H, 2, 0, tx);
@@ -262,9 +262,9 @@ CamImageMatrix		*cam_similarity_transform_imagematrix(CamImageMatrix *img, char 
   sprintf(outputPath,"%s/%s.%s", dir, file, "tr");
   cam_allocate_matrix(&H, 3, 3);
   cam_matrix_set_value(&H, 0, 0, s * cos(theta));
-  cam_matrix_set_value(&H, 0, 1, s * -sin(theta));
+  cam_matrix_set_value(&H, 0, 1, s * sin(theta));
   cam_matrix_set_value(&H, 0, 2, 0.0f);
-  cam_matrix_set_value(&H, 1, 0, s * sin(theta));
+  cam_matrix_set_value(&H, 1, 0, s * -sin(theta));
   cam_matrix_set_value(&H, 1, 1, s * cos(theta));
   cam_matrix_set_value(&H, 1, 2, 0.0f);
   cam_matrix_set_value(&H, 2, 0, tx);
@@ -354,9 +354,9 @@ int			main(int ac, char **av)
       sprintf(file, "homography%i", iteration);
       imageTransformed2 = cam_similarity_transform_imagematrix(image, outputDir, file, ratio, angle, tx, ty, bgR, bgG, bgB);
       cam_matrix_set_value(&inverseHomography, 0, 0, cos(-angle) / ratio);
-      cam_matrix_set_value(&inverseHomography, 0, 1, -sin(-angle) / ratio);
+      cam_matrix_set_value(&inverseHomography, 0, 1, sin(-angle) / ratio);
       cam_matrix_set_value(&inverseHomography, 0, 2, 0.0f);
-      cam_matrix_set_value(&inverseHomography, 1, 0, sin(-angle) / ratio);
+      cam_matrix_set_value(&inverseHomography, 1, 0, -sin(-angle) / ratio);
       cam_matrix_set_value(&inverseHomography, 1, 1, cos(-angle) / ratio);
       cam_matrix_set_value(&inverseHomography, 1, 2, 0.0f);
       cam_matrix_set_value(&inverseHomography, 2, 0, -tx);

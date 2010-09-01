@@ -1617,16 +1617,13 @@ void	cam_keypoints_tracking2_scales_to_file(CamKeypointsMatches *track, char *ou
       printf("cam_keypoints_tracking2_matches_to_file : unable to open %s\n", filename);
       exit (-1);
     }
-  fwrite(&track->nbMatches, sizeof(int), 1, file);
-  /*
-    for (i = 0 ; i < track->nbMatches + track->nbOutliers ; ++i)
+  for (i = 0 ; i < track->nbMatches + track->nbOutliers ; ++i)
     {
-    if (track->pairs[i].mark)
-    {
-    printf("scale : %i\n",track->pairs[i].p1->scale / 4);
+      if (track->pairs[i].mark)
+	{
+	  fwrite(&track->pairs[i].p2->scale, sizeof(int), 1, file);
+	}
     }
-    }
-  */
   fclose(file);
 }
 
