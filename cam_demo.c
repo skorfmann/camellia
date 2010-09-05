@@ -1430,6 +1430,7 @@ int main()
 
     // Tracking examples
     evaluate_cam_keypoints_tracking2(20);
+    //test_cam_keypoints_tracking2();
     //test_camRecursiveKeypoints();
     //example_recursive_keypoints();
     //example_keypoints2();

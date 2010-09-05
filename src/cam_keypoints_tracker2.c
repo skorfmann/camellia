@@ -84,8 +84,11 @@ extern double camSigmaParam;
 /* recherche de l'échelle corners; commenté = non recherche de l'échelle et maintient des corners */
 #define CAM_TRACKING2_KEYPOINTS
 
+/* stabilisation du flot optique */
+#define CAM_TRACKING2_STABILIZE_OPTICAL_FLOW
+
 /* timing level of details */
-//#define CAM_TRACKING2_TIMINGS2
+#define CAM_TRACKING2_TIMINGS2
 #define CAM_TRACKING2_TIMINGS1
 
 /************************************************/
@@ -1275,6 +1278,7 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 	  estimedX = (int)x2;
 	  estimedY = (int)y2;
 	  curMax = 0.0f;
+#if defined(CAM_TRACKING2_STABILIZE_OPTICAL_FLOW)
 	  for (y = estimedY - window_hh ; y < estimedY + window_hh ; y += 1)
 	    {
 	      for (x = estimedX - window_hw ; x < estimedX + window_hw ; x += 1)
@@ -1321,6 +1325,26 @@ CamKeypointsMatches	*cam_keypoints_tracking2_compute_optical_flow(CamTrackingCon
 		    }
 		}
 	    }
+#else
+	  tmp.x = (int)x2;
+	  tmp.y = (int)y2;
+	  gxx = 0.0f;
+	  gxy = 0.0f;
+	  gyy = 0.0f;
+	  for (yy = tmp.y - window_hh ; yy <= tmp.y + window_hh ; ++yy)
+	    {
+	      for (xx = tmp.x - window_hw ; xx <= tmp.x + window_hw ; ++xx)
+		{
+		  gx = *(tc->pyramidImages->levels[1].img2->gradX.data + ncols * yy + xx);
+		  gy = *(tc->pyramidImages->levels[1].img2->gradY.data + ncols * yy + xx);
+		  gxx += gx * gx;
+		  gxy += gx * gy;
+		  gyy += gy * gy;
+		}
+	    }
+	  tmp.scale = tc->previousCorners->keypoint[i]->scale;
+	  tmp.angle = cam_keypoints_tracking2_compute_main_eigen_vector(gxx, gxy, gyy) * 100;
+#endif
 	  res->pairs[i].p1 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
 	  res->pairs[i].p2 = (CamKeypoint*)malloc(sizeof(CamKeypoint));
 	  res->pairs[i].mark = 1;
@@ -1414,6 +1438,8 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 #ifdef CAM_TRACKING2_TIMINGS2
   int			t1;
   int			t2;
+  int			t3;
+  int			t4;
 #endif
 
   if (tc->detect == TRUE)
@@ -1491,7 +1517,15 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
       image->roi = &roix;
       camIntegralImage(image, integralImage);
       integralImage->roi = &roix;
+#ifdef CAM_TRACKING2_TIMINGS2
+      t1 = camGetTimeMs();
+#endif
       res = cam_keypoints_tracking2_compute_optical_flow(tc, image);
+#ifdef CAM_TRACKING2_TIMINGS2
+      t2 = camGetTimeMs();
+      printf("Optical flow estimation : %ims\n", t2 - t1);
+#endif
+
       corners = (CamKeypoints *)malloc(sizeof(CamKeypoints));
       camAllocateKeypoints(corners, res->nbMatches);
 #ifdef __SSE2__
@@ -1509,7 +1543,14 @@ CamKeypointsMatches	*cam_keypoints_tracking2(CamTrackingContext *tc, CamImage *i
 	  }
       }
 #ifdef CAM_TRACKING2_KEYPOINTS
+#ifdef CAM_TRACKING2_TIMINGS2
+      t3 = camGetTimeMs();
+#endif
       res = cam_keypoints_tracking2_associate_corner_matches_to_keypoints(tc, res, integralImage, options, corners, j);
+#ifdef CAM_TRACKING2_TIMINGS2
+      t4 = camGetTimeMs();
+      printf("Scale estimation : %ims\n", t4 - t3);
+#endif
 #endif
       tc->nbDetectedFeatures = j;
       camDeallocateImage(tc->previousImage);
@@ -1670,6 +1711,10 @@ void			evaluate_cam_keypoints_tracking2(int nb)
   CamList		*scales;
   int			index;
   CamKeypointsMatches	*track;
+#ifdef CAM_TRACKING2_TIMINGS1
+  int			t1;
+  int			t2;
+#endif
   
   scales = NULL;
   scales = cam_keypoints_tracking2_add_to_linked_list(scales, (void*)1);
@@ -1694,14 +1739,21 @@ void			evaluate_cam_keypoints_tracking2(int nb)
       cam_keypoint_tracking2_configure_context(&tc, NB_POINTS_TO_TRACK, RESARCH_WINDOW_HEIGHT, RESARCH_WINDOW_WIDTH, 3, 3, 3, scales, &image1);
       cam_keypoints_tracking2(&tc, &image1, CAM_UPRIGHT);
 
+#ifdef CAM_TRACKING2_TIMINGS1
+      t1 = camGetTimeMs();
+#endif
       track = cam_keypoints_tracking2(&tc, &image2, CAM_UPRIGHT);
-      cam_keypoints_tracking2_free_context(&tc);
+#ifdef CAM_TRACKING2_TIMINGS1
+      t2 = camGetTimeMs();
+      printf("Tracking : %ims\n", t2-t1);
+#endif
 
+      cam_keypoints_tracking2_free_context(&tc);
       sprintf(img, "%s/%s.ppm", path, "img");
       camLoadPGM(&image1, img);
       sprintf(img, "%s/%s%i.ppm", path, "img", index);
       camLoadPGM(&image2, img);
-
+      
       if (track)
 	{
 	  cam_keypoints_tracking2_matches_to_file(track, "matches", index);
@@ -1711,7 +1763,6 @@ void			evaluate_cam_keypoints_tracking2(int nb)
 	  camFreeKeypointsMatches(track);
 	  free(track);
 	}
-
       camDeallocateImage(&image1);
       camDeallocateImage(&image2);
       ++index;
@@ -1735,10 +1786,10 @@ void			test_cam_keypoints_tracking2()
   CamKeypointsMatches	*track3;
   CamKeypointsMatches	*track4;
   char			img1[] = "./src/3d/data/tracking/img0.ppm";
-  char			img2[] = "./src/3d/data/tracking/img0.ppm";
-  char			img3[] = "./src/3d/data/tracking/img2.ppm";
-  char			img4[] = "./src/3d/data/tracking/img2.ppm";
-  char			img5[] = "./src/3d/data/tracking/img4.ppm";
+  char			img2[] = "./src/3d/data/tracking/img5.ppm";
+  char			img3[] = "./src/3d/data/tracking/img10.ppm";
+  char			img4[] = "./src/3d/data/tracking/img15.ppm";
+  char			img5[] = "./src/3d/data/tracking/img19.ppm";
 #ifdef CAM_TRACKING2_TIMINGS1
   int			t1;
   int			t2;
