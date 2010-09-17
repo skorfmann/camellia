@@ -177,9 +177,30 @@ void		write_point(FILE *fd, Cam3dPoint *pt3d, float *p1, float *p2)
   fprintf(fd, "%f %f %f 2 0 %f %f 1 %f %f\n", pt3d->x, pt3d->y, pt3d->z, p1[0], p1[1], p2[0], p2[1]);
 }
 
-void		cam_print_sba()
+void		cam_print_sba(CamList *points, char *file)
 {
+  FILE		*output;
+  CamList	*tmp;
+  CamList	*tmp2;
 
+  output = fopen(file, "w");
+  tmp = points;
+  while (tmp)
+    {
+      fprintf(output, "%f %f %f ", ((sbaPoint *)tmp->data)->pt3d.x, ((sbaPoint *)tmp->data)->pt3d.y, ((sbaPoint *)tmp->data)->pt3d.z);
+      tmp2 = ((sbaPoint *)tmp->data)->mask;
+      fprintf(output, "%i", tmp2->index);
+      while (tmp2)
+	{
+	  fprintf(output, " %i %f %f", ((mask2d *)tmp2->data)->frameIndex,
+		  ((mask2d *)tmp2->data)->pt2d.x,
+		  ((mask2d *)tmp2->data)->pt2d.y);
+	  tmp2 = tmp2->next;
+	}
+      fprintf(output, "%c", '\n');
+      tmp = tmp->next;
+    }
+  fclose(output);
 }
 
 void		cam_print_sba_3d_points_text(CamList *points, char *file)
@@ -194,6 +215,7 @@ void		cam_print_sba_3d_points_text(CamList *points, char *file)
       fprintf(output, "%f %f %f\n", ((sbaPoint *)tmp->data)->pt3d.x, ((sbaPoint *)tmp->data)->pt3d.y, ((sbaPoint *)tmp->data)->pt3d.z);
       tmp = tmp->next;
     }
+  fclose(output);
 }
 
 void		main_project_and_write_points()
@@ -548,11 +570,11 @@ CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata,
 	  memcpy(&((sbaPoint *)res->data)->pt3d, pt3d, sizeof(Cam3dPoint));
 	  ((sbaPoint *)res->data)->mask = NULL;
 	  ((sbaPoint *)res->data)->mask = cam_add_to_linked_list(((sbaPoint *)res->data)->mask, malloc(sizeof(mask2d)));
-	  ((mask2d *)((sbaPoint *)res->data)->mask->data)->frameIndex = 0;
-	  memcpy(&((mask2d *)((sbaPoint *)res->data)->mask->data)->pt2d, ppts1->data, sizeof(Cam2dPoint));
-	  ((sbaPoint *)res->data)->mask = cam_add_to_linked_list(((sbaPoint *)res->data)->mask, malloc(sizeof(mask2d)));
 	  ((mask2d *)((sbaPoint *)res->data)->mask->data)->frameIndex = 1;
 	  memcpy(&((mask2d *)((sbaPoint *)res->data)->mask->data)->pt2d, ppts2->data, sizeof(Cam2dPoint));
+	  ((sbaPoint *)res->data)->mask = cam_add_to_linked_list(((sbaPoint *)res->data)->mask, malloc(sizeof(mask2d)));
+	  ((mask2d *)((sbaPoint *)res->data)->mask->data)->frameIndex = 0;
+	  memcpy(&((mask2d *)((sbaPoint *)res->data)->mask->data)->pt2d, ppts1->data, sizeof(Cam2dPoint));
 	  free (pt3d);
 	}
       ppts1 = ppts1->next;
@@ -628,8 +650,8 @@ void			main_triangulate_2d_points_perfect_2_views()
   fclose(cameras);
   points = triangulate_2d_points_perfect_2_views(Kdata, Rdata1, Tdata1, Rdata2, Tdata2, "manny");
 
-  //cam_print_sba_3d_points_text(points,"points.txt");
-  cam_print_sba(points,"points.txt");
+  cam_print_sba_3d_points_text(points,"points.txt");
+  cam_print_sba(points,"sba_points.txt");
 
   cam_disallocate_linked_list(points);
 }
