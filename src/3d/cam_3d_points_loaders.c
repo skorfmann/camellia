@@ -75,8 +75,11 @@ POINTS_TYPE	extractNextValue1(FILE *fd)
   while (1)
     {
       symbol = (char)fgetc(fd);
-      if (symbol == ' ')
-	break;
+      if (symbol == ' ' || symbol == '\r' || symbol == '\n' || symbol == EOF)
+	{
+	  fseek(fd, -1, SEEK_CUR);
+	  break;
+	}
       if (symbol == '.')
 	{
 	  integerPart = FALSE;
@@ -117,10 +120,15 @@ CamList		*loadPoints1(char *file)
     {
       pointsList = cam_add_to_linked_list(pointsList, (Cam3dPoint *)malloc(sizeof(Cam3dPoint)));
       ((Cam3dPoint *)pointsList->data)->x = extractNextValue1(dataFd);
+      spacingSymbol = fgetc(dataFd);
       ((Cam3dPoint *)pointsList->data)->y = extractNextValue1(dataFd);
+      spacingSymbol = fgetc(dataFd);
       ((Cam3dPoint *)pointsList->data)->z = extractNextValue1(dataFd);
-      fgetc(dataFd);
-      fgetc(dataFd);
+      spacingSymbol = fgetc(dataFd);
+      if (((Cam3dPoint *)pointsList->data)->z >= -3.7838 && ((Cam3dPoint *)pointsList->data)->z <= -3.7837)
+	printf("%i\n",spacingSymbol);
+      while (spacingSymbol != '\n' && spacingSymbol != EOF)
+	spacingSymbol = fgetc(dataFd);
       spacingSymbol = fgetc(dataFd);
       if (spacingSymbol == EOF)
 	break;

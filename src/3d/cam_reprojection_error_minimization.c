@@ -197,8 +197,8 @@ void				cam_solve_polynom(CamMatrix *F)
   POINTS_TYPE			b;
   POINTS_TYPE			c;
   POINTS_TYPE			d;
-  POINTS_TYPE			f;
-  POINTS_TYPE			fprime;
+  POINTS_TYPE			f1;
+  POINTS_TYPE			f2;
   gsl_poly_complex_workspace	*w;
 
   w = gsl_poly_complex_workspace_alloc(7);
@@ -207,30 +207,24 @@ void				cam_solve_polynom(CamMatrix *F)
   b = cam_matrix_get_value(F, 2, 1);
   c = cam_matrix_get_value(F, 1, 2);
   d = cam_matrix_get_value(F, 2, 2);
-  f = -cam_matrix_get_value(F, 0, 1) / b;
-  fprime = -cam_matrix_get_value(F, 1, 0) / c;
+  f1 = -cam_matrix_get_value(F, 0, 1) / b;
+  f2 = -cam_matrix_get_value(F, 1, 0) / c;
 
   /* begin integrity check */
-  if (-cam_matrix_get_value(F, 2, 0) / d != fprime || -cam_matrix_get_value(F, 0, 2) / d != f || cam_matrix_get_value(F, 0, 0) / d != f * fprime)
+  if (-cam_matrix_get_value(F, 2, 0) / d != f2 || -cam_matrix_get_value(F, 0, 2) / d != f1 || cam_matrix_get_value(F, 0, 0) / d != f1 * f2)
     {
       printf("cam_solve_polynom : failed the integrity check\n");
       exit (-1);
     }
   /* end integrity check */
   
-  coeffs[6] = -pow(f, 4) * pow(a, 2) * c * d + pow(f, 4) * a * b * pow(c, 2);
-  coeffs[5] = -pow(f, 4) * pow(a, 2) * pow(d, 2) + pow(f, 4)* pow(b, 2) * pow(c, 2) + pow(a, 4) +
-    2 * pow(fprime, 2) * pow(a, 2) * pow(c, 2) + pow(fprime, 4) * pow(c, 4);;
-  coeffs[4] = - pow(f, 4) * pow(a, 2) * pow(d, 2) + pow(f, 4) * pow(b , 2) * c * d - 2 * pow(f, 2) * pow(a, 2) * c * d +
-    2 * pow(f, 2) * a * b * pow(c, 2) + 4 * pow(fprime, 2) * a *b * pow(c, 2) + 4 * pow(a, 3) * b + 4 * pow(fprime, 2) * pow(a, 2) * c * d +
-    4 * pow(fprime, 4) * pow(c, 3) * d;
-  coeffs[3] = -2 * pow(f, 2) * pow(a, 2) * pow(d, 2) + 2 * pow(f, 2) * pow(b, 2) * pow(c, 2) + 8 * pow(fprime, 2) * a * b *c * d +
-    2 * pow(fprime, 2) * pow(b ,2) * pow(c, 2) + 6 * pow(a, 2) * pow(b, 2) + 2 * pow(fprime, 2) * pow(a, 2) * pow(d, 2) +
-    6 * pow(fprime, 4) * pow(c, 2) * pow(d, 2);;
-  coeffs[2] = -2 * pow(f, 2) * a * b * pow(d, 2) + 2 * pow(f, 2) * pow(b, 2) * c * d + 4 * a * pow(b, 3) + 4* pow(fprime, 2) * a * b * pow(d, 2) +
-    4 * pow(fprime, 2) * pow(b , 2) * c * d - pow(a, 2) * c * d + pow(a, 2) * b * d + a * b * pow(c, 2) + 4 * pow(fprime, 4) * c * pow(d, 3);
-  coeffs[1] = pow(b, 4) - pow(a, 2) * pow(d, 2) + pow(b, 2) * pow(c, 2) + 2 * pow(fprime, 2) * pow(b, 2) * pow(d, 2) + pow(fprime, 4) * pow(d, 4);
-  coeffs[0] = -a * b * pow(d, 2) + pow(b, 2) * c * d;
+  coeffs[6] = b*c*c*f1*f1*f1*f1*a - a*a*d*f1*f1*f1*f1*c;
+  coeffs[5] = f2*f2*f2*f2*c*c*c*c + 2*a*a*f2*f2*c*c - a*a*d*d*f1*f1*f1*f1 + b*b*c*c*f1*f1*f1*f1 + a*a*a*a;
+  coeffs[4] = 4*a*a*a*b+2*b*c*c*f1*f1*a + 4*f2*f2*f2*f2*c*c*c*d + 4*a*b*f2*f2*c*c + 4*a*a*f2*f2*c*d - 2*a*a*d*f1*f1*c - a*d*d*f1*f1*f1*f1*b + b*b*c*f1*f1*f1*f1*d;
+  coeffs[3] = 6*a*a*b*b + 6*f2*f2*f2*f2*c*c*d*d + 2*b*b*f2*f2*c*c + 2*a*a*f2*f2*d*d - 2*a*a*d*d*f1*f1 + 2*b*b*c*c*f1*f1 + 8*a*b*f2*f2*c*d;
+  coeffs[2] = 4*a*b*b*b + 4*b*b*f2*f2*c*d + 4*f2*f2*f2*f2*c*d*d*d - a*a*d*c + b*c*c*a + 4*a*b*f2*f2*d*d - 2*a*d*d*f1*f1*b + 2*b*b*c*f1*f1*d;
+  coeffs[1] = f2*f2*f2*f2*d*d*d*d + b*b*b*b + 2*b*b*f2*f2*d*d - a*a*d*d + b*b*c*c;
+  coeffs[0] = -a*d*d*b + b*b*c*d;
 
   gsl_poly_complex_solve(coeffs, 7, w, z);
   gsl_poly_complex_workspace_free(w);

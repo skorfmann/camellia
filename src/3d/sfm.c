@@ -63,6 +63,88 @@
 
 /*#define		DEBUG*/
 
+/*************************************************************************************************/
+/* write cameras as required by sba                                                              */
+/* Rotation quaternions have the scalar part as their first element, i.e. a rotation by angle TH */
+/* around the unit vector U=(Ux, Uy, Uz) should be specified as                                  */
+/* cos(TH/2) Ux*sin(TH/2) Uy*sin(TH/2) Uz*sin(TH/2)                                              */
+/* http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles			 */
+/*************************************************************************************************/
+void		write_quaternion_camera(FILE *fd, POINTS_TYPE *R, POINTS_TYPE *t)
+{
+  POINTS_TYPE	q[4];
+  POINTS_TYPE	tmp[4];
+  int		i;
+  int		maxPos;
+  POINTS_TYPE	mag;
+  CamMatrix	*Rot;
+
+  Rot = compute_rotation_matrix(R[0], R[1], R[2]);
+
+  tmp[0] = 1.0f + cam_matrix_get_value(Rot, 0, 0) + cam_matrix_get_value(Rot, 1, 1) + cam_matrix_get_value(Rot, 2, 2);
+  tmp[1] = 1.0f + cam_matrix_get_value(Rot, 0, 0) - cam_matrix_get_value(Rot, 1, 1) - cam_matrix_get_value(Rot, 2, 2);
+  tmp[2] = 1.0f - cam_matrix_get_value(Rot, 0, 0) + cam_matrix_get_value(Rot, 1, 1) - cam_matrix_get_value(Rot, 2, 2);
+  tmp[3] = 1.0f - cam_matrix_get_value(Rot, 0, 0) - cam_matrix_get_value(Rot, 1, 1) + cam_matrix_get_value(Rot, 2, 2);
+
+  for (i = 0, mag = -1.0f ; i < 4 ; ++i)
+    {
+      if (mag < tmp[i])
+	{
+	  mag = tmp[i];
+	  maxPos = i;
+	}
+    }
+
+  switch (maxPos)
+    {
+    case 0:
+      q[0] = sqrt(tmp[0]) * 0.5f;
+      q[1] = (cam_matrix_get_value(Rot, 1, 2) - cam_matrix_get_value(Rot, 2, 1)) / (4.0f * q[0]);
+      q[2] = (cam_matrix_get_value(Rot, 2, 0) - cam_matrix_get_value(Rot, 0, 2)) / (4.0f * q[0]);
+      q[3] = (cam_matrix_get_value(Rot, 0, 1) - cam_matrix_get_value(Rot, 1, 0)) / (4.0f * q[0]);
+      break;
+    case 1:
+      q[1] = sqrt(tmp[1]) * 0.5f;
+      q[0] = (cam_matrix_get_value(Rot, 1, 2) - cam_matrix_get_value(Rot, 2, 1)) / (4.0f * q[1]);
+      q[2] = (cam_matrix_get_value(Rot, 0, 1) + cam_matrix_get_value(Rot, 1, 0)) / (4.0f * q[1]);
+      q[3] = (cam_matrix_get_value(Rot, 2, 0) + cam_matrix_get_value(Rot, 0, 2)) / (4.0f * q[1]);
+      break;
+    case 2:
+      q[2] = sqrt(tmp[2]) * 0.5f;
+      q[0] = (cam_matrix_get_value(Rot, 2, 0) - cam_matrix_get_value(Rot, 0, 2)) / (4.0f * q[2]);
+      q[1] = (cam_matrix_get_value(Rot, 0, 1) + cam_matrix_get_value(Rot, 1, 0)) / (4.0f * q[2]);
+      q[3] = (cam_matrix_get_value(Rot, 1, 2) + cam_matrix_get_value(Rot, 2, 1)) / (4.0f * q[2]);
+      break;
+    case 3:
+      q[3]= sqrt(tmp[3]) * 0.5f;
+      q[0]= (cam_matrix_get_value(Rot, 0, 1) - cam_matrix_get_value(Rot, 1, 0)) / (4.0f * q[3]);
+      q[1]= (cam_matrix_get_value(Rot, 2, 0) + cam_matrix_get_value(Rot, 0, 2)) / (4.0f * q[3]);
+      q[2]= (cam_matrix_get_value(Rot, 1, 2) + cam_matrix_get_value(Rot, 2, 1)) / (4.0f * q[3]);
+      break;
+    default:
+      printf("Error in write_quaternion_camera\n");
+      exit (-1);
+    }
+  
+  cam_disallocate_matrix(Rot);
+  free(Rot);
+
+  mag = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
+  mag= 1.0f / sqrt(mag);
+  q[0] *= mag;
+  q[1] *= mag;
+  q[2] *= mag;
+  q[3] *= mag;
+
+  fprintf(fd, "%f %f %f %f %f %f %f\n", q[0], q[1], q[2], q[3], t[0], t[1], t[2]);
+  return ;
+}
+
+void		write_point(FILE *fd, Cam3dPoint *pt3d, float *p1, float *p2)
+{
+  fprintf(fd, "%f %f %f 2 0 %f %f 1 %f %f\n", pt3d->x, pt3d->y, pt3d->z, p1[0], p1[1], p2[0], p2[1]);
+}
+
 void		main_project_and_write_points()
 {
   CamMatrix	K;
@@ -148,6 +230,8 @@ void			main_triangulate_2d_points_perfect()
   POINTS_TYPE		Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
   POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
   POINTS_TYPE		Tdata2[3] = {1.0f,0.0f,0.0f};
+  POINTS_TYPE		Rdata1[3] = {0.0f,0.0f,0.0f};
+  POINTS_TYPE		Rdata2[3] = {PI/6,PI/3,PI/5};
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
@@ -158,6 +242,8 @@ void			main_triangulate_2d_points_perfect()
   CamList		*points;
   Cam3dPoint		*pt3d;
   FILE			*file;
+  FILE			*pointsFile;
+  FILE			*cameras;
   char			*filename = "manny";
   char			*path1;
   char			*path2;
@@ -165,6 +251,11 @@ void			main_triangulate_2d_points_perfect()
   FILE			*debug_file;
   CamList		*tailPoints;
 #endif
+
+  cameras = fopen("cameras.txt", "w");
+  write_quaternion_camera(cameras, Rdata1, Tdata1);
+  write_quaternion_camera(cameras, Rdata2, Tdata2);
+  fclose(cameras);
 
   path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
   path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
@@ -183,14 +274,14 @@ void			main_triangulate_2d_points_perfect()
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
 
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(Rdata1[0], Rdata1[1], Rdata1[2]);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
   cam_disallocate_matrix(R);
   free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(Rdata2[0], Rdata2[0], Rdata2[0]);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
   cam_disallocate_matrix(R);
@@ -211,18 +302,21 @@ void			main_triangulate_2d_points_perfect()
 
   ppts1 = pts1;
   ppts2 = pts2;
+  pointsFile = fopen("points.txt", "w");
   while (ppts1 && ppts2)
     {
       pt3d = cam_triangulate_one_perfect_3d_point(&projectionPair, &t1, &t2, &K, ppts1->data, ppts2->data);
-
       if (pt3d)
 	{
 	  fwrite(pt3d, sizeof(POINTS_TYPE), 3, file);
+	  fprintf(pointsFile, "%f %f %f 2 0 %f %f 1 %f %f\n", pt3d->x, pt3d->y, pt3d->z, ((Cam2dPoint *)ppts1->data)->x, ((Cam2dPoint *)ppts1->data)->y,
+		  ((Cam2dPoint *)ppts2->data)->x, ((Cam2dPoint *)ppts2->data)->y);
 	  free(pt3d);
 	}
       ppts1 = ppts1->next;
       ppts2 = ppts2->next;
     }
+  fclose(pointsFile);
 
   path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
   sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
@@ -255,18 +349,25 @@ void			main_triangulate_2d_points_noisy()
   CamMatrix		K;
   POINTS_TYPE		Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
   POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
-  POINTS_TYPE		Tdata2[3] = {1.0f,0.0f,0.0f};
+  POINTS_TYPE		Rdata1[3] = {0.0f,0.0f,0.0f};
+  POINTS_TYPE		Tdata2[3] = {1.0f, 0.0f, 0.0f};
+  POINTS_TYPE		Rdata2[3] = {PI/6, 0.0f,0.0f};
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
   CamMatrix		F;
+
   CamList		*pts1;
   CamList		*pts2;
   CamList		*ppts1;
   CamList		*ppts2;
   CamList		*points;
+
   Cam3dPoint		*pt3d;
   FILE			*file;
+  FILE			*cameras;
+  FILE			*pts;
+
   char			*filename = "manny";
   char			*path1;
   char			*path2;
@@ -290,6 +391,11 @@ void			main_triangulate_2d_points_noisy()
   CamList		*tailPoints;
 #endif
 
+  cameras = fopen("cameras.txt", "w");
+  write_quaternion_camera(cameras, Rdata1, Tdata1);
+  write_quaternion_camera(cameras, Rdata2, Tdata2);
+  fclose(cameras);
+
   path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
   path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
   sprintf(path1, "data/3d/3dmodels/%s", filename);
@@ -308,17 +414,17 @@ void			main_triangulate_2d_points_noisy()
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
 
   memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(0.0f, 0.0f, 0.0f);
+  R = compute_rotation_matrix(Rdata1[0], Rdata1[1], Rdata1[2]);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
   cam_disallocate_matrix(R);
   free(R);
 
   memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(PI/6, 0.0f, 0.0f);
+  R = compute_rotation_matrix(Rdata2[0], Rdata2[1], Rdata2[2]);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
-  cam_add_noise_to_2d_points(pts2, 500.0f, 30);
+  cam_add_noise_to_2d_points(pts2, 500.0f, 1);
   cam_disallocate_matrix(R);
   free(R);
 
@@ -380,10 +486,10 @@ void			main_triangulate_2d_points_noisy()
 
   cvReleaseMat(&points1);
   cvReleaseMat(&points2);
-  /* the method cvCorrectMatches is bugging for a large amout of point, we then have to split */
   curNbPoints = 0;
   ppts1 = pts1;
   ppts2 = pts2;
+  pts = fopen("points.txt", "w");
   while (curNbPoints < pts1->index)
     {
       nbPoints = MIN((pts1->index - curNbPoints), 10000);
@@ -394,8 +500,6 @@ void			main_triangulate_2d_points_noisy()
 
       for( i = 0 ; i < nbPoints ; i++ )
 	{
-	  if (i + curNbPoints == 44186 || i + curNbPoints == 44185 || i + curNbPoints == 44187)
-	    continue;
 	  points1->data.fl[i*2] = ((Cam2dPoint *)(ppts1->data))->x;
 	  points1->data.fl[i*2+1] = ((Cam2dPoint *)(ppts1->data))->y;
 	  points2->data.fl[i*2] = ((Cam2dPoint *)(ppts2->data))->x;
@@ -418,14 +522,16 @@ void			main_triangulate_2d_points_noisy()
 	}
       
       cvTriangulatePoints(proj1, proj2, new_points1, new_points2, points4d);
-      
+
       for (i = 0 ; i < nbPoints ; ++i)
 	{
 	  tmp3d.x = (POINTS_TYPE)cvmGet(points4d,0,i);
 	  tmp3d.y = (POINTS_TYPE)cvmGet(points4d,1,i);
 	  tmp3d.z = (POINTS_TYPE)cvmGet(points4d,2,i);
+	  write_point(pts, &tmp3d, points1->data.fl + i*2, points2->data.fl + i*2);
 	  fwrite(&tmp3d, sizeof(POINTS_TYPE), 3, file);
 	}
+
       curNbPoints += nbPoints;
       cvReleaseMat(&points1);
       cvReleaseMat(&points2);
@@ -433,6 +539,7 @@ void			main_triangulate_2d_points_noisy()
       cvReleaseMat(&new_points2);
       cvReleaseMat(&points4d);
     }
+  fclose (pts);
 
   path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
   sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
@@ -468,8 +575,9 @@ int		main()
 {
   /*main_project_and_write_points();*/
   /*main_triangulate_2d_points_tests();*/
-  /*main_triangulate_2d_points_perfect();*/
-  main_triangulate_2d_points_noisy();  
+  //main_triangulate_2d_points_perfect();
+  main_triangulate_2d_points_noisy();
+  /*main_bundle_2d_points_noisy();*/
 
   return (0);
 }
