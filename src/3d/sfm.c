@@ -75,6 +75,12 @@ typedef struct
   CamList	*mask;
 } sbaPoint;
 
+typedef struct
+{
+  POINTS_TYPE	Rdata[3];
+  POINTS_TYPE	Tdata[3];
+} ParamsProj;
+
 /***********************************/
 /* Begin of quaternions conversion */
 /***********************************/
@@ -508,10 +514,7 @@ void			main_triangulate_2d_points_noisy_2_views()
 /* Begin of reconstruction with everything known (perfect) */
 /***********************************************************/
 
-CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata,
-							       POINTS_TYPE *Rdata1, POINTS_TYPE *Tdata1,
-							       POINTS_TYPE *Rdata2, POINTS_TYPE *Tdata2,
-							       char *filename)
+CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata, ParamsProj *p1, ParamsProj *p2, char *filename)
 {
   CamMatrix		K;
   CamMatrix		*R;
@@ -545,14 +548,14 @@ CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata,
   cam_allocate_matrix(&t1, 1, 3);
   cam_allocate_matrix(&t2, 1, 3);  
 
-  memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(Rdata1[0], Rdata1[1], Rdata1[2]);
+  memcpy(t1.data, p1->Tdata, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(p1->Rdata[0], p1->Rdata[1], p1->Rdata[2]);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
   cam_disallocate_matrix(R);
   free(R);
-  memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(Rdata2[0], Rdata2[0], Rdata2[0]);
+  memcpy(t2.data, p2->Tdata, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(p2->Rdata[0], p2->Rdata[0], p2->Rdata[0]);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
   cam_disallocate_matrix(R);
@@ -607,34 +610,128 @@ CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata,
   return (res);
 }
 
-void			triangulate_2d_points_perfect_n_views(CamList	*Projections)
+CamList			*triangulate_2d_points_perfect_n_views(POINTS_TYPE *K, CamList	*Projections, char *filename)
 {
-  CamMatrix		*p1;
-  CamMatrix		*p2;
   CamList		*tmpList;
   int			nb;
+  CamList		*res;
+  CamList		*tmp1;
+  CamList		*tmp2;
+  CamList		*tmp3;
+  ParamsProj		*p1;
+  ParamsProj		*p2;
+  int			frameIndex = 2;
+  CamList		*projected;
+  CamList		*points;
+  CamMatrix		t;
+  CamMatrix		Ka;
+  CamMatrix		*R;
+  CamMatrix		P;
+  char			*path; 
+
+
+  path = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
+  sprintf(path, "data/3d/3dmodels/%s", filename);
+  points = loadPoints1(path);
+  free(path);
 
   tmpList = Projections;
-  p1 = (CamMatrix *)tmpList->data;
-  tmpList = tmpList->next;
-  p2 = (CamMatrix *)tmpList->data;
-  tmpList = tmpList->next;
-  
-  while (p1 && p2)
+  if (!tmpList)
     {
-      
-      p1 = p2;
-      p2 = (CamMatrix *)tmpList->data;
-      tmpList = tmpList->next;
+      printf("triangulate_2d_points_perfect_n_views : not enough projections (minimum is 2)\n");
+      exit (-1);
     }
+  p1 = (ParamsProj *)tmpList->data;
+  tmpList = tmpList->next;
+  if (!tmpList)
+    {
+      printf("triangulate_2d_points_perfect_n_views : not enough projections (minimum is 2)\n");
+      exit (-1);
+    }
+  p2 = (ParamsProj *)tmpList->data;
+  res = triangulate_2d_points_perfect_2_views(K, &p1, &p2, filename);
+  tmpList = tmpList->next;
+  cam_allocate_matrix(&t, 1, 3);
+  cam_allocate_matrix(&P, 4, 3);  
+  cam_allocate_matrix(&Ka, 3, 3);
+  memcpy(Ka.data, K, 9 * sizeof(POINTS_TYPE));
+  while (tmpList)
+    {
+      p2 = (ParamsProj *)tmpList->data;
+      memcpy(t.data, p2->Tdata, 3 * sizeof(POINTS_TYPE));
+      R = compute_rotation_matrix(p2->Rdata[0], p2->Rdata[0], p2->Rdata[0]);
+      cam_compute_projection_matrix(&P, &Ka, R, &t);
+      projected = cam_project_3d_to_2d(points, &P);
+
+      tmp2 = res;
+      tmp1 = projected;
+      if (tmp2->index != tmp1->index)
+	{
+	  printf("triangulate_2d_points_perfect_n_views : incoherent number of points\n");
+	  exit (-1);
+	}
+      while (tmp2 && tmp1)
+	{
+	  ((sbaPoint*)tmp2->data)->mask = cam_add_to_linked_list(((sbaPoint*)tmp2->data)->mask, (mask2d*)malloc(sizeof(mask2d)));
+	  tmp3 = ((sbaPoint*)tmp2->data)->mask;
+	  ((mask2d*)tmp3->data)->frameIndex = frameIndex;
+	  memcpy(&((mask2d*)tmp3->data)->pt2d, (Cam2dPoint*)tmp1->data, sizeof(Cam2dPoint));
+	  tmp1 = tmp1->next;
+	  tmp2 = tmp2->next;
+	}
+      cam_disallocate_matrix(R);
+      free(R);
+      cam_disallocate_linked_list(projected);
+      tmpList = tmpList->next;
+      ++frameIndex;
+    }
+  cam_disallocate_linked_list(points);
+  cam_disallocate_matrix(&Ka);
+  cam_disallocate_matrix(&t);
+  cam_disallocate_matrix(&P);
+  return (res);
 }
 
 void		main_triangulate_2d_points_perfect_n_views()
 {
-  
+  CamList	*proj;
+  CamList	*points;
+  FILE		*cameras;
+  POINTS_TYPE	Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
+  POINTS_TYPE	Rdata[3] = {0.0f, 0.0f, 0.0f};
+  POINTS_TYPE	Tdata[3] = {9.0f, 0.0f, 0.0f};
+  POINTS_TYPE	Rxstep = 0.0f;
+  POINTS_TYPE	Rystep = 0.0f;
+  POINTS_TYPE	Rzstep = 0.0f;
+  POINTS_TYPE	Txstep = -1.0f;
+  POINTS_TYPE	Tystep = 0.0f;
+  POINTS_TYPE	Tzstep = 0.0f;
+  int		nbIter = 10;
+  int		i;
+
+  proj = NULL;
+  cameras = fopen("cameras.txt", "w");
+  for (i = 0 ; i < nbIter ; ++i)
+    {
+      proj = cam_add_to_linked_list(proj, (ParamsProj *)malloc(sizeof(ParamsProj)));
+      memcpy(((ParamsProj *)proj->data)->Rdata, Rdata, 3 * sizeof(POINTS_TYPE));
+      memcpy(((ParamsProj *)proj->data)->Tdata, Tdata, 3 * sizeof(POINTS_TYPE));
+      cam_write_quaternion_camera_params(cameras, Rdata, Tdata);
+      Rdata[0] += Rxstep;
+      Rdata[1] += Rystep;
+      Rdata[2] += Rzstep;
+      Tdata[0] += Txstep;
+      Tdata[1] += Tystep;
+      Tdata[2] += Tzstep;
+    }
+  fclose(cameras);
+  points = triangulate_2d_points_perfect_n_views(Kdata, proj, "manny");
+  cam_print_sba_3d_points_text(points,"points.txt");
+  cam_print_sba(points,"sba_points.txt");
+  cam_disallocate_linked_list(points);
 }
 
-void			main_triangulate_2d_points_perfect_2_views()
+void		main_triangulate_2d_points_perfect_2_views()
 {
   POINTS_TYPE	Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
   POINTS_TYPE	Tdata1[3] = {0.0f,0.0f,0.0f};  
@@ -643,12 +740,20 @@ void			main_triangulate_2d_points_perfect_2_views()
   POINTS_TYPE	Rdata2[3] = {0.0f,0.0f,0.0f};
   FILE		*cameras;	
   CamList	*points;
+  ParamsProj	p1;
+  ParamsProj	p2;
     
+  memcpy(&p1.Rdata, Rdata1, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p1.Tdata, Tdata1, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p2.Rdata, Rdata2, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p2.Tdata, Tdata2, 3 * sizeof(POINTS_TYPE));
+
   cameras = fopen("cameras.txt", "w");
-  cam_write_quaternion_camera_params(cameras, Rdata1, Tdata1);
-  cam_write_quaternion_camera_params(cameras, Rdata2, Tdata2);
+  cam_write_quaternion_camera_params(cameras, p1.Rdata, p1.Tdata);
+  cam_write_quaternion_camera_params(cameras, p2.Rdata, p2.Tdata);
   fclose(cameras);
-  points = triangulate_2d_points_perfect_2_views(Kdata, Rdata1, Tdata1, Rdata2, Tdata2, "manny");
+
+  points = triangulate_2d_points_perfect_2_views(Kdata, &p1, &p2, "manny");
 
   cam_print_sba_3d_points_text(points,"points.txt");
   cam_print_sba(points,"sba_points.txt");
@@ -664,8 +769,8 @@ int		main()
 {
   /*main_project_and_write_points();*/
   /*main_triangulate_2d_points_tests();*/
-  main_triangulate_2d_points_perfect_2_views();
-  //main_triangulate_2d_points_perfect_n_views();
+  //main_triangulate_2d_points_perfect_2_views();
+  main_triangulate_2d_points_perfect_n_views();
   //main_triangulate_2d_points_noisy_2_views();
   /*main_bundle_2d_points_noisy();*/
 
