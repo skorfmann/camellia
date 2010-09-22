@@ -81,6 +81,20 @@ typedef struct
   POINTS_TYPE	Tdata[3];
 } ParamsProj;
 
+void		disallocate_sba_linked_list(CamList *l)
+{
+  CamList	*p;
+
+  p = l;
+  while (p)
+    {
+      cam_disallocate_linked_list( ((sbaPoint*)p->data)->mask );
+      p = p->next;
+    }
+  cam_free_linked_list(p);
+}
+
+
 /***********************************/
 /* Begin of quaternions conversion */
 /***********************************/
@@ -215,6 +229,11 @@ void		cam_print_sba_3d_points_text(CamList *points, char *file)
   CamList	*tmp;
 
   output = fopen(file, "w");
+  if (!output)
+    {
+      printf("cam_print_sba_3d_points_text : unable to open file %s\n", file);
+      exit (-1);
+    }
   tmp = points;
   while (tmp)
     {
@@ -302,6 +321,10 @@ void			main_triangulate_2d_points_tests()
   cam_disallocate_projections_pair(&projectionPair);
 }
 
+/*********************************/
+/* Begin of noisy reconstruction */
+/*********************************/
+
 void			main_triangulate_2d_points_noisy_2_views()
 {
   CamProjectionsPair	projectionPair;
@@ -320,7 +343,6 @@ void			main_triangulate_2d_points_noisy_2_views()
   CamList		*ppts1;
   CamList		*ppts2;
   CamList		*points;
-  Cam3dPoint		*pt3d;
   FILE			*file;
   FILE			*cameras;
   FILE			*pts;
@@ -510,6 +532,10 @@ void			main_triangulate_2d_points_noisy_2_views()
   fclose(file);
 }
 
+/*******************************/
+/* End of noisy reconstruction */
+/*******************************/
+
 /***********************************************************/
 /* Begin of reconstruction with everything known (perfect) */
 /***********************************************************/
@@ -649,7 +675,7 @@ CamList			*triangulate_2d_points_perfect_n_views(POINTS_TYPE *K, CamList	*Projec
       exit (-1);
     }
   p2 = (ParamsProj *)tmpList->data;
-  res = triangulate_2d_points_perfect_2_views(K, &p1, &p2, filename);
+  res = triangulate_2d_points_perfect_2_views(K, p1, p2, filename);
   tmpList = tmpList->next;
   cam_allocate_matrix(&t, 1, 3);
   cam_allocate_matrix(&P, 4, 3);  
@@ -700,7 +726,7 @@ void		main_triangulate_2d_points_perfect_n_views()
   POINTS_TYPE	Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
   POINTS_TYPE	Rdata[3] = {0.0f, 0.0f, 0.0f};
   POINTS_TYPE	Tdata[3] = {9.0f, 0.0f, 0.0f};
-  POINTS_TYPE	Rxstep = 0.0f;
+  POINTS_TYPE	Rxstep = PI/6;
   POINTS_TYPE	Rystep = 0.0f;
   POINTS_TYPE	Rzstep = 0.0f;
   POINTS_TYPE	Txstep = -1.0f;
@@ -728,7 +754,8 @@ void		main_triangulate_2d_points_perfect_n_views()
   points = triangulate_2d_points_perfect_n_views(Kdata, proj, "manny");
   cam_print_sba_3d_points_text(points,"points.txt");
   cam_print_sba(points,"sba_points.txt");
-  cam_disallocate_linked_list(points);
+  disallocate_sba_linked_list(points);
+  cam_disallocate_linked_list(proj);
 }
 
 void		main_triangulate_2d_points_perfect_2_views()
@@ -758,7 +785,7 @@ void		main_triangulate_2d_points_perfect_2_views()
   cam_print_sba_3d_points_text(points,"points.txt");
   cam_print_sba(points,"sba_points.txt");
 
-  cam_disallocate_linked_list(points);
+  disallocate_sba_linked_list(points);
 }
 
 /*********************************************************/
@@ -770,9 +797,9 @@ int		main()
   /*main_project_and_write_points();*/
   /*main_triangulate_2d_points_tests();*/
   //main_triangulate_2d_points_perfect_2_views();
-  main_triangulate_2d_points_perfect_n_views();
-  //main_triangulate_2d_points_noisy_2_views();
-  /*main_bundle_2d_points_noisy();*/
-
+  //main_triangulate_2d_points_perfect_n_views();
+  main_triangulate_2d_points_noisy_2_views();
+  //main_triangulate_2d_points_noisy_n_views();
+  
   return (0);
 }
