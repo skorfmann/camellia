@@ -325,15 +325,10 @@ void			main_triangulate_2d_points_tests()
 /* Begin of noisy reconstruction */
 /*********************************/
 
-void			main_triangulate_2d_points_noisy_2_views()
+CamList			*triangulate_2d_points_noisy_2_views(POINTS_TYPE *Kdata, ParamsProj *p1, ParamsProj *p2, char *filename)
 {
   CamProjectionsPair	projectionPair;
   CamMatrix		K;
-  POINTS_TYPE		Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
-  POINTS_TYPE		Tdata1[3] = {0.0f,0.0f,0.0f};  
-  POINTS_TYPE		Rdata1[3] = {0.0f,0.0f,0.0f};
-  POINTS_TYPE		Tdata2[3] = {1.0f, 0.0f, 0.0f};
-  POINTS_TYPE		Rdata2[3] = {PI/6, 0.0f,0.0f};
   CamMatrix		*R;
   CamMatrix		t1;
   CamMatrix		t2;
@@ -343,10 +338,6 @@ void			main_triangulate_2d_points_noisy_2_views()
   CamList		*ppts1;
   CamList		*ppts2;
   CamList		*points;
-  FILE			*file;
-  FILE			*cameras;
-  FILE			*pts;
-  char			*filename = "manny";
   char			*path1;
   char			*path2;
   CvMat			*proj1;
@@ -364,13 +355,13 @@ void			main_triangulate_2d_points_noisy_2_views()
   int			nbPoints;
   int			curNbPoints;
   Cam3dPoint		tmp3d;
+  CamList		*res;
 
   path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
   path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
   sprintf(path1, "data/3d/3dmodels/%s", filename);
   sprintf(path2, "data/3d/results/%s", filename);
   points = loadPoints1(path1);
-  file = fopen(path2, "w");
   free(path1);
   free(path2);
 
@@ -382,15 +373,15 @@ void			main_triangulate_2d_points_noisy_2_views()
   cam_allocate_matrix(&F, 3, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
 
-  memcpy(t1.data, Tdata1, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(Rdata1[0], Rdata1[1], Rdata1[2]);
+  memcpy(t1.data, p1->Tdata, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(p1->Rdata[0], p1->Rdata[1], p1->Rdata[2]);
   cam_compute_projection_matrix(&projectionPair.p1, &K, R, &t1);
   pts1 = cam_project_3d_to_2d(points, &projectionPair.p1);
   cam_disallocate_matrix(R);
   free(R);
 
-  memcpy(t2.data, Tdata2, 3 * sizeof(POINTS_TYPE));
-  R = compute_rotation_matrix(Rdata2[0], Rdata2[1], Rdata2[2]);
+  memcpy(t2.data, p2->Tdata, 3 * sizeof(POINTS_TYPE));
+  R = compute_rotation_matrix(p2->Rdata[0], p2->Rdata[1], p2->Rdata[2]);
   cam_compute_projection_matrix(&projectionPair.p2, &K, R, &t2);
   pts2 = cam_project_3d_to_2d(points, &projectionPair.p2);
   cam_add_noise_to_2d_points(pts2, 500.0f, 1);
@@ -433,11 +424,6 @@ void			main_triangulate_2d_points_noisy_2_views()
   
   cam_compute_p_from_f(&F, &projectionPair);
 
-  cameras = fopen("cameras.txt", "w");
-  cam_write_quaternion_camera_projection(cameras, &projectionPair.p1);
-  cam_write_quaternion_camera_projection(cameras, &projectionPair.p2);
-  fclose(cameras);
-
   for (j = 0 ; j < 3 ; ++j)
     for (i = 0 ; i < 4 ; ++i)
       {
@@ -450,7 +436,9 @@ void			main_triangulate_2d_points_noisy_2_views()
   curNbPoints = 0;
   ppts1 = pts1;
   ppts2 = pts2;
-  pts = fopen("points.txt", "w");
+
+  res = NULL;
+  /* computation splitted because of openCV bug ... */
   while (curNbPoints < pts1->index)
     {
       nbPoints = MIN((pts1->index - curNbPoints), 10000);
@@ -469,10 +457,8 @@ void			main_triangulate_2d_points_noisy_2_views()
 	  ppts2 = ppts2->next;
 	}
 
-      printf("before %i\n", curNbPoints);
       cvCorrectMatches(fundamental_matrix, points1, points2, NULL, NULL);
       points4d = cvCreateMat(4,nbPoints,CV_32FC1);
-      printf("after %i\n", curNbPoints);      
 
       for (i = 0 ; i < nbPoints ; ++i)
 	{
@@ -489,8 +475,18 @@ void			main_triangulate_2d_points_noisy_2_views()
 	  tmp3d.x = (POINTS_TYPE)cvmGet(points4d,0,i);
 	  tmp3d.y = (POINTS_TYPE)cvmGet(points4d,1,i);
 	  tmp3d.z = (POINTS_TYPE)cvmGet(points4d,2,i);
-	  write_point(pts, &tmp3d, points1->data.fl + i*2, points2->data.fl + i*2);
-	  fwrite(&tmp3d, sizeof(POINTS_TYPE), 3, file);
+	  res = cam_add_to_linked_list(res, malloc(sizeof(sbaPoint)));
+	  memcpy(&((sbaPoint *)res->data)->pt3d, &tmp3d, sizeof(Cam3dPoint));
+	  ((sbaPoint *)res->data)->mask = NULL;
+	  ((sbaPoint *)res->data)->mask = cam_add_to_linked_list(((sbaPoint *)res->data)->mask, malloc(sizeof(mask2d)));
+	  ((mask2d *)((sbaPoint *)res->data)->mask->data)->frameIndex = 1;
+	  memcpy(&((mask2d *)((sbaPoint *)res->data)->mask->data)->pt2d, points2->data.fl + i*2, sizeof(Cam2dPoint));
+	  ((sbaPoint *)res->data)->mask = cam_add_to_linked_list(((sbaPoint *)res->data)->mask, malloc(sizeof(mask2d)));
+	  ((mask2d *)((sbaPoint *)res->data)->mask->data)->frameIndex = 0;
+	  memcpy(&((mask2d *)((sbaPoint *)res->data)->mask->data)->pt2d, points1->data.fl + i*2, sizeof(Cam2dPoint));
+
+	  /*	  write_point(pts, &tmp3d, points1->data.fl + i*2, points2->data.fl + i*2);
+		  fwrite(&tmp3d, sizeof(POINTS_TYPE), 3, file);*/
 	}
 
       curNbPoints += nbPoints;
@@ -500,7 +496,7 @@ void			main_triangulate_2d_points_noisy_2_views()
       cvReleaseMat(&new_points2);
       cvReleaseMat(&points4d);
     }
-  fclose (pts);
+
 
   path1 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + strlen("_viewpoint_X.ppm")  + 1) * sizeof (char));
   sprintf(path1, "data/3d/results/%s_viewpoint_1.ppm", filename);
@@ -529,7 +525,160 @@ void			main_triangulate_2d_points_noisy_2_views()
   cam_disallocate_matrix(&t2);
   cam_disallocate_matrix(&K);
   cam_disallocate_matrix(&F);
-  fclose(file);
+
+  return (res);
+}
+
+CamList			*triangulate_2d_points_noisy_n_views(POINTS_TYPE *K, CamList *Projections, char *filename)
+{
+  CamList		*tmpList;
+  int			nb;
+  CamList		*res;
+  CamList		*tmp1;
+  CamList		*tmp2;
+  CamList		*tmp3;
+  ParamsProj		*p1;
+  ParamsProj		*p2;
+  int			frameIndex = 2;
+  CamList		*projected;
+  CamList		*points;
+  CamMatrix		t;
+  CamMatrix		Ka;
+  CamMatrix		*R;
+  CamMatrix		P;
+  char			*path; 
+
+
+  path = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
+  sprintf(path, "data/3d/3dmodels/%s", filename);
+  points = loadPoints1(path);
+  free(path);
+
+  tmpList = Projections;
+  if (!tmpList)
+    {
+      printf("triangulate_2d_points_noisy_n_views : not enough projections (minimum is 2)\n");
+      exit (-1);
+    }
+  p1 = (ParamsProj *)tmpList->data;
+  tmpList = tmpList->next;
+  if (!tmpList)
+    {
+      printf("triangulate_2d_points_noisy_n_views : not enough projections (minimum is 2)\n");
+      exit (-1);
+    }
+  p2 = (ParamsProj *)tmpList->data;
+  res = triangulate_2d_points_noisy_2_views(K, p1, p2, filename);
+  tmpList = tmpList->next;
+  cam_allocate_matrix(&t, 1, 3);
+  cam_allocate_matrix(&P, 4, 3);  
+  cam_allocate_matrix(&Ka, 3, 3);
+  memcpy(Ka.data, K, 9 * sizeof(POINTS_TYPE));
+  while (tmpList)
+    {
+      p2 = (ParamsProj *)tmpList->data;
+      memcpy(t.data, p2->Tdata, 3 * sizeof(POINTS_TYPE));
+      R = compute_rotation_matrix(p2->Rdata[0], p2->Rdata[0], p2->Rdata[0]);
+      cam_compute_projection_matrix(&P, &Ka, R, &t);
+      projected = cam_project_3d_to_2d(points, &P);
+
+      tmp2 = res;
+      tmp1 = projected;
+      if (tmp2->index != tmp1->index)
+	{
+	  printf("triangulate_2d_points_noisy_n_views : incoherent number of points\n");
+	  exit (-1);
+	}
+      while (tmp2 && tmp1)
+	{
+	  ((sbaPoint*)tmp2->data)->mask = cam_add_to_linked_list(((sbaPoint*)tmp2->data)->mask, (mask2d*)malloc(sizeof(mask2d)));
+	  tmp3 = ((sbaPoint*)tmp2->data)->mask;
+	  ((mask2d*)tmp3->data)->frameIndex = frameIndex;
+	  memcpy(&((mask2d*)tmp3->data)->pt2d, (Cam2dPoint*)tmp1->data, sizeof(Cam2dPoint));
+	  tmp1 = tmp1->next;
+	  tmp2 = tmp2->next;
+	}
+      cam_disallocate_matrix(R);
+      free(R);
+      cam_disallocate_linked_list(projected);
+      tmpList = tmpList->next;
+      ++frameIndex;
+    }
+  cam_disallocate_linked_list(points);
+  cam_disallocate_matrix(&Ka);
+  cam_disallocate_matrix(&t);
+  cam_disallocate_matrix(&P);
+  return (res);
+}
+
+void		main_triangulate_2d_points_noisy_2_views()
+{
+  POINTS_TYPE	Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
+  POINTS_TYPE	Tdata1[3] = {0.0f,0.0f,0.0f};  
+  POINTS_TYPE	Tdata2[3] = {1.0f,0.0f,0.0f};
+  POINTS_TYPE	Rdata1[3] = {0.0f,0.0f,0.0f};
+  POINTS_TYPE	Rdata2[3] = {PI/6,0.0f,0.0f};
+  FILE		*cameras;	
+  CamList	*points;
+  ParamsProj	p1;
+  ParamsProj	p2;
+    
+  memcpy(&p1.Rdata, Rdata1, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p1.Tdata, Tdata1, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p2.Rdata, Rdata2, 3 * sizeof(POINTS_TYPE));
+  memcpy(&p2.Tdata, Tdata2, 3 * sizeof(POINTS_TYPE));
+
+  cameras = fopen("cameras.txt", "w");
+  cam_write_quaternion_camera_params(cameras, p1.Rdata, p1.Tdata);
+  cam_write_quaternion_camera_params(cameras, p2.Rdata, p2.Tdata);
+  fclose(cameras);
+
+  points = triangulate_2d_points_noisy_2_views(Kdata, &p1, &p2, "manny");
+
+  cam_print_sba_3d_points_text(points,"points.txt");
+  cam_print_sba(points,"sba_points.txt");
+
+  disallocate_sba_linked_list(points);
+}
+
+void	main_triangulate_2d_points_noisy_n_views()
+{
+  CamList	*proj;
+  CamList	*points;
+  FILE		*cameras;
+  POINTS_TYPE	Kdata[9] = {1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f};
+  POINTS_TYPE	Rdata[3] = {9 * PI / 6, 0.0f, 0.0f};
+  POINTS_TYPE	Tdata[3] = {9.0f, 0.0f, 0.0f};
+  POINTS_TYPE	Rxstep = -PI/6;
+  POINTS_TYPE	Rystep = 0.0f;
+  POINTS_TYPE	Rzstep = 0.0f;
+  POINTS_TYPE	Txstep = -1.0f;
+  POINTS_TYPE	Tystep = 0.0f;
+  POINTS_TYPE	Tzstep = 0.0f;
+  int		nbIter = 10;
+  int		i;
+
+  proj = NULL;
+  cameras = fopen("cameras.txt", "w");
+  for (i = 0 ; i < nbIter ; ++i)
+    {
+      proj = cam_add_to_linked_list(proj, (ParamsProj *)malloc(sizeof(ParamsProj)));
+      memcpy(((ParamsProj *)proj->data)->Rdata, Rdata, 3 * sizeof(POINTS_TYPE));
+      memcpy(((ParamsProj *)proj->data)->Tdata, Tdata, 3 * sizeof(POINTS_TYPE));
+      cam_write_quaternion_camera_params(cameras, Rdata, Tdata);
+      Rdata[0] += Rxstep;
+      Rdata[1] += Rystep;
+      Rdata[2] += Rzstep;
+      Tdata[0] += Txstep;
+      Tdata[1] += Tystep;
+      Tdata[2] += Tzstep;
+    }
+  fclose(cameras);
+  points = triangulate_2d_points_noisy_n_views(Kdata, proj, "manny");
+  cam_print_sba_3d_points_text(points,"points.txt");
+  cam_print_sba(points,"sba_points.txt");
+  disallocate_sba_linked_list(points);
+  cam_disallocate_linked_list(proj);
 }
 
 /*******************************/
@@ -553,19 +702,13 @@ CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata, ParamsProj 
   CamList		*points;
   CamList		*res;
   Cam3dPoint		*pt3d;
-  FILE			*file;
   char			*path1;
-  char			*path2;
   CamProjectionsPair	projectionPair;
 
   path1 = (char*)malloc((strlen("data/3d/3dmodels/") + strlen(filename) + 1) * sizeof (char));
-  path2 = (char*)malloc((strlen("data/3d/results/") + strlen(filename) + 1) * sizeof (char));
   sprintf(path1, "data/3d/3dmodels/%s", filename);
-  sprintf(path2, "data/3d/results/%s", filename);
   points = loadPoints1(path1);
-  file = fopen(path2, "w");
   free(path1);
-  free(path2);
 
   cam_allocate_matrix(&K, 3, 3);
   memcpy(K.data, Kdata, 9 * sizeof(POINTS_TYPE));
@@ -630,8 +773,6 @@ CamList			*triangulate_2d_points_perfect_2_views(POINTS_TYPE *Kdata, ParamsProj 
   cam_disallocate_matrix(&t1);
   cam_disallocate_matrix(&t2);
   cam_disallocate_matrix(&K);
-
-  fclose(file);
 
   return (res);
 }
@@ -798,8 +939,8 @@ int		main()
   /*main_triangulate_2d_points_tests();*/
   //main_triangulate_2d_points_perfect_2_views();
   //main_triangulate_2d_points_perfect_n_views();
-  main_triangulate_2d_points_noisy_2_views();
-  //main_triangulate_2d_points_noisy_n_views();
+  //main_triangulate_2d_points_noisy_2_views();
+  main_triangulate_2d_points_noisy_n_views();
   
   return (0);
 }
