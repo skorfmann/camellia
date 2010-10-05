@@ -1214,7 +1214,8 @@ void test_camRecursiveKeypoints2(char *filename){
 
 	image.imageData = NULL;
 // 	camLoadPGM(&image,filename);
-	camLoadBMP(&image, "resources/img7.bmp");
+	camLoadBMP(&image, "resources/img8.bmp");
+	camLoadBMP(&image, filename);
 	I1.imageData = NULL;
 	I2.imageData = NULL;
 	camRGB2Y(&image, &I1);
@@ -1227,10 +1228,10 @@ void test_camRecursiveKeypoints2(char *filename){
 	camAllocateKeypoints(&points1, 10000);
 	camAllocateKeypoints(&points2, 10000);
 
-	camKeypointsRecursiveDetector(&I1, NULL, &points1, 20, 0);
+	camKeypointsRecursiveDetector(&I1, NULL, &points1, 50, 0);
 
 	points2.nbPoints = 0;
-	camFastHessianDetector(&I2, &points2, 20, 0);
+	camFastHessianDetector(&I2, &points2, 50, 0);
 
 	//Recursive keypoints
 // 	for (i = 0; i < points.nbPoints; i++) {
@@ -1480,7 +1481,7 @@ int main(int argc, char *argv[])
     camInitBenchmark();
 	char filename[256];
 	if (argc < 2)
-		strcpy(filename, "resources/img7.pgm");
+		strcpy(filename, "resources/img7.bmp");
 	else
 		strcpy(filename, argv[1]);
     // Tracking examples
