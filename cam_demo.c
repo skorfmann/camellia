@@ -33,15 +33,15 @@
           derived from this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   ==========================================================================
@@ -49,12 +49,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #ifndef M_PI
-#define M_PI 3.1415926535897932384626433832795 
+#define M_PI 3.1415926535897932384626433832795
 #endif
 #include <time.h>
-#include <assert.h> 
+#include <assert.h>
 #include "camellia.h"
 
 // Benchmarking functions
@@ -92,7 +93,7 @@ void example_filters()
 
     // Load picture chess.pgm
     camLoadPGM(&source,"resources/chess.pgm");
-    
+
     // Sobel filter on the image (signed)
     camAllocateImage(&dest,source.width,source.height,CAM_DEPTH_8S);
     for (i=0;i<3;i++) {
@@ -128,7 +129,7 @@ void example_filters()
     // Median filtering
     camMedianFilter5x5(&source,&dest);
     camSavePGM(&dest,"output/chess_median.pgm");
-    
+
     camDeallocateImage(&source);
     camDeallocateImage(&dest);
 }
@@ -143,14 +144,14 @@ void example_labeling()
 
     // Load picture small_ulp.pgm (example provided by ULP, which made labelling v1.0 fail)
     camLoadPGM(&source,"resources/small_ulp.pgm");
-    
+
     // Label the image
     camRLEAllocate(&encoded,10000);
     camRLEEncode(&source,&encoded);
     printf("Number of runs : %d\n",encoded.nbRuns);
     camRLELabeling(&encoded,&results);
 
-    // Print the results 
+    // Print the results
     for (i=0;i<results.nbBlobs;i++) {
 	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n",
 	    i,results.blobInfo[i].left,results.blobInfo[i].top,
@@ -180,7 +181,7 @@ void example_warping()
     for (c=0;c<1000;c++)
     {
 	params.interpolation=0;
-	
+
 	params.perspective=0;
 	params.p[0].x=0;
 	params.p[0].y=0;
@@ -190,9 +191,9 @@ void example_warping()
 	params.p[2].y=(source.height<<16)-1;
 	params.p[3].x=0;
 	params.p[3].y=(source.height<<16)-1;
-	
+
 	camWarping(&source,&resampled,&params);
-	
+
 	params.perspective=1;
 	params.p[0].x=((source.width<<16)-1)*1/3;
 	params.p[0].y=0;
@@ -202,9 +203,9 @@ void example_warping()
 	params.p[2].y=(source.height<<16)-1;
 	params.p[3].x=0;
 	params.p[3].y=(source.height<<16)-1;
-	
+
 	camWarping(&source,&warped,&params);
-	
+
 	params.perspective=0;
 	params.p[0].x=(source.width<<16)/2;
 	params.p[0].y=-(source.height<<16)/2;
@@ -214,9 +215,9 @@ void example_warping()
 	params.p[2].y=3*(source.height<<16)/2;
 	params.p[3].x=-(source.width<<16)/2;
 	params.p[3].y=(source.height<<16)/2;
-	
+
 	camWarping(&source,&rotated,&params);
-    }	
+    }
     t2=camGetTimeMs();
     printf("Nearest neighbour warping = %d us\n",t2-t1);
 
@@ -228,7 +229,7 @@ void example_warping()
     for (c=0;c<1000;c++)
     {
 	params.interpolation=1;
-	
+
 	params.perspective=0;
 	params.p[0].x=0;
 	params.p[0].y=0;
@@ -238,9 +239,9 @@ void example_warping()
 	params.p[2].y=(source.height<<16)-1;
 	params.p[3].x=0;
 	params.p[3].y=(source.height<<16)-1;
-	
+
 	camWarping(&source,&resampled,&params);
-	
+
 	params.perspective=1;
 	params.p[0].x=((source.width<<16)-1)*1/3;
 	params.p[0].y=0;
@@ -250,9 +251,9 @@ void example_warping()
 	params.p[2].y=(source.height<<16)-1;
 	params.p[3].x=0;
 	params.p[3].y=(source.height<<16)-1;
-	
+
 	camWarping(&source,&warped,&params);
-	
+
 	params.perspective=0;
 	params.p[0].x=(source.width<<16)/2;
 	params.p[0].y=-(source.height<<16)/2;
@@ -262,7 +263,7 @@ void example_warping()
 	params.p[2].y=3*(source.height<<16)/2;
 	params.p[3].x=-(source.width<<16)/2;
 	params.p[3].y=(source.height<<16)/2;
-	
+
 	camWarping(&source,&rotated,&params);
     }
     t2=camGetTimeMs();
@@ -323,7 +324,7 @@ void example_binary()
     arithm_params.operation=CAM_ARITHM_INVERSE;
     camMonadicArithm(&dilated,&inverse,&arithm_params);
     camSavePGM(&inverse,"output/chess_binary_inverse.pgm");
-    
+
     // Or with the binary image
     camAllocateImage(&or,source.width,source.height,CAM_DEPTH_1U);
     camSet(&or,0); // Just to make valgrind happy. Not necessary
@@ -337,7 +338,7 @@ void example_binary()
     printf("Number of runs : %d\n",encoded.nbRuns);
     camRLELabelling(&encoded,&results);
 
-    // Print the results 
+    // Print the results
     for (i=0;i<results.nbBlobs;i++) {
 	printf("Blob #%2d : (%3d,%3d,%3d,%3d) Surface=%d\n",
 	    i,results.blobInfo[i].left,results.blobInfo[i].top,
@@ -374,7 +375,7 @@ void example_morpho()
     // Load picture chess.pgm
     camLoadPGM(&source,"resources/chess.pgm");
     camAllocateImage(&dest,source.width,source.height,source.depth);
-    
+
     for (x=0;x<5;x++) {
 	for (y=0;y<5;y++) {
 	    mm_params.dilationStructElt[x][y]=CircleStructElt[x][y];
@@ -409,39 +410,39 @@ void example_morpho()
 
     // Reload picture chess.pgm
     camLoadPGM(&source,"resources/chess.pgm");
-    
+
     t1=camGetTimeMs();
     camDilate5x5(&source,&dest,&mm_params);
     t2=camGetTimeMs();
     printf("5x5 Circle outplace dilation               = %d ms\n",(t2-t1));
-    
+
     t1=camGetTimeMs();
     camDilate5x5(&source,&source,&mm_params);
     t2=camGetTimeMs();
     printf("5x5 Circle inplace dilation                = %d ms\n",(t2-t1));
-    
+
     camDeallocateImage(&source);
 
     // Reload picture chess.pgm
     camLoadPGM(&source,"resources/chess.pgm");
-    
+
     t1=camGetTimeMs();
     camDilateCircle5(&source,&dest);
     t2=camGetTimeMs();
     printf("5x5 Circle outplace dilation               = %d ms\n",(t2-t1));
-    
+
     t1=camGetTimeMs();
     camDilateCircle5(&source,&source);
     t2=camGetTimeMs();
     printf("5x5 Circle inplace dilation                = %d ms\n",(t2-t1));
 
     camSavePGM(&source,"output/chess_dilate_circle5.pgm");
-    
+
     camDeallocateImage(&source);
 
     // Reload picture chess.pgm
     camLoadPGM(&source,"resources/chess.pgm");
-    
+
     for (y=0;y<7;y++) {
         for (x=0;x<7;x++) {
             mm_params.dilationStructElt[y][x]=camCircle7StructElt[y][x];
@@ -456,12 +457,12 @@ void example_morpho()
     camDilateCircle7(&source,&dest);
     t2=camGetTimeMs();
     printf("7x7 Circle outplace dilation               = %d ms\n",(t2-t1));
-    
+
     t1=camGetTimeMs();
     camDilateCircle7(&source,&source);
     t2=camGetTimeMs();
     printf("7x7 Circle inplace dilation                = %d ms\n",(t2-t1));
-    
+
     camSavePGM(&dest,"output/chess_dilate_circle7.pgm");
 
     camDeallocateImage(&source);
@@ -502,7 +503,7 @@ void example_watershed()
         camHierarchicalWatershedRegions(&watershed,&tob);
         sprintf(s,"output/watershed_regions_%s.pgm",filename[c]);
         camSavePGM(&watershed,s);
-        
+
         camFreeTableOfBasins(&tob);
         camDeallocateImage(&source);
         camDeallocateImage(&watershed);
@@ -522,9 +523,9 @@ void example_watershed2()
     camSet(&source,0);
     camDrawCircle(&source,16,16,8,128);
     camFillColor(&source,16,16,255,0);
-        
+
 /*
-    CamImage color,ds; 
+    CamImage color,ds;
     camLoadBMP(&color,"obstacles3.bmp");
     camAllocateRGBImage(&ds,color.width/2,color.height/2);
     camDownscaling2x2(&color,&ds);
@@ -534,7 +535,7 @@ void example_watershed2()
     camDeallocateImage(&ds);
     camDilateCircle5(&source,&source);
  */
-    
+
     // Compute the watershed of the gradient of the picture
     camAllocateImage(&gradient,source.width,source.height,source.depth);
     camMorphoGradientCircle5(&source,&gradient);
@@ -573,8 +574,8 @@ void example_watershed2()
     camRLEAllocate(&encoded, 10000);
     camRLEEncode(&watershed,&encoded);
     camRLELabelling(&encoded,&results);
-    
-    // Print the results 
+
+    // Print the results
     printf("\n");
     for (i=0;i<results.nbBlobs;i++) {
         camRLEBlobMeasures(&results.blobInfo[i], &source);
@@ -585,7 +586,7 @@ void example_watershed2()
     }
 
     camRLEDeallocate(&encoded);
-    
+
     camFreeTableOfBasins(&tob);
     camDeallocateImage(&source);
     camDeallocateImage(&watershed);
@@ -606,23 +607,23 @@ void example_draw()
     camDrawRectangle(&image,100,100,320-100,240-100,CAM_RGB(0,255,0));
     camDrawEllipse(&image,160,120,70,50,CAM_RGB(0,0,255));
     camDrawText16s(&image,"HELLO WORLD",100,120,10,20,0,CAM_RGB(255,255,255));
-    
+
     camLoadBitmapFont(&font,"resources/fonts/epicpin.bmp");
     camDrawTextBitmap(&image,"Hello World",100,140,&font);
     camFreeBitmapFont(&font);
-    
+
     camLoadBitmapFont(&font,"resources/fonts/ddrsmall.bmp");
     camDrawTextBitmap(&image,"Hello World",100,170,&font);
     camFreeBitmapFont(&font);
-      
+
     camLoadBitmapFont(&font,"resources/fonts/mario3.bmp");
     camDrawTextBitmap(&image,"Hello World",100,180,&font);
     camFreeBitmapFont(&font);
-   
+
     camLoadBitmapFont(&font,"resources/fonts/system-color-font.bmp");
     camDrawTextBitmap(&image,"Hello World",100,190,&font);
     camFreeBitmapFont(&font);
-    
+
     camLoadBitmapFont(&font,"resources/fonts/xenon2.bmp");
     camDrawTextBitmap(&image,"Camellia",-8,-5,&font);
     camFreeBitmapFont(&font);
@@ -650,7 +651,7 @@ void example_rle_erosion()
 
     for (i=0;i<128;i++) LUT.t[i]=0;
     for (;i<256;i++) LUT.t[i]=255;
-    
+
     camRLEEncodeLUT(&source,&encoded,&LUT);
     printf("Number of runs : %d\n",encoded.nbRuns);
 
@@ -737,7 +738,7 @@ void example_undistort()
     CamImage source,dest;
     camLoadBMP(&source,"resources/DSCN2773.bmp");
     camAllocateRGBImage(&dest,source.width,source.height);
-    
+
     // Floating point undistort
     camUndistort(&source,&dest,intrinsic_matrix,dist_coeffs);
     camSaveBMP(&dest,"output/DSCN2773_undistorted.bmp");
@@ -745,9 +746,9 @@ void example_undistort()
     // Fixed point undistort
     for (i=0;i<9;i++) intrinsic_matrix_fixed[i]=CAM_FLOAT2FIXED(intrinsic_matrix[i],20);
     for (i=0;i<4;i++) dist_coeffs_fixed[i]=CAM_FLOAT2FIXED(dist_coeffs[i],20);
-    camUndistortFixed(&source,&dest,intrinsic_matrix_fixed,dist_coeffs_fixed); 
+    camUndistortFixed(&source,&dest,intrinsic_matrix_fixed,dist_coeffs_fixed);
     camSaveBMP(&dest,"output/DSCN2773_undistorted_fixed.bmp");
-    
+
     camDeallocateImage(&source);
     camDeallocateImage(&dest);
 }
@@ -785,7 +786,7 @@ void example_color_labeling()
     };
     int color[3]={CAM_RGB(0,0,0),CAM_RGB(255,255,255),CAM_RGB(255,0,0)};
 
-    printf("\nColor Image Labeling example : \n");    
+    printf("\nColor Image Labeling example : \n");
 	camLoadJPEG(&source, "ressources/carotte/image-63.jpg");
     //camLoadBMP(&source,"resources/carotte/test_balle_4.bmp");
     camAllocateYUVImage(&YUV,source.width,source.height);
@@ -799,7 +800,7 @@ void example_color_labeling()
     printf("Number of runs : %d\n",encoded.nbRuns);
     camRLELabeling(&encoded,&results);
 
-    // Print the results 
+    // Print the results
     for (i=0;i<results.nbBlobs;i++) {
 	printf("Blob #%2d : Val=%d (%3d,%3d,%3d,%3d) Surface=%d\n",
 	    i,results.blobInfo[i].value,
@@ -822,7 +823,7 @@ void example_scale()
 {
     CamImage source,dest;
 
-    printf("\nScaling example : \n");    
+    printf("\nScaling example : \n");
 
     camLoadBMP(&source,"resources/alfa156.bmp");
     camAllocateRGBImage(&dest,source.height,source.width);
@@ -839,7 +840,7 @@ void example_mask()
     CamRLEImage encoded_mask;
 
     // Load picture chess.pgm
-    camLoadPGM(&source,"resources/chess.pgm");    
+    camLoadPGM(&source,"resources/chess.pgm");
     camAllocateImage(&dest,source.width,source.height,CAM_DEPTH_8U);
     camAllocateImage(&mask,source.width,source.height,CAM_DEPTH_8U);
     camRLEAllocate(&encoded_mask,10000);
@@ -852,7 +853,7 @@ void example_mask()
 
     camRLEEncode(&mask,&encoded_mask);
     camSetRLEMask(&source,&encoded_mask);
-    
+
     camRLEInverse(&encoded_mask);
     // Copy the original picture
     camCopy(&source,&dest);
@@ -888,7 +889,7 @@ void example_sobel()
     roi.coi=1; roi.xOffset=8; roi.yOffset=8; roi.width=image.width-16; roi.height=image.height-128;
     yuv.roi=&roi;
     camErodeCircle7(&yuv,&yuv);
-    
+
     // Allocate 16 bits images for the gradient images
     camAllocateImage(&sobel_h,roi.width,roi.height,CAM_DEPTH_12U);
     camAllocateImage(&sobel_v,roi.width,roi.height,CAM_DEPTH_12U);
@@ -918,7 +919,7 @@ void example_sobel()
     camDeallocateImage(&thr);
     camDeallocateImage(&yuv);
     camDeallocateImage(&image);
-    camRLEDeallocate(&thresholded); 
+    camRLEDeallocate(&thresholded);
 }
 
 void example_high_pass()
@@ -927,7 +928,7 @@ void example_high_pass()
     CamLinearFilterKernel LoG;
 
     camLoadPGM(&houghCube, "resources/lsun.pgm");
-    
+
     LoG.kernel[0][0]= 0;
     LoG.kernel[0][1]= 0;
     LoG.kernel[0][2]=-1;
@@ -984,7 +985,7 @@ void example_histogram()
 
 void example_harris()
 {
-#define CONTRAST 128 
+#define CONTRAST 128
     CamImage image;
     CamKeypointShort points[1024];
     int xp[]={32,64,32,8,64,100,100,64,32,48,32,16};
@@ -1007,25 +1008,25 @@ void example_harris()
 
     for (i=0; i < nbPoints; i++) {
 	printf("x=%d y=%d mark=%d\n", points[i].x, points[i].y, points[i].value);
-	if (points[i].value > 2000) 
+	if (points[i].value > 2000)
 	    camPlot(&image, points[i].x, points[i].y, 255, CAM_CROSS);
     }
     camSavePGM(&image, "output/harris.pgm");
-    camDeallocateImage(&image);    
+    camDeallocateImage(&image);
 }
 
 void example_integralimage()
 {
     CamImage image, dest;
     int c, t1, t2;
-    
+
     camLoadPGM(&image, "resources/chess.pgm");
     dest.imageData=NULL; /* in order to use automatic allocation */
-    
+
     t1=camGetTimeMs();
     for (c=0;c<1000;c++) {
 	camIntegralImage(&image, &dest);
-    }	
+    }
     t2=camGetTimeMs();
     printf("Integral image computation = %d us\n",t2-t1);
 
@@ -1054,7 +1055,7 @@ void example_keypoints()
     CamWarpingParams params;
 
     //camKeypointsInternalsPrepareOrientation();
-    
+
     printf("Keypoints detection :\n");
     camAllocateImage(&image, 256, 256, CAM_DEPTH_8U);
     camAllocateKeypoints(&points, 30);
@@ -1086,7 +1087,7 @@ void example_keypoints()
 	camDrawLine(&image, params.p[i].x, params.p[i].y, params.p[(i+1)%4].x, params.p[(i+1)%4].y, 255);
     }
     camFillColor(&image, 192, 192, 255, -1);
- 
+
     angle = 30;
     costheta = cos(angle * 2 * M_PI / 360);
     sintheta = sin(angle * 2 * M_PI / 360);
@@ -1103,14 +1104,14 @@ void example_keypoints()
     camFillColor(&image, 50, 192, 255, -1);
 
 #endif
-    dest.imageData = NULL; 
-	
+    dest.imageData = NULL;
+
     t1=camGetTimeMs();
     for (c = 0; c < 10; c++)
     {
 	printf("%d ", c);
 	camFastHessianDetector(&image, &points, 100, CAM_APPROX_HESSIAN);
-    }	
+    }
     t2=camGetTimeMs();
     printf("Fast hessian computation = %d us\n",(t2-t1)*100);
     for (i = 0; i < points.nbPoints; i++) {
@@ -1134,7 +1135,7 @@ void example_keypoints2()
     float ratio = 2.0f/3;
     int t1, t2;
 
-    printf("Keypoint detection on Clooney :\n");
+//     printf("Keypoint detection on Clooney :\n");
     image.imageData = NULL;
     camLoadBMP(&image, "resources/clooney.bmp");
     Y1.imageData = NULL;
@@ -1150,14 +1151,14 @@ void example_keypoints2()
     camFastHessianDetector(&Y1, &points1, 100, 0);
     t2=camGetTimeMs();
     camFastHessianDetector(&Y2, &points2, 100, 0);
-	
+
     nbMatches = 0;
-    
+
     for (i = 0; i < points1.nbPoints; i++) {
         best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
 	if (dist1 < 0.7 * dist2) {
-	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255); 
-	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255); 
+	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255);
+	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255);
 	    else {
 		color = CAM_RGB(0, 255, 0);
 		nbMatches++;
@@ -1170,7 +1171,7 @@ void example_keypoints2()
     printf("# points found on 2nd image: %d\n", points2.nbPoints);
     printf("# points matched: %d\n", nbMatches);
     printf("CamKeypoints computation = %d ms\n",t2-t1);
-    
+
     camSaveBMP(&image, "output/clooney.bmp");
     camDeallocateImage(&image);
     camDeallocateImage(&Y1);
@@ -1184,7 +1185,7 @@ void example_keypoints3()
     CamImage image, Y;
     CamKeypoints points;
     int i;
-   
+
     printf("Keypoint detection on sunflowers :\n");
     image.imageData = NULL;
     camLoadBMP(&image, "resources/sunflower.bmp");
@@ -1194,7 +1195,7 @@ void example_keypoints3()
 
     points.nbPoints = 0;
     camFastHessianDetector(&Y, &points, 1500, 0);
-	
+
     for (i = 0; i < points.nbPoints; i++) {
 	printf("x=%d y=%d mark=%d scale=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale);
     }
@@ -1204,6 +1205,56 @@ void example_keypoints3()
     camDeallocateImage(&image);
     camDeallocateImage(&Y);
     camFreeKeypoints(&points);
+}
+
+void test_camRecursiveKeypoints2(char *filename){
+	CamImage image, I1, I2;
+	CamKeypoints points1, points2;
+	int i;
+
+	image.imageData = NULL;
+// 	camLoadPGM(&image,filename);
+	camLoadBMP(&image, "resources/img7.bmp");
+	I1.imageData = NULL;
+	I2.imageData = NULL;
+	camRGB2Y(&image, &I1);
+	camRGB2Y(&image, &I2);
+// 	camClone(&image, &I1);
+// 	camClone(&image, &I2);
+
+	printf("Recursive keypoints detection :\n");
+
+	camAllocateKeypoints(&points1, 10000);
+	camAllocateKeypoints(&points2, 10000);
+
+	camKeypointsRecursiveDetector(&I1, NULL, &points1, 20, 0);
+
+	points2.nbPoints = 0;
+	camFastHessianDetector(&I2, &points2, 20, 0);
+
+	//Recursive keypoints
+// 	for (i = 0; i < points.nbPoints; i++) {
+// 		printf("x=%d y=%d value=%d scale=%d size=%d angle=%d\n", points.keypoint[i]->x, points.keypoint[i]->y, points.keypoint[i]->value, points.keypoint[i]->scale, points.keypoint[i]->size, points.keypoint[i]->angle);
+// 	}
+// 	camDrawKeypoints(&points1, &I1, CAM_RGB(255, 0, 0));
+// 	camSavePGM(&image, "output/keypoints_recursive.pgm");
+
+	//CamKeypoints
+	for (i = 0; i < points2.nbPoints; i++) {
+// 		printf("x=%d y=%d mark=%d scale=%d\n", points2.keypoint[i]->x, points2.keypoint[i]->y, points2.keypoint[i]->value, points2.keypoint[i]->scale);
+	}
+	printf("# points found : %d\n", points2.nbPoints);
+	camDrawKeypoints(&points1, &image, CAM_RGB(0, 255, 0));
+	camDrawKeypoints(&points2, &image, CAM_RGB(255, 0, 0));
+	camSaveBMP(&image, "output/keypoints.bmp");
+
+	camDeallocateImage(&image);
+	camDeallocateImage(&I1);
+	camDeallocateImage(&I2);
+	camFreeKeypoints(&points1);
+	camFreeKeypoints(&points2);
+
+	printf("Quit!!\n");
 }
 
 void example_capture()
@@ -1242,7 +1293,7 @@ void example_jpeg()
     char *jpeg;
     int size;
     CamImage image, image2;
-    
+
     camLoadJPEG(&image, "resources/rover.jpg");
     camSaveBMP(&image, "output/rover3.bmp");
     camDeallocateImage(&image);
@@ -1252,7 +1303,7 @@ void example_jpeg()
     camSaveBMP(&image2, "output/rover4.bmp");
     camDeallocateImage(&image);
     camDeallocateImage(&image2);
-    
+
     jpeg = malloc(1000000);
     handle = fopen("resources/rover.jpg", "rb");
     size = fread(jpeg, 1, 1000000, handle);
@@ -1300,14 +1351,14 @@ void example_recursive_keypoints()
     camKeypointsRecursiveDetector(&Y1, NULL, &points1, 50, CAM_UPRIGHT);
     t2=camGetTimeMs();
     camKeypointsRecursiveDetector(&Y2, NULL, &points2, 50, CAM_UPRIGHT);
-	
+
     nbMatches = 0;
-    
+
     for (i = 0; i < points1.nbPoints; i++) {
         best = camFindKeypoint(points1.keypoint[i], &points2, &dist1, &dist2);
 	if (dist1 < 0.7 * dist2) {
-	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255); 
-	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255); 
+	    if (fabs(ratio * points1.keypoint[i]->x - best->x) > 10) color = CAM_RGB(0, 0 , 255);
+	    else if (fabs(ratio * points1.keypoint[i]->y - best->y) > 10) color = CAM_RGB(0, 0 , 255);
 	    else {
 		color = CAM_RGB(0, 255, 0);
 		nbMatches++;
@@ -1321,7 +1372,7 @@ void example_recursive_keypoints()
     printf("# points found on 2nd image: %d\n", points2.nbPoints);
     printf("# points matched: %d\n", nbMatches);
     printf("Recursive keypoints computation = %d ms\n",t2-t1);
-    
+
     camSaveBMP(&image, "output/clooney_recursive.bmp");
     camDeallocateImage(&image);
     camDeallocateImage(&Y1);
@@ -1339,7 +1390,7 @@ void example_dilation(){
 	//pointer on str elements
 	char* ptr;
 	CamTable lut;
-	
+
 	char structElt[strElmnt_size][strElmnt_size];
 
 	for(x=0;x<strElmnt_size;x++){
@@ -1347,7 +1398,7 @@ void example_dilation(){
 			structElt[x][y] = 1;
 		}
 	}
-	lut.t[0]=0; 
+	lut.t[0]=0;
 	lut.t[1]=255;
 	lut.size = 2;
 	//load test image
@@ -1379,7 +1430,7 @@ void example_dilation(){
 	camRLEEncode(&source_binary,&dilated);
 	camRLEEncode(&str, &strElmnt);
 	//printf("strElement nbRuns : %d\n", strElmnt.nbRuns);
-	
+
 	//dilation
 	camRLEDilate(&encoded, &dilated, &strElmnt);
 	//camRLEDecode(&encoded, &decode_dilated_rle, &lut);
@@ -1389,7 +1440,7 @@ void example_dilation(){
 	printf("nbRuns dilated : %d\n", dilated.nbRuns);
 	printf("nbRuns strElmnt : %d\n", strElmnt.nbRuns);
 
-	
+
 	camRLEDecode(&dilated, &decode_dilated_rle, &lut);
 
 	camSavePGM(&decode_dilated_rle, "output/dilated.pgm");
@@ -1407,7 +1458,7 @@ void example_dilation(){
 }
 
 void carotte(){
-	
+	printf("i'm here ouss\n");
 }
 
 void cpp_example_erosion();
@@ -1424,16 +1475,23 @@ void cpp_example_draw();
 
 void test_camKeypointsAlt();
 
-int main()
+int main(int argc, char *argv[])
 {
     camInitBenchmark();
-
+	char filename[256];
+	if (argc < 2)
+		strcpy(filename, "resources/img7.pgm");
+	else
+		strcpy(filename, argv[1]);
     // Tracking examples
-    evaluate_cam_keypoints_tracking2(20);
+//     evaluate_cam_keypoints_tracking2(20);
     //test_cam_keypoints_tracking2();
-    //test_camRecursiveKeypoints();
+//     test_camRecursiveKeypoints();
+	test_camRecursiveKeypoints2(filename);
     //example_recursive_keypoints();
-    //example_keypoints2();
+//     example_keypoints2();
+// 	example_keypoints();
+// 	example_keypoints3();
     //example_morpho();
 	//example_dilation();
     //example_dilation();
@@ -1444,7 +1502,7 @@ int main()
     /*
     example_filters();
     example_warping();
- 
+
     example_morpho();
     example_draw();
     example_watershed();
@@ -1461,8 +1519,6 @@ int main()
     example_histogram();
     example_harris();
     example_integralimage();
-    example_keypoints();
-    example_keypoints3();
     example_capture();
     example_bmp();
     example_jpeg();*/

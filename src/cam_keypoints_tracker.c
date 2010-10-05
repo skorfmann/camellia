@@ -32,15 +32,15 @@
           derived from this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR 
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
-    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
-    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
-    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+    THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+    CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+    EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   ==========================================================================
@@ -213,7 +213,7 @@ void		cam_keypoints_tracking_print_matches(CamImage *img1, CamImage *img2, char 
   int		x2;
   int		y1;
   int		y2;
-  
+
   camAllocateRGBImage(&res, img1->width, img1->height * 2);
   camSetROI(&roi, 0, 0, img1->height, img1->width, img1->height);
   res.roi = NULL;
@@ -305,7 +305,7 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_max_on_each_scale(CamTra
   int			k;
   CamKeypointShort	currentPoint;
   CamKeypointShort	*maxOnEachScale;
-  
+
   maxOnEachScale = (CamKeypointShort*)calloc(((tc->rv.scale << 1) + 1), sizeof(CamKeypointShort));
   // on each scale, get the highest detector's value
   for (currentPoint.scale = max(seedScale - tc->rv.scale, 1), j = 0 ; currentPoint.scale <= seedScale + tc->rv.scale ; ++currentPoint.scale, ++j)
@@ -410,7 +410,6 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scal
   struct timeval	tv1;
   struct timeval	tv2;
 #endif
-
   featureX = tc->previousFeatures->keypoint[index]->x + shiftX;
   featureY = tc->previousFeatures->keypoint[index]->y + shiftY;
   featureScale = max((tc->previousFeatures->keypoint[index]->scale + shiftScale) >> 2, 1);
@@ -441,7 +440,7 @@ inline CamKeypointShort	*cam_keypoints_tracking_extract_overall_max_on_each_scal
 
 void			cam_keypoints_tracking_compute_feature_description(CamKeypoint *keypoint, CamKeypointShort *feature, CamKeypointShort *nextFeature, CamImage *image, CamImage *integralImage, int options)
 {
-  CamImage		filter;  
+  CamImage		filter;
 
   if (!(options & CAM_UPRIGHT))
     {
@@ -487,7 +486,7 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
   {
     const int hw = MAX_KERNEL_WIDTH / 2;
     float max_gauss = 1.0f, max_gaussderiv = (float) (sigma*exp(-0.5f));
-    
+
     for (i = -hw ; i <= hw ; i++)
       {
 	gauss->data[i+hw] = (float) (exp(-i*i / (2*sigma*sigma)));
@@ -497,11 +496,11 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
     for (i = -hw ; fabs(gauss->data[i+hw] / max_gauss) < factor ; i++, gauss->width -= 2);
     gaussderiv->width = MAX_KERNEL_WIDTH;
     for (i = -hw ; fabs(gaussderiv->data[i+hw] / max_gaussderiv) < factor ; i++, gaussderiv->width -= 2);
-    if (gauss->width == MAX_KERNEL_WIDTH || 
+    if (gauss->width == MAX_KERNEL_WIDTH ||
         gaussderiv->width == MAX_KERNEL_WIDTH)
       camError("cam_keypoints_tracking_compute_kernels", "Max kernel width too small\n");
   }
-  
+
   //gauss->width = 15;
   //gaussderiv->width = 15;
 
@@ -512,7 +511,7 @@ void		cam_keypoints_tracking_compute_kernels(float sigma, CamConvolutionKernel *
   {
     const int hw = gaussderiv->width / 2;
     float den;
-    
+
     den = 0.0;
     for (i = 0 ; i < gauss->width ; i++)  den += gauss->data[i];
     for (i = 0 ; i < gauss->width ; i++)  gauss->data[i] /= den;
@@ -540,10 +539,10 @@ void			cam_keypoints_tracking_convolve_horiz(CamFloatImage *imgin, CamConvolutio
   nrows = imgin->nrows;
   for (j = 0 ; j < nrows ; j++)
     {
-      
+
       for (i = 0 ; i < radius ; i++)
 	*ptrout++ = 0.0;
-      
+
       for ( ; i < ncols - radius ; i++)
 	{
 	  ppp = ptrrow + i - radius;
@@ -556,7 +555,7 @@ void			cam_keypoints_tracking_convolve_horiz(CamFloatImage *imgin, CamConvolutio
 
       for ( ; i < ncols ; i++)
 	*ptrout++ = 0.0;
-      
+
       ptrrow += ncols;
     }
 }
@@ -579,13 +578,13 @@ void			cam_keypoints_tracking_convolve_vert(CamFloatImage *imgin, CamConvolution
   nrows = imgin->nrows;
   for (i = 0 ; i < ncols ; i++)
     {
-      
+
       for (j = 0 ; j < radius ; j++)
 	{
 	  *ptrout = 0.0;
 	  ptrout += ncols;
 	}
-      
+
       for ( ; j < nrows - radius ; j++)
 	{
 	  ppp = ptrcol + ncols * (j - radius);
@@ -599,7 +598,7 @@ void			cam_keypoints_tracking_convolve_vert(CamFloatImage *imgin, CamConvolution
 	  *ptrout = sum;
 	  ptrout += ncols;
 	}
-      
+
       for ( ; j < nrows ; j++)
 	{
 	  *ptrout = 0.0;
@@ -664,7 +663,7 @@ void			cam_keypoints_tracking_compute_intensity_difference(CamFloatImage *img1, 
   register int		i;
   register int		j;
   register float	*ptrimgdiff;
-  
+
   hw = width / 2;
   hh = height / 2;
   ptrimgdiff = imgdiff->data;
@@ -707,7 +706,7 @@ void		cam_keypoints_tracking_compute_gradient_sum(CamFloatImage *gradx1, CamFloa
 }
 
 void			cam_keypoints_tracking_compute_2by2_gradient_matrix(CamFloatImage *gradx, CamFloatImage *grady, int width, int height,
-							 float *gxx, float *gxy, float *gyy) 
+							 float *gxx, float *gxy, float *gyy)
 
 {
   register float	gx;
@@ -740,7 +739,7 @@ void			cam_keypoints_tracking_compute_2by1_error_vector(CamFloatImage *imgdiff, 
   ptrgrady = grady->data;
   ptrimgdiff = imgdiff->data;
   /* Compute values */
-  *ex = 0;  *ey = 0;  
+  *ex = 0;  *ey = 0;
   for (i = 0 ; i < width * height ; i++)  {
     diff = *ptrimgdiff++;
     *ex += diff * (*ptrgradx++);
@@ -802,7 +801,7 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
   CamAllocateFloatImage(&imgdiff, width, height);
   CamAllocateFloatImage(&gradx, width, height);
   CamAllocateFloatImage(&grady, width, height);
-    
+
   do  {
 
     if (  x1-hw < 0.0f || nc-( x1+hw) < one_plus_eps ||
@@ -813,7 +812,7 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
     }
 
 #ifdef CAM_TRACKING_SUBTIMINGS
-  gettimeofday(&tv1, NULL);      
+  gettimeofday(&tv1, NULL);
 #endif
   cam_keypoints_tracking_compute_intensity_difference(img1, img2, x1, y1, *x2, *y2, width, height, &imgdiff);
 #ifdef CAM_TRACKING_SUBTIMINGS
@@ -831,7 +830,7 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
     gyy = 0.0f;
     cam_keypoints_tracking_compute_2by2_gradient_matrix(&gradx, &grady, width, height, &gxx, &gxy, &gyy);
     cam_keypoints_tracking_compute_2by1_error_vector(&imgdiff, &gradx, &grady, width, height, step_factor, &ex, &ey);
-    
+
     dx = 0.0f;
     dy = 0.0f;
     status = cam_keypoints_tracking_solve_mouvement_equation(gxx, gxy, gyy, ex, ey, small, &dx, &dy);
@@ -842,7 +841,7 @@ TRACKING_STATUS		cam_keypoints_tracking_compute_local_image_displacement(float x
 
   }  while ((fabs(dx)>=0.1f || fabs(dy)>=0.1f) && iteration < 10);
 
-  if (*x2-hw < 0.0f || nc-(*x2+hw) < one_plus_eps || 
+  if (*x2-hw < 0.0f || nc-(*x2+hw) < one_plus_eps ||
       *y2-hh < 0.0f || nr-(*y2+hh) < one_plus_eps)
     status = OOB;
 
@@ -931,11 +930,11 @@ CamKeypointsMatches		*cam_keypoints_tracking_extract_seed_matches(CamTrackingCon
 
   seedsMatches = (CamKeypointsMatches*)malloc(sizeof(*seedsMatches));
   camAllocateKeypointsMatches(seedsMatches, tc->nbSeeds);
-  
+
   // in the specified research volume, finds the more coherent point corresponding to the current seed <=> highest detector value
   l = 0;
 #ifdef CAM_TRACKING_SUBTIMINGS
-  gettimeofday(&tv3, NULL);      
+  gettimeofday(&tv3, NULL);
 #endif
   cam_keypoints_tracking_compute_kernels(1.0f, &gaussKernel, &gaussDerivKernel);
 #ifdef CAM_TRACKING_DEBUG_3
@@ -980,13 +979,21 @@ CamKeypointsMatches		*cam_keypoints_tracking_extract_seed_matches(CamTrackingCon
 	      printf("shiftx : %f shifty : %f\n", (pyramid[s].x2 - pyramid[s].x1), (pyramid[s].y2 - pyramid[s].y1));
 #endif
 #ifdef CAM_TRACKING_SUBTIMINGS
-	      gettimeofday(&tv1, NULL);      
+<<<<<<< .mine
+      gettimeofday(&tv1, NULL);
+=======
+	      gettimeofday(&tv1, NULL);
+>>>>>>> .r495
 #endif
 	      memcpy(&seedMatch.x, &maxOnEachScale[0], sizeof(CamKeypointShort));
 	      cam_keypoints_tracking_compute_feature_description(&seedMatch, &maxOnEachScale[0], &maxOnEachScale[1], image, integralImage, options);
 	      seedMatch.scale = seedMatch.scale << 2;
 #ifdef CAM_TRACKING_SUBTIMINGS
-	      gettimeofday(&tv2, NULL);      
+<<<<<<< .mine
+      gettimeofday(&tv2, NULL);
+=======
+	      gettimeofday(&tv2, NULL);
+>>>>>>> .r495
 #endif
 	    }
 	  status = min(pyramid[s].status, status);
@@ -1028,12 +1035,12 @@ CamKeypointsMatches		*cam_keypoints_tracking_extract_seed_matches(CamTrackingCon
 BOOL			cam_keypoints_tracking_is_seed(CamTrackingContext *tc, unsigned int *seedsIndexes, unsigned int featureIndex)
 {
   register unsigned int	k;
-  
+
   for (k = 0 ; k < tc->nbSeeds ; ++k)
     {
       if (seedsIndexes[k] == featureIndex)
 	return (TRUE);
-    }  
+    }
   return (FALSE);
 }
 
@@ -1154,7 +1161,7 @@ void	cam_keypoints_tracking_fill_empty_area()
 void		printMatchings(CamKeypointsMatches *matches)
 {
   register int	i;
-  
+
   for (i = 0 ; i < matches->nbMatches + matches->nbOutliers ; ++i)
     {
       if (matches->pairs[i].mark)
@@ -1177,7 +1184,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   CamROI		roix;
   register int		i;
   register int		j;
-  
+
 #ifdef CAM_TRACKING_TIMINGS
   int			timeInROIDetector;
   int			t1;
@@ -1220,7 +1227,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       for (image->roi->xOffset = 0 ; image->roi->xOffset < image->width ; image->roi->xOffset += tc->rw.width)
 	{
 	  for (image->roi->yOffset = 0 ; image->roi->yOffset < image->height ; image->roi->yOffset += tc->rw.height)
-	    {	
+	    {
 #ifdef CAM_TRACKING_SUBTIMINGS
 	      t1 = camGetTimeMs();
 #endif
@@ -1259,7 +1266,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
   // initialisation already done
   else
     {
-      seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);  
+      seedsIndexes = cam_keypoints_tracking_extract_seeds(tc);
       currentFeatures = (CamKeypoints*)malloc(sizeof(CamKeypoints));
       res = (CamKeypointsMatches*)malloc(sizeof(CamKeypointsMatches));
       camAllocateKeypoints(currentFeatures, tc->nbFeatures);
@@ -1272,7 +1279,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 #endif
 	}
 
-      /* begin integral image computing */ 
+      /* begin integral image computing */
 #ifdef CAM_TRACKING_TIMINGS
       t4 = camGetTimeMs();
 #endif
@@ -1360,7 +1367,7 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
 
       // cam_keypoints_tracking_clean_keypoints(currentFeatures, keypointsMatches, seedsMatches->nbMatches); => to be done
       cam_keypoints_tracking_fill_empty_area();
-      
+
       camDeallocateImage(tc->previousImage);
       tc->previousImage = image;
 
@@ -1372,6 +1379,8 @@ CamKeypointsMatches	*cam_keypoints_tracking(CamTrackingContext *tc, CamImage *im
       free(tc->previousFeatures);
       camFreeKeypointsMatches(seedsMatches);
       free (seedsMatches);
+
+//       updateTrackerFeatures(tc, );
 
       tc->previousFeatures = currentFeatures;
       camFreeKeypointsMatches(keypointsMatches);
@@ -1430,7 +1439,7 @@ void			test_cam_keypoints_tracking()
 #ifdef CAM_TRACKING_TIMINGS
   t1 = camGetTimeMs();
 #endif
-  
+
   cam_keypoints_tracking(&tc, &firstImage, camKeypointsRecursiveDetector, cam_keypoints_tracking_compute_detector, CAM_UPRIGHT);
 
 #ifdef CAM_TRACKING_TIMINGS
