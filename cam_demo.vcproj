@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="cam_demo"
-	ProjectGUID="{2D5DB43C-81DB-48A4-8E28-7D79E239E0F2}"
+	ProjectGUID="{BFAB8797-2D1C-48D7-A2BD-EE02A2113238}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform

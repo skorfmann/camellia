@@ -62,8 +62,14 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <mmsystem.h>
-void camInitBenchmark() {timeBeginPeriod(1);}
-int camGetTimeMs() {return timeGetTime();}
+void camInitBenchmark() 
+{
+	timeBeginPeriod(1);
+}
+int camGetTimeMs() 
+{
+	return timeGetTime();
+}
 #else
 #include <sys/time.h>
 #include <unistd.h>
@@ -1246,7 +1252,7 @@ void test_camRecursiveKeypoints2(char *filename){
 	}
 	printf("# points found : %d\n", points2.nbPoints);
 	camDrawKeypoints(&points1, &image, CAM_RGB(0, 255, 0));
-	camDrawKeypoints(&points2, &image, CAM_RGB(255, 0, 0));
+	//camDrawKeypoints(&points2, &image, CAM_RGB(255, 0, 0));
 	camSaveBMP(&image, "output/keypoints.bmp");
 
 	camDeallocateImage(&image);
@@ -1478,12 +1484,12 @@ void test_camKeypointsAlt();
 
 int main(int argc, char *argv[])
 {
-    camInitBenchmark();
 	char filename[256];
 	if (argc < 2)
-		strcpy(filename, "resources/img7.bmp");
+		strcpy(filename, "resources/img9.bmp");
 	else
 		strcpy(filename, argv[1]);
+	camInitBenchmark();
     // Tracking examples
 //     evaluate_cam_keypoints_tracking2(20);
     //test_cam_keypoints_tracking2();
