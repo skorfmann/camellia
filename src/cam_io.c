@@ -143,9 +143,13 @@ int camLoadPGM(CamImage *im, char *fn)
 	    camAllocateRGBImage(im, m, n);
             for (i = 0; i < n; i++) {
                 for (j = 0; j < m; j++) {
-                    fscanf(f, "%c", &r);
-                    fscanf(f, "%c", &g);
-                    fscanf(f, "%c", &b);
+                    char rx, gx, bx;
+                    fscanf(f, "%c", &rx);
+                    fscanf(f, "%c", &gx);
+                    fscanf(f, "%c", &bx);
+                    r = rx;
+                    g = gx;
+                    b = bx;
 
 		    *((unsigned char*)im->imageData + j * 3 + i * im->widthStep)     = r;
 		    *((unsigned char*)im->imageData + j * 3 + i * im->widthStep + 1) = g;
@@ -506,7 +510,7 @@ int camLoadBMP(CamImage *im, char *fn)
     get16(f);
     bpp = get16(f);
     if (bpp != 24 && bpp != 32) {
-	sprintf(str,"Unsupported bpp value: %ld bpp", bpp);
+	sprintf(str,"Unsupported bpp value: %d bpp", bpp);
 	camError("camLoadBMP", str);
 	return 0;
     }
